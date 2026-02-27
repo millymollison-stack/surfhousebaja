@@ -10,7 +10,8 @@ Transform surfhousebaja.com into a sellable, scalable vacation rental booking te
 - [x] 1.1 Analyze current code structure
 - [x] 1.2 Make site data-driven (JSON config)
 - [x] 1.3 Create property owner admin panel
-- [ ] 1.4 Set up multi-tenant database
+- [x] 1.4 Set up multi-tenant database (SQL file ready)
+- [ ] 2.1 Build template landing page
 
 ### Phase 2: Marketplace
 - [ ] 2.1 Build template landing page
