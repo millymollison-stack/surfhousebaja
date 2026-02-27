@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Shield } from 'lucide-react';
+import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Shield, Building } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { supabase } from '../lib/supabase';
@@ -490,6 +490,16 @@ export function UserMenu() {
                 >
                   <Shield className="h-5 w-5" />
                   <span className="font-medium">Admin Dashboard</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate('/property-admin');
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 mt-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors z-10"
+                >
+                  <Building className="h-5 w-5" />
+                  <span className="font-medium">My Property</span>
                 </button>
               </div>
             )}

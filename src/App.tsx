@@ -6,6 +6,7 @@ import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { PropertyAdmin } from './pages/PropertyAdmin';
 import { EmailConfirmation } from './pages/EmailConfirmation';
 
 function AppContent() {
@@ -52,6 +53,16 @@ function AppContent() {
               <AdminDashboard />
             ) : (
               <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/property-admin"
+          element={
+            user ? (
+              <PropertyAdmin />
+            ) : (
+              <Navigate to="/login" replace />
             )
           }
         />

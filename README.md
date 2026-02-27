@@ -1,61 +1,61 @@
-# Project 2: Surf House Baja Template
+# 02 - Surf House Baja Template
 
-## Overview
+## Project Overview
 
-Take the single-page property showcasing and booking site (surfhousebaja.com) and offer it as a template sold multiple times via a website to others that need an off-Airbnb booking solution.
+Transform surfhousebaja.com into a sellable, scalable vacation rental booking template.
 
-## Current Site
+## Current Status
 
-- **URL:** https://www.surfhousebaja.com
-- **Built with:** bolt.new
-- **Hosted by:** bolt
-- **Tech Stack:**
-  - Stripe (payments)
-  - Supabase (database)
-  - Hostinger (emails on booking)
+### Phase 1: Template Architecture
+- [x] 1.1 Analyze current code structure
+- [x] 1.2 Make site data-driven (JSON config)
+- [x] 1.3 Create property owner admin panel
+- [ ] 1.4 Set up multi-tenant database
 
-## Target Users
+### Phase 2: Marketplace
+- [ ] 2.1 Build template landing page
+- [ ] 2.2 Create signup/onboarding flow
+- [ ] 2.3 Set up Stripe Connect
 
-- Property owners currently on Airbnb who want their own booking page
-- Hosts wanting to link from Instagram
-- Property owners avoiding Airbnb fees
-- Property owners in areas with zoning restrictions
-- Property owners with properties abroad (like Mexico)
+### Phase 3: Features
+- [ ] 3.1 Booking calendar widget
+- [ ] 3.2 Payment integration
+- [ ] 3.3 Email automation
 
-## Goals
+### Phase 4: Launch
+- [ ] 4.1 Marketing site copy
+- [ ] 4.2 SEO optimization
+- [ ] 4.3 Launch & test
 
-- Save current working version of surfhousebaja.com
-- Create a customizable template
-- Build a template marketplace website
-- Allow customers to configure their own property
+## Live Site
 
-## Features to Include
+https://surfhousebaja.netlify.app
 
-- Property showcasing (photos, amenities, description)
-- Booking calendar with date selection
-- Payment via Stripe
-- Guest reviews
-- Email notifications via Hostinger
-- Customizable for any property
+## Folder Structure
 
-## Status
+```
+02-surfhousebaja-template/
+├── src/
+│   ├── components/     # React components
+│   ├── pages/         # Page components
+│   ├── lib/           # Utilities
+│   ├── store/         # State management
+│   ├── types/         # TypeScript types
+│   ├── config.json    # Site configuration
+│   └── config.ts      # Config loader
+├── docs/
+│   ├── database.md
+│   ├── code-analysis.md
+│   └── tasks/
+├── supabase/
+│   ├── migrations/
+│   └── functions/
+└── notes.md
+```
 
-- [x] Project folder created
-- [ ] Save current site iteration
-- [ ] Analyze current code structure
-- [ ] Create template version
-- [ ] Build marketplace website
-- [ ] Set up sales funnel
+## Tech Stack
 
-## Sub-Agents Needed
-
-- Coding Agent
-- Content Agent
-- Research Agent
-- Lead Generation Agent
-
-## Notes
-
-- The original site works and should be preserved
-- Need to make the template configurable (no code needed for end users)
-- Consider Stripe Connect for marketplace payments
+- Frontend: React + Vite + TypeScript + Tailwind
+- Database: Supabase
+- Payments: Stripe
+- Hosting: Netlify
