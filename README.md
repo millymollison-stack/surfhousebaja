@@ -60,3 +60,4 @@ https://surfhousebaja.netlify.app
 - Database: Supabase
 - Payments: Stripe
 - Hosting: Netlify
+# deploy trigger Fri Feb 27 14:12:57 PST 2026
