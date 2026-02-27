@@ -3,13 +3,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking } from '../types';
 
-interface PropertyAdminProps {
-  userId: string;
-}
-
-export function PropertyAdmin({ userId }: PropertyAdminProps) {
+export function PropertyAdmin() {
+  const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -18,14 +16,19 @@ export function PropertyAdmin({ userId }: PropertyAdminProps) {
   const [activeTab, setActiveTab] = useState<'properties' | 'bookings' | 'images' | 'settings'>('properties');
 
   useEffect(() => {
-    loadData();
-  }, [userId]);
+    if (user?.id) {
+      loadData();
+    }
+  }, [user]);
 
   async function loadData() {
+    if (!user?.id) return;
+    
     // Load properties for this owner
     const { data: props } = await supabase
       .from('properties')
       .select('*')
+      .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
     
     if (props && props.length > 0) {
@@ -47,6 +50,8 @@ export function PropertyAdmin({ userId }: PropertyAdminProps) {
   }
 
   async function createProperty() {
+    if (!user?.id) return;
+    
     const newProperty = {
       title: 'New Property',
       description: 'Add your description',
@@ -55,7 +60,7 @@ export function PropertyAdmin({ userId }: PropertyAdminProps) {
       bathrooms: 1,
       max_guests: 2,
       amenities: [],
-      owner_id: userId
+      owner_id: user.id
     };
     
     const { data, error } = await supabase
@@ -114,6 +119,29 @@ export function PropertyAdmin({ userId }: PropertyAdminProps) {
   }
 
   if (loading) return <div className="p-8">Loading...</div>;
+
+  if (!user) {
+    return <div className="p-8 text-center">Please log in to access property management.</div>;
+  }
+
+  if (properties.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <h2 className="text-2xl font-bold mb-4">Welcome to Property Admin!</h2>
+            <p className="text-gray-600 mb-6">You don't have any properties yet. Let's add your first one!</p>
+            <button
+              onClick={createProperty}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 text-lg"
+            >
+              + Add Your First Property
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
