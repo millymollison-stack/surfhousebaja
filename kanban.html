@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>David & Milly - Task Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 3.5rem;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-family: 'Anton', sans-serif;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        h1::before {
+            content: "David & Milly - Task Board";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #8B5CF6 0%, #3B82F6 50%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            z-index: -1;
+        }
+        
+        .board {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+            min-height: 70vh;
+        }
+        
+        .column {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            min-width: 300px;
+            max-width: 300px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .column h2 {
+            font-size: 1.1rem;
+            font-family: 'Anton', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            background: linear-gradient(90deg, #8B5CF6, #3B82F6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .task-count {
+            background: rgba(139, 92, 246, 0.3);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #a78bfa;
+        }
+        
+        .tasks {
+            min-height: 200px;
+        }
+        
+        .task {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: grab;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .task:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+        
+        .task.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .task-subtitle {
+            font-size: 0.85rem;
+            color: #8892b0;
+            font-style: italic;
+        }
+        
+        .task-subtitle[contenteditable]:focus {
+            outline: none;
+            border-bottom: 1px solid #8B5CF6;
+        }
+        
+        .column.done .task-title {
+            text-decoration: line-through;
+            color: #8892b0;
+        }
+        
+        .column.archived .task {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .add-task-btn {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #8892b0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .add-task-btn:hover {
+            border-color: #8B5CF6;
+            color: #a78bfa;
+        }
+    </style>
+</head>
+<body>
+    <h1>David & Milly - Task Board</h1>
+    
+    <div class="board" id="board">
+        <div class="column" data-column="todo">
+            <div class="column-header">
+                <h2>To Do</h2>
+                <span class="task-count" id="todo-count">0</span>
+            </div>
+            <div class="tasks" id="todo-tasks">
+                <div class="task" draggable="true">
+                    <div class="task-title">1. AI Agent Agency</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">2. Surf House Baja Template</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">3. Business Acquisition</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">4. Faceless Instagram</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">5. Business Research Funnel</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">6. Divorce Digital Product</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">7. Upwork Freelance</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">8. Clawbot Setup Service</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">9. SAS Booking Services</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">10. Lead Gen Service</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+                <div class="task" draggable="true">
+                    <div class="task-title">11. AI Business Finder</div>
+                    <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+                </div>
+            </div>
+            <button class="add-task-btn" onclick="addTask('todo-tasks')">+ Add Task</button>
+        </div>
+        
+        <div class="column" data-column="progress">
+            <div class="column-header">
+                <h2>In Progress</h2>
+                <span class="task-count" id="progress-count">0</span>
+            </div>
+            <div class="tasks" id="progress-tasks">
+                <div class="task" draggable="true"><div class="task-title">1.1 Analyze current code structure</div></div>
+                <div class="task" draggable="true"><div class="task-title">1.2 Make site data-driven (JSON config)</div></div>
+                <div class="task" draggable="true"><div class="task-title">1.3 Create property owner admin panel</div></div>
+                <div class="task" draggable="true"><div class="task-title">1.4 Set up multi-tenant database</div></div>
+                <div class="task" draggable="true"><div class="task-title">2.1 Build template landing page</div></div>
+                <div class="task" draggable="true"><div class="task-title">2.2 Create signup/onboarding flow</div></div>
+                <div class="task" draggable="true"><div class="task-title">2.3 Set up Stripe Connect</div></div>
+                <div class="task" draggable="true"><div class="task-title">3.1 Booking calendar widget</div></div>
+                <div class="task" draggable="true"><div class="task-title">3.2 Payment integration</div></div>
+                <div class="task" draggable="true"><div class="task-title">3.3 Email automation</div></div>
+                <div class="task" draggable="true"><div class="task-title">4.1 Marketing site copy</div></div>
+                <div class="task" draggable="true"><div class="task-title">4.2 SEO optimization</div></div>
+                <div class="task" draggable="true"><div class="task-title">4.3 Launch & test</div></div>
+            </div>
+            <button class="add-task-btn" onclick="addTask('progress-tasks')">+ Add Task</button>
+        </div>
+        
+        <div class="column done" data-column="done">
+            <div class="column-header">
+                <h2>Done</h2>
+                <span class="task-count" id="done-count">0</span>
+            </div>
+            <div class="tasks" id="done-tasks">
+                <div class="task" draggable="true"><div class="task-title">Memory directory exists</div></div>
+                <div class="task" draggable="true"><div class="task-title">Workspace memory folder created</div></div>
+                <div class="task" draggable="true"><div class="task-title">Memory maintenance added to heartbeat</div></div>
+                <div class="task" draggable="true"><div class="task-title">Created TASKBOARD.md</div></div>
+                <div class="task" draggable="true"><div class="task-title">Kanban board built</div></div>
+                <div class="task" draggable="true"><div class="task-title">Updated resume with AI skills</div></div>
+                <div class="task" draggable="true"><div class="task-title">Found 10 jobs to apply for</div></div>
+                <div class="task" draggable="true"><div class="task-title">Port 18789 → 19891 (permanent)</div></div>
+                <div class="task" draggable="true"><div class="task-title">Gateway installed as LaunchAgent</div></div>
+                <div class="task" draggable="true"><div class="task-title">Config file secured (chmod 600)</div></div>
+            </div>
+            <button class="add-task-btn" onclick="addTask('done-tasks')">+ Add Task</button>
+        </div>
+        
+        <div class="column archived" data-column="archived">
+            <div class="column-header">
+                <h2>Archived</h2>
+                <span class="task-count" id="archived-count">0</span>
+            </div>
+            <div class="tasks" id="archived-tasks">
+            </div>
+            <button class="add-task-btn" onclick="addTask('archived-tasks')">+ Add Task</button>
+        </div>
+    </div>
+
+    <script>
+        let draggedTask = null;
+        
+        document.querySelectorAll('.task').forEach(task => {
+            task.addEventListener('dragstart', dragStart);
+            task.addEventListener('dragend', dragEnd);
+        });
+        
+        document.querySelectorAll('.tasks').forEach(tasksContainer => {
+            tasksContainer.addEventListener('dragover', dragOver);
+            tasksContainer.addEventListener('drop', drop);
+        });
+        
+        function dragStart(e) {
+            draggedTask = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        
+        function dragEnd() {
+            this.classList.remove('dragging');
+            draggedTask = null;
+            updateCounts();
+        }
+        
+        function dragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            const tasks = this.querySelectorAll('.task');
+            
+            if (tasks.length === 0) {
+                this.appendChild(draggedTask);
+                return;
+            }
+            
+            tasks.forEach(task => {
+                const box = task.getBoundingClientRect();
+                const midY = box.top + box.height / 2;
+                
+                if (e.clientY < midY) {
+                    this.insertBefore(draggedTask, task);
+                }
+            });
+        }
+        
+        function drop(e) {
+            e.preventDefault();
+            if (draggedTask) {
+                const tasks = this.querySelectorAll('.task');
+                let inserted = false;
+                
+                tasks.forEach(task => {
+                    if (!inserted) {
+                        const box = task.getBoundingClientRect();
+                        const midY = box.top + box.height / 2;
+                        if (e.clientY < midY) {
+                            this.insertBefore(draggedTask, task);
+                            inserted = true;
+                        }
+                    }
+                });
+                
+                if (!inserted) {
+                    this.appendChild(draggedTask);
+                }
+            }
+            updateCounts();
+        }
+        
+        function updateCounts() {
+            document.querySelectorAll('.column').forEach(col => {
+                const count = col.querySelectorAll('.task').length;
+                const countEl = col.querySelector('.task-count');
+                if (countEl) {
+                    countEl.textContent = count;
+                }
+            });
+        }
+        
+        function addTask(containerId) {
+            const container = document.getElementById(containerId);
+            const task = document.createElement('div');
+            task.className = 'task';
+            task.draggable = true;
+            task.innerHTML = `
+                <div class="task-title" contenteditable="true">New Task</div>
+                <div class="task-subtitle" contenteditable="true" placeholder="Click to add subtitle...">[subtitle here]</div>
+            `;
+            task.addEventListener('dragstart', dragStart);
+            task.addEventListener('dragend', dragEnd);
+            container.appendChild(task);
+            updateCounts();
+        }
+        
+        updateCounts();
+    </script>
+</body>
+</html>
