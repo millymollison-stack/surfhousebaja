@@ -2,6 +2,11 @@
 
 ## 2026-02-27
 
+### Feb 27 2026 - Deployment fix
+- Fixed PropertyAdmin auth
+- Removed old landing page
+- Pushing to trigger rebuild
+
 ### Initial Setup
 - Created project folder at ~/openclaw/workspace/projects/surfhousebaja-template/
 - Current site: https://www.surfhousebaja.com
