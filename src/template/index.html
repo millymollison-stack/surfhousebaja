@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Your Own Vacation Rental Website</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #C47756;
+            --primary-dark: #a85f40;
+            --text-light: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.7);
+            --bg-card: rgba(255, 255, 255, 0.35);
+        }
+        
+        html { scroll-behavior: smooth; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.5;
+            color: var(--text-light);
+            background: #0a0a0a;
+        }
+
+        /* ===================== NAV ===================== */
+        .hero-nav {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: clamp(16px, 4vw, 28px) clamp(20px, 5vw, 40px);
+            z-index: 100;
+        }
+        
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav-icon {
+            font-size: clamp(1.2rem, 3vw, 1.6rem);
+            color: white;
+            opacity: 0.9;
+        }
+        
+        .nav-brand {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+            font-weight: 500;
+            color: white;
+            
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-link {
+            font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+            color: rgba(255, 255, 255, 0.85);
+            text-decoration: none;
+            font-weight: 400;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover {
+            color: white;
+            opacity: 1;
+        }
+        
+        .nav-link-cta {
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .nav-link-cta:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ===================== HERO ===================== */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px 24px;
+            overflow: hidden;
+        }
+        
+        .hero-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('hero-bg.jpg') center/cover no-repeat;
+            z-index: -2;
+        }
+        
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.15);
+        }
+        
+        .hero-content {
+            position: relative;
+            top: 100px;
+            max-width: 500px;
+            width: 84%;
+            z-index: 1;
+            padding: clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            border-radius: 8px;
+        }
+        
+        .hero h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.1rem, 2.8vw, 1.6rem);
+            font-weight: 400;
+            
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .hero p {
+            font-size: clamp(0.72rem, 1.6vw, 0.88rem);
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 300;
+        }
+        
+        .hero-tagline {
+            font-size: clamp(0.86rem, 1.92vw, 1.06rem);
+            color: white;
+            display: block;
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            
+            text-transform: uppercase;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.45);
+            transform: translateY(-1px);
+        }
+        
+        .hero-input {
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: white;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        
+        .input-wrapper {
+            max-width: 300px;
+            position: relative;
+            width: 45%;
+            display: flex;
+            align-items: center;
+        }
+        
+        .upload-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+        
+        .upload-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: white;
+        }
+        
+        .upload-icon.glowing {
+            opacity: 1;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+        }
+        
+        .hero-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .hero-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.25);
+            border-color: var(--primary);
+        }
+        
+        .hero-hint {
+            font-size: 0.26rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            opacity: 0.7;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+        }
+        
+        .scroll-indicator svg {
+            width: 24px;
+            height: 24px;
+            stroke: white;
+            opacity: 0.5;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-6px); }
+            60% { transform: translateX(-50%) translateY(-3px); }
+        }
+
+        /* ===================== SECTIONS ===================== */
+        section {
+            padding: 80px 24px;
+        }
+        
+        .section-dark { background: #0a0a0a; }
+        
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+            max-width: 720px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .section-header h2 {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.2rem, 2.7vw, 1.65rem);
+            font-weight: 400;
+            
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            max-width: 648px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* ===================== FEATURES ===================== */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.18);
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px auto;
+        }
+        
+        .feature-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke: white;
+            fill: none;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            
+            text-align: center;
+        }
+        
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        /* ===================== EXAMPLES ===================== */
+        .examples-section {
+            position: relative;
+            padding: 80px 24px;
+            background: #ffffff;
+        }
+        
+        .examples-section.with-bg {
+            background: transparent;
+        }
+        
+        .examples-section.with-bg .examples-bg {
+            display: block;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('screen on laptop.jpg') center/cover no-repeat;
+            opacity: 1;
+            z-index: 0;
+            filter: brightness(0.7);
+        }
+        
+        .examples-section.with-bg .section-header h2,
+        .examples-section.with-bg .section-header p {
+            color: #ffffff;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            max-width: 900px;
+            margin: 50px auto 0;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 30px 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        
+        .stat-icon svg {
+            width: 30px;
+            height: 30px;
+            stroke: white;
+            fill: none;
+        }
+        
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 6px;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 400;
+        }
+        
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        
+        .examples-section:not(.with-bg) .section-header h2,
+        .examples-section:not(.with-bg) .section-header p {
+            color: #000000;
+        }
+        
+        .examples-bg {
+            display: none;
+        }
+        
+        .examples-container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .example-cards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .example-cards iframe {
+            flex: 1 1 calc(25% - 20px);
+            min-width: 200px;
+            max-width: 350px;
+            height: 528px;
+        }
+        
+        @media (max-width: 1000px) {
+            .example-cards iframe {
+                flex: 1 1 calc(50% - 20px);
+                max-width: none;
+            }
+        }
+        
+        @media (max-width: 500px) {
+            .example-cards iframe {
+                flex: 0 0 100%;
+                height: 400px;
+            }
+        }
+        
+        /* Preview Section */
+        .preview-section {
+            position: relative;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0a;
+            overflow: hidden;
+        }
+        
+        /* Embedded Laptop Content */
+        .embedded-laptop {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            overflow: hidden;
+        }
+        
+        .el-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('laptop/pexels-alex-qian-1180283-2343465.jpg') center/cover no-repeat;
+            z-index: 0;
+        }
+        
+        .el-bg::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.7) 100%);
+        }
+        
+        .el-nav {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 40px;
+            z-index: 20;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+        }
+        
+        .el-nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .el-nav-icon {
+            font-size: 1.4rem;
+            color: white;
+        }
+        
+        .el-nav-brand {
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .el-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .el-nav-link {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+        }
+        
+        .el-nav-cta {
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-size: 0.8rem;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .el-content {
+            position: absolute;
+            bottom: 60px;
+            left: 40px;
+            max-width: 500px;
+            padding: clamp(19px, 4vw, 40px) clamp(13px, 2.4vw, 26px);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+        
+        .el-title {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.1rem, 2.8vw, 1.6rem);
+            font-weight: 400;
+            text-transform: uppercase;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .el-description {
+            font-size: clamp(0.72rem, 1.6vw, 0.88rem);
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        .el-price-row {
+            margin-bottom: 16px;
+        }
+        
+        .el-price {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .el-price span {
+            font-size: 0.6rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .el-details {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .el-detail {
+            font-size: 0.56rem;
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 8px;
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-weight: 500;
+        }
+        
+        .el-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 19px 40px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            z-index: 15;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .el-rating {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .el-rating-text {
+            font-size: 0.8rem;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .el-reviews {
+            font-size: 0.76rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .el-book-btn {
+            padding: 13px 32px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .preview-container {
+            position: absolute;
+            top: 100px;
+            z-index: 100;
+            max-width: 450px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 25px 20px 15px 20px;
+            text-align: center;
+        }
+        
+        .preview-container h2 {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.2rem, 2.7vw, 1.65rem);
+            font-weight: 400;
+            
+            text-transform: uppercase;
+            color: white;
+            margin-bottom: 8px;
+        }
+        
+        .preview-container .preview-subhead {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 24px;
+            font-weight: 300;
+        }
+        
+        .preview-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+        
+        .preview-input {
+            flex: 1;
+            min-width: 200px;
+            max-width: 200px;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+            backdrop-filter: blur(8px);
+        }
+        
+        .preview-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .preview-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .preview-btn {
+            padding: 14px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preview-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .preview-hint {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+        }
+        
+        .example-cards iframe {
+            width: 240px;
+            height: 528px;
+            border: 2px solid rgba(0, 0, 0, 0.7);
+            border-radius: 28px;
+            box-shadow: 
+                0 0 0 2px rgba(255, 255, 255, 0.1),
+                0 10px 24px rgba(0, 0, 0, 0.5),
+                0 0 32px rgba(196, 119, 86, 0.15);
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .example-cards iframe:nth-of-type(2) { animation-delay: -1.5s; }
+        .example-cards iframe:nth-of-type(3) { animation-delay: -3s; }
+        .example-cards iframe:nth-of-type(4) { animation-delay: -4.5s; }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .example-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s ease;
+        }
+        
+        .example-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 55px rgba(0, 0, 0, 0.4);
+        }
+        
+        .example-screenshot {
+            height: 160px;
+            background: #1a1a2e;
+        }
+        
+        .example-screenshot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .example-content {
+            padding: 16px;
+            color: #1a1a2e;
+        }
+        
+        .example-content h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .example-content p {
+            color: #666;
+            font-size: 0.75rem;
+        }
+
+        /* ===================== PRICING ===================== */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            justify-items: center;
+        }
+        
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 28px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            width: 90%;
+        }
+        
+        .pricing-card.featured {
+            border-color: var(--primary);
+            transform: scale(1.02);
+        }
+        
+        .pricing-card.featured::before {
+            content: 'Popular';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .pricing-card.featured:hover {
+            transform: scale(1.03);
+        }
+        
+        .pricing-card h3 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 2px;
+            
+            text-transform: uppercase;
+        }
+        
+        .price {
+            font-family: 'Inter', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .price span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+        
+        .pricing-card ul {
+            list-style: none;
+            margin: 16px 0;
+            text-align: left;
+        }
+        
+        .pricing-card li {
+            padding: 5px 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .pricing-card li::before {
+            content: '✓';
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+
+        /* ===================== CTA ===================== */
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            text-align: center;
+            padding: 60px 24px;
+        }
+        
+        .cta-section h2 {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1.25rem, 3vw, 1.75rem);
+            font-weight: 400;
+            
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        
+        .cta-section p {
+            margin-bottom: 24px;
+            opacity: 0.9;
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+        
+        .btn-white {
+            background: white;
+            color: var(--primary);
+            padding: 12px 28px;
+            font-weight: 600;
+        }
+        
+        .btn-white:hover {
+            background: rgba(255, 255, 255, 0.92);
+            transform: translateY(-1px);
+        }
+
+        /* ===================== FOOTER ===================== */
+        footer {
+            background: #0a0a0a;
+            padding: 28px 24px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        
+        footer p {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 300;
+        }
+
+        /* ===================== MODAL ===================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal-overlay.active { display: flex; }
+        
+        .modal {
+            background: #1a1a2e;
+            border-radius: 12px;
+            max-width: 380px;
+            width: 100%;
+            animation: modalIn 0.3s ease;
+        }
+        
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .modal-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 4px;
+            opacity: 0.5;
+        }
+        
+        .modal-close:hover { opacity: 1; }
+        
+        .modal-body { padding: 20px; }
+        
+        .form-group { margin-bottom: 14px; }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+        
+        .form-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .form-submit:hover { background: var(--primary-dark); }
+
+        /* ===================== MOBILE ===================== */
+        @media (max-width: 540px) {
+            .hero { padding: 50px 18px; }
+            .hero h1 { font-size: 1.7rem; }
+            .hero p { font-size: 1rem; }
+            .section-header h2 { font-size: 1.5rem; }
+            .feature-card h3 { font-size: 1.2rem; }
+            .preview-container h2 { font-size: 1.8rem; }
+            .example-content h3 { font-size: 1.5rem; }
+            .pricing-card h3 { font-size: 1.2rem; }
+            .cta-section h2 { font-size: 1.8rem; }
+            .modal-header h3 { font-size: 1.5rem; }
+            .el-title { font-size: 1.8rem; }
+            .subheading { font-size: 1.1rem; }
+            .hero-tagline { font-size: 1rem; }
+            .hero-cta { flex-direction: column; }
+            .btn { width: 100%; text-align: center; }
+            section { padding: 50px 18px; }
+            .pricing-card.featured { transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAV -->
+    <nav class="hero-nav">
+        <div class="nav-logo">
+            <span class="nav-icon">◈</span>
+            <span class="nav-brand">OffAirbnb.Pro</span>
+        </div>
+        <div class="nav-links">
+            <a href="#login" class="nav-link">Sign in</a>
+            <a href="#signup" class="nav-link nav-link-cta">Sign up</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        
+        <div class="hero-content">
+            <h1>Your Property Deserves Its Own Spotlight</h1>
+            <p class="subheading"><span class="hero-tagline">Stop competing against all the other listings in your area.</span></p>
+        </div>
+
+        <div class="scroll-indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features" class="section-dark">
+        <div class="container">
+            <div class="section-header">
+                <h2>Free yourself from platform constraints and be discovered in AI searches</h2>
+                <p class="subheading" style="font-size: 20px;">Hosting isn't what it used to be. We took control, built the perfect site for our property. Made the process really simple and now we're sharing it with you.</p>
+            </div>
+
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <h3>No Airbnb Fees</h3>
+                    <p>Keep all your booking revenue, pay your own taxes.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3>No Competing Listings</h3>
+                    <p>Shine in your own space, show up in AI searches.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                        </svg>
+                    </div>
+                    <h3>Easy Management</h3>
+                    <p>Simple calendar, control reviews, emailed booking requests.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 16 24" fill="none" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <h3>Your Own Brand</h3>
+                    <p>Custom domain, colors, logo, photos, and descriptions.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                    </div>
+                    <h3>Secure Payments</h3>
+                    <p>Stripe-payments with instant payouts to Venmo, PayPal, or bank.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <h3>No Call Center Support</h3>
+                    <p>Your property, your guests, your direct relationships.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EXAMPLES -->
+    <section class="examples-section">
+        <div class="examples-bg"></div>
+        <div class="examples-container">
+            <div class="section-header">
+                <h2>Your property is unique, <br> your website should be too.</h2>
+                <p class="subheading" style="font-size: 1rem;">Get a personalized site that perfectly reflects your space.</p>
+            </div>
+
+            <div class="example-cards">
+                <iframe src="Example 1/index.html" loading="lazy"></iframe>
+                <iframe src="Example 2/index.html" loading="lazy"></iframe>
+                <iframe src="Example 3/index.html" loading="lazy"></iframe>
+                <iframe src="Example 4/index.html" loading="lazy"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- ONBOARDING -->
+    <section class="onboarding-section" style="position: relative; min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px 24px; background: url('laptop-hands.png') center/cover no-repeat;">
+        <div class="onboarding-content" style="position: relative; z-index: 10; max-width: 900px; width: 100%; text-align: center;">
+            <h1 style="font-family: 'Inter', sans-serif; font-size: clamp(1.2rem, 2.7vw, 1.65rem); font-weight: 400; text-transform: uppercase; margin-bottom: 8px; color: rgba(255, 255, 255, 0.85);">3 simple steps</h1>
+            <p style="font-size: clamp(1rem, 2vw, 1.2rem); color: rgba(255, 255, 255, 0.85); margin-bottom: 50px; font-weight: 300;">Your very own, independent vacation booking site will be ready in minutes.</p>
+            
+            <div style="background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 24px; padding: 50px 40px; max-width: 800px; margin: 0 auto;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; position: relative;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
+                            <svg viewBox="0 0 24 24" style="width: 32px; height: 32px; stroke: white; fill: none; stroke-width: 2;">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 1.1rem; font-weight: 500; color: white; margin-bottom: 10px;">1. Paste Airbnb URL</h3>
+                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); max-width: 200px; font-weight: 300;">Paste your Airbnb listing link and we will import all your photos and details automatically.</p>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
+                            <svg viewBox="0 0 24 24" style="width: 32px; height: 32px; stroke: white; fill: none; stroke-width: 2;">
+                                <rect x="1" y="4" width="22" height="16" rx="2"/>
+                                <line x1="1" y1="10" x2="23" y2="10"/>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 1.1rem; font-weight: 500; color: white; margin-bottom: 10px;">2. Input Bank Details</h3>
+                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); max-width: 200px; font-weight: 300;">Connect your payout account. We support Venmo, PayPal, and direct bank transfers.</p>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
+                            <svg viewBox="0 0 24 24" style="width: 32px; height: 32px; stroke: white; fill: none; stroke-width: 2;">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 1.1rem; font-weight: 500; color: white; margin-bottom: 10px;">3. Optimize and Publish</h3>
+                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); max-width: 200px; font-weight: 300;">Select your template, customize your branding, and hit publish. Your site is live!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- UPLOAD SECTION -->
+    <section style="background: #0a0a0a; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 24px;">
+        <div class="preview-container" style="position: relative; top: auto; z-index: 10;">
+            <p style="color: rgba(255,255,255,0.85); margin-bottom: 16px; font-size: 0.9rem;">Upload a photo of your property to quickly see how it looks in the section below.</p>
+            <div class="preview-input-group">
+                <input type="text" class="preview-input" placeholder="Upload Your Property Photo">
+                <button class="preview-btn">View It</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- PREVIEW SECTION -->
+    <section class="preview-section">
+        <!-- Embedded Laptop Page -->
+        <div class="embedded-laptop">
+            <div class="el-bg"></div>
+            <nav class="el-nav">
+                <div class="el-nav-logo">
+                    <span class="el-nav-icon">◈</span>
+                    <span class="el-nav-brand">LuxSpace.Pro</span>
+                </div>
+                <div class="el-nav-links">
+                    <a href="#" class="el-nav-link">Sign in</a>
+                    <button class="el-nav-cta">Sign up</button>
+                </div>
+            </nav>
+            <div class="el-content">
+                <h1 class="el-title">Your Luxury City Retreat</h1>
+                <p class="el-description">Elegant, ultra-comfy New York city apartment with plush interiors, premium amenities, and sweeping skyline views. Perfect for your next city vacation.</p>
+                <div class="el-price-row">
+                    <div class="el-price">$250 <span>/ night</span></div>
+                </div>
+                <div class="el-details">
+                    <div class="el-detail"><span>3 Beds</span></div>
+                    <div class="el-detail"><span>2 Baths</span></div>
+                    <div class="el-detail"><span>6 Guests</span></div>
+                    <div class="el-detail"><span>Fast WiFi</span></div>
+                </div>
+            </div>
+            <div class="el-bottom">
+                <div class="el-rating">
+                    <span class="el-rating-text">★★★★★ 4.97</span>
+                    <span class="el-reviews">(128 reviews)</span>
+                </div>
+                <button class="el-book-btn">Book Now</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="examples-section with-bg">
+        <div class="examples-bg"></div>
+        <div class="examples-container">
+            <div class="section-header">
+                <h2>Hosts are going independent, <br> and you can too.</h2>
+                <p class="subheading" style="font-size: 20px;">Generate your fully branded booking website in minutes and start accepting direct bookings today.</p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value">+34%</div>
+                    <div class="stat-label">Occupancy Rates</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value">4.9★</div>
+                    <div class="stat-label">Guest Satisfaction</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-value">+47%</div>
+                    <div class="stat-label">Host Satisfaction</div>
+                </div>
+            </div>
+            
+            <p class="subheading" style="text-align: center; color: white; font-size: 1.1rem; margin-top: 40px; font-weight: 400;">You don't need a platform, you need a presence.</p>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="section-dark">
+        <div class="container">
+            <div class="section-header">
+                <h2>Choose one of our pricing plans</h2>
+                <p class="subheading" style="font-size: 20px;">No commitments, simply auto pay every month that it's working for you.</p>
+            </div>
+
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Starter</h3>
+                    <div class="price">$10<span>/mo</span> <span style="font-size: 0.7rem; font-weight: 400;">(1st month free)</span></div>
+                    <ul>
+                        <li>1 Property</li>
+                        <li>Basic Website</li>
+                        <li>Email Support</li>
+                    </ul>
+                    <a href="#signup" class="btn btn-secondary" style="width:100%">Get Started</a>
+                </div>
+
+                <div class="pricing-card featured">
+                    <h3>Professional</h3>
+                    <div class="price">$29<span>/mo</span></div>
+                    <ul>
+                        <li>5 Properties</li>
+                        <li>Custom Domain</li>
+                        <li>Priority Support</li>
+                    </ul>
+                    <a href="#signup" class="btn btn-primary" style="width:100%">Get Started</a>
+                </div>
+
+                <div class="pricing-card">
+                    <h3>Agency</h3>
+                    <div class="price">$99<span>/span></div>
+                    <ul>
+                        <li>Unlimited Properties</li>
+                        <li>White Label</li>
+                        <li>Dedicated Support</li>
+                    </ul>
+                    <a href="#signup" class="btn btn-secondary" style="width:100%">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="signup" class="cta-section">
+        <div class="container">
+            <h2>Ready to Get Started?</h2>
+            <p class="subheading" style="font-size: 20px;">Join thousands of property owners earning more.</p>
+            <button class="btn btn-white" onclick="openModal()">Start Building for Free</button>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>&copy; 2026 Vacation Rental Template</p>
+    </footer>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="signupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create Your Account</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" placeholder="Create a password" required>
+                    </div>
+                    <button type="submit" class="form-submit">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('airbnbInput');
+        const icon = document.getElementById('uploadIcon');
+        
+        input.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                icon.classList.add('glowing');
+            } else {
+                icon.classList.remove('glowing');
+            }
+        });
+        
+        function openModal() {
+            document.getElementById('signupModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('signupModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            alert('Signup would connect to your property admin panel.');
+            closeModal();
+        }
+
+        document.getElementById('signupModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+            });
+        });
+        
+        // Phone scroll parallax effect
+        window.addEventListener('scroll', function() {
+            const phones = document.querySelectorAll('.example-cards iframe');
+            const scrollY = window.pageYOffset;
+            
+            phones.forEach((phone, index) => {
+                const speed = 0.05 + (index * 0.02);
+                const yPos = scrollY * speed;
+                phone.style.transform = `translateY(${-yPos}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
