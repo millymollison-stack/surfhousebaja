@@ -239,7 +239,7 @@ export function Home() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-4 pb-4 sm:pb-8 md:pb-12">
+    <div className="w-full">
       <ImageGallery
         images={images}
         property={property}

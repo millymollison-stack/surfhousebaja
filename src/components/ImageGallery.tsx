@@ -167,7 +167,8 @@ export function ImageGallery({
   return (
     <div className="relative">
       {/* Main large image */}
-      <div className="relative h-[500px] md:h-[600px] overflow-hidden">
+      <div className="relative h-[500px] md:h-[600px] overflow-hidden" style={{ boxShadow: '0 25px 80px rgba(0, 0, 0, 0.5)' }}>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%)' }}></div>
         <div className="absolute inset-0">
           <img
             src={sortedImages[currentIndex].url}
@@ -176,35 +177,32 @@ export function ImageGallery({
           />
         </div>
         
-        {/* Title overlay with blurred glass */}
-        <div className="absolute top-0 left-0 right-0 p-6 z-20" style={{ background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(2px)' }}>
+        {/* Title and subtitle overlay with blurred glass */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ width: '100%', zIndex: 1, padding: 'clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px)', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
           {isEditing && isAdmin ? (
-            <input
-              type="text"
-              value={propertyTitle}
-              onChange={(e) => setPropertyTitle(e.target.value)}
-              onBlur={handlePropertyTextSave}
-              className="text-3xl md:text-4xl font-black text-white bg-transparent border-b-2 border-white/70 w-full focus:outline-none focus:border-white placeholder-white/50 px-2 py-1"
-              placeholder="Enter property title..."
-            />
+            <>
+              <input
+                type="text"
+                value={propertyTitle}
+                onChange={(e) => setPropertyTitle(e.target.value)}
+                onBlur={handlePropertyTextSave}
+                className="text-3xl md:text-4xl font-black text-white bg-transparent border-b-2 border-white/70 w-full focus:outline-none focus:border-white placeholder-white/50 px-2 py-1"
+                placeholder="Enter property title..."
+              />
+              <textarea
+                value={propertyIntro}
+                onChange={(e) => setPropertyIntro(e.target.value)}
+                onBlur={handlePropertyTextSave}
+                className="w-full text-white bg-transparent border-2 border-white/30 rounded focus:outline-none focus:border-white resize-none font-medium p-2 mt-4"
+                rows={3}
+                placeholder="Enter property introduction..."
+              />
+            </>
           ) : (
-            <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-lg">Welcome to Surf House Baja</h1>
-          )}
-        </div>
-
-        {/* Intro text overlay with blurred glass */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(2px)' }}>
-          {isEditing && isAdmin ? (
-            <textarea
-              value={propertyIntro}
-              onChange={(e) => setPropertyIntro(e.target.value)}
-              onBlur={handlePropertyTextSave}
-              className="w-full text-white bg-transparent border-2 border-white/30 rounded focus:outline-none focus:border-white resize-none font-medium p-2"
-              rows={3}
-              placeholder="Enter property introduction..."
-            />
-          ) : (
-            <h2 className="text-lg md:text-xl font-medium text-white/90 max-w-2xl">A beautiful 4-bedroom beach house sitting directly in front of the iconic surf break "Shipwrecks". Located just 4 hours south of the US border.</h2>
+            <>
+              <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(1.1rem, 2.8vw, 1.6rem)', fontWeight: 400, textTransform: 'uppercase', marginBottom: '10px', color: 'rgba(255, 255, 255, 0.9)' }}>Welcome to Surf House Baja</h1>
+              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'white', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
+            </>
           )}
         </div>
 
