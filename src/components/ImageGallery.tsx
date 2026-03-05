@@ -185,9 +185,10 @@ export function ImageGallery({
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%)' }}></div>
         <div className="absolute inset-0">
           <img
-            src={sortedImages[currentIndex].url}
+            src={sortedImages[currentIndex]?.url || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600'}
             alt={`Property view ${currentIndex + 1}`}
             className="h-full w-full object-cover"
+            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600'; }}
           />
         </div>
         
