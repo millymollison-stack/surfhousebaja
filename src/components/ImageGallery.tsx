@@ -164,6 +164,20 @@ export function ImageGallery({
     );
   }
 
+  if (sortedImages.length === 0) {
+    return (
+      <div className="relative h-[500px] md:h-[600px] overflow-hidden" style={{ boxShadow: '0 25px 80px rgba(0, 0, 0, 0.5)' }}>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%)' }}></div>
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600)' }}></div>
+        
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ width: '100%', zIndex: 1, padding: 'clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px)', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
+          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(1.1rem, 2.8vw, 1.6rem)', fontWeight: 400, textTransform: 'uppercase', marginBottom: '10px', color: 'rgba(255, 255, 255, 0.9)' }}>Welcome to Surf House Baja</h1>
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'white', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative">
       {/* Main large image */}
