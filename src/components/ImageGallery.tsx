@@ -181,7 +181,7 @@ export function ImageGallery({
   return (
     <div className="relative">
       {/* Main large image */}
-      <div className="relative h-[500px] md:h-[600px] overflow-hidden" style={{ boxShadow: '0 25px 80px rgba(0, 0, 0, 0.5)' }}>
+      <div className="relative h-[500px] md:h-[600px] overflow-hidden" style={{ boxShadow: '0 25px 80px rgba(0, 0, 0, 0.5)', backgroundImage: 'url(https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%)' }}></div>
         <div className="absolute inset-0">
           <img
