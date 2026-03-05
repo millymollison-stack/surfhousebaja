@@ -60,18 +60,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
-      <div className="bg-red-600 text-white py-3 px-4 text-center">
-        <p className="text-base sm:text-lg font-medium">
-          Book Direct, No Airbnb Fees, Chat with Host.
-        </p>
-      </div>
-
       <main className="flex-1 pt-16">
         {children}
       </main>
 
       <footer className="bg-gray-50 border-t">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white py-3 px-4 text-center z-40">
+          <p className="text-base sm:text-lg font-medium">
+            Book Direct, No Airbnb Fees, Chat with Host.
+          </p>
+        </div>
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8" style={{ marginBottom: '50px' }}>
           <p className="text-center text-gray-500 text-sm">
             © {new Date().getFullYear()} @surfhousebaja. All rights reserved.
           </p>

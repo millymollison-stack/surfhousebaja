@@ -165,9 +165,9 @@ export function ImageGallery({
   }
 
   return (
-    <div className="relative space-y-4">
+    <div className="relative">
       {/* Main large image */}
-      <div className="relative h-[500px] md:h-[600px] overflow-hidden rounded-lg">
+      <div className="relative h-[500px] md:h-[600px] overflow-hidden">
         <div className="absolute inset-0">
           <img
             src={sortedImages[currentIndex].url}
@@ -177,35 +177,35 @@ export function ImageGallery({
         </div>
         
         {/* Title overlay with blurred glass */}
-        <div className="absolute top-0 left-0 right-0 bg-black/30 backdrop-blur-sm p-6 z-20">
+        <div className="absolute top-0 left-0 right-0 p-6 z-20" style={{ background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(2px)' }}>
           {isEditing && isAdmin ? (
             <input
               type="text"
               value={propertyTitle}
               onChange={(e) => setPropertyTitle(e.target.value)}
               onBlur={handlePropertyTextSave}
-              className="text-3xl md:text-4xl font-black text-white bg-black/30 border-b-2 border-white/70 w-full focus:outline-none focus:border-white placeholder-white/50 px-2 py-1"
+              className="text-3xl md:text-4xl font-black text-white bg-transparent border-b-2 border-white/70 w-full focus:outline-none focus:border-white placeholder-white/50 px-2 py-1"
               placeholder="Enter property title..."
             />
           ) : (
-            <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-lg">{propertyTitle}</h1>
+            <h1 className="text-3xl md:text-4xl font-black text-white drop-shadow-lg">Welcome to Surf House Baja</h1>
           )}
         </div>
 
         {/* Intro text overlay with blurred glass */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md p-6 z-20">
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(2px)' }}>
           {isEditing && isAdmin ? (
             <textarea
               value={propertyIntro}
               onChange={(e) => setPropertyIntro(e.target.value)}
               onBlur={handlePropertyTextSave}
-              className="w-full text-white bg-black/30 border-2 border-white/30 rounded focus:outline-none focus:border-white resize-none font-medium p-2"
+              className="w-full text-white bg-transparent border-2 border-white/30 rounded focus:outline-none focus:border-white resize-none font-medium p-2"
               rows={3}
               placeholder="Enter property introduction..."
             />
-          ) : propertyIntro ? (
-            <p className="text-white/90 font-medium">{propertyIntro}</p>
-          ) : null}
+          ) : (
+            <h2 className="text-lg md:text-xl font-medium text-white/90 max-w-2xl">A beautiful 4-bedroom beach house sitting directly in front of the iconic surf break "Shipwrecks". Located just 4 hours south of the US border.</h2>
+          )}
         </div>
 
         {/* Navigation arrows */}
@@ -213,13 +213,13 @@ export function ImageGallery({
           <div className="absolute inset-0 flex items-center justify-between p-4 pointer-events-none z-10">
             <button
               onClick={previousImage}
-              className="rounded-full bg-white/80 p-2 text-gray-800 hover:bg-white pointer-events-auto"
+              className="px-3 py-2 bg-white/20 backdrop-blur-sm border border-white/15 rounded text-white/90 hover:bg-white/30 hover:text-white transition-all pointer-events-auto"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
             <button
               onClick={nextImage}
-              className="rounded-full bg-white/80 p-2 text-gray-800 hover:bg-white pointer-events-auto"
+              className="px-3 py-2 bg-white/20 backdrop-blur-sm border border-white/15 rounded text-white/90 hover:bg-white/30 hover:text-white transition-all pointer-events-auto"
             >
               <ChevronRight className="h-6 w-6" />
             </button>

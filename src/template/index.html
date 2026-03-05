@@ -289,7 +289,11 @@
             padding: 80px 24px;
         }
         
-        .section-dark { background: #0a0a0a; }
+        .section-dark { 
+            background: #0a0a0a; 
+            position: relative;
+            padding: 80px 24px;
+        }
         
         .container { max-width: 900px; margin: 0 auto; }
         
@@ -333,6 +337,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 8px;
             padding: 24px;
+            margin: 4px;
             transition: all 0.3s ease;
             text-align: center;
         }
@@ -388,13 +393,7 @@
         }
         
         .examples-section.with-bg .examples-bg {
-            display: block;
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: url('screen on laptop.jpg') center/cover no-repeat;
-            opacity: 1;
-            z-index: 0;
-            filter: brightness(0.7);
+            display: none;
         }
         
         .examples-section.with-bg .section-header h2,
@@ -941,9 +940,9 @@
 
         /* ===================== CTA ===================== */
         .cta-section {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%), linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 100%);
             text-align: center;
-            padding: 60px 24px;
+            padding: 40px 24px;
         }
         
         .cta-section h2 {
@@ -976,7 +975,7 @@
 
         /* ===================== FOOTER ===================== */
         footer {
-            background: #0a0a0a;
+            background: rgba(196, 119, 86, 0.8);
             padding: 28px 24px;
             text-align: center;
             border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -1125,8 +1124,9 @@
         <div class="hero-bg"></div>
         
         <div class="hero-content">
-            <h1>Your Property Deserves Its Own Spotlight</h1>
-            <p class="subheading"><span class="hero-tagline">Stop competing against all the other listings in your area.</span></p>
+            <h1>Your property deserves its own website</h1>
+            <p class="subheading"><span class="hero-tagline">And you deserve to not compete with every other host in your area.</span></p>
+            <a href="#signup" class="btn btn-white" style="display: inline-block; margin-top: 20px; max-width: 200px; background: #8B0000; color: white; font-size: 1.2em; padding: 16px 32px;">Get Started</a>
         </div>
 
         <div class="scroll-indicator">
@@ -1140,8 +1140,7 @@
     <section id="features" class="section-dark">
         <div class="container">
             <div class="section-header">
-                <h2>Free yourself from platform constraints and be discovered in AI searches</h2>
-                <p class="subheading" style="font-size: 20px;">Hosting isn't what it used to be. We took control, built the perfect site for our property. Made the process really simple and now we're sharing it with you.</p>
+                <h2>Hosting isn't what it used to be, so we decided to take control and build the perfect booking site for our own properties. Things really picked up for us — and now we're excited to offer you the opportunity.</h2>
             </div>
 
             <div class="features">
@@ -1209,6 +1208,8 @@
                     <p>Your property, your guests, your direct relationships.</p>
                 </div>
             </div>
+            
+            <p style="text-align: center; margin-top: 40px; font-size: 1rem; color: rgba(255,255,255,0.85);">Now let us build you a gorgeous, custom site <br> that reflects your property's personality and gets you paid your way.</p>
         </div>
     </section>
 
@@ -1218,7 +1219,7 @@
         <div class="examples-container">
             <div class="section-header">
                 <h2>Your property is unique, <br> your website should be too.</h2>
-                <p class="subheading" style="font-size: 1rem;">Get a personalized site that perfectly reflects your space.</p>
+                
             </div>
 
             <div class="example-cards">
@@ -1233,94 +1234,46 @@
     <!-- ONBOARDING -->
     <section class="onboarding-section" style="position: relative; min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 80px 24px; background: url('laptop-hands.png') center/cover no-repeat;">
         <div class="onboarding-content" style="position: relative; z-index: 10; max-width: 900px; width: 100%; text-align: center;">
-            <h1 style="font-family: 'Inter', sans-serif; font-size: clamp(1.2rem, 2.7vw, 1.65rem); font-weight: 400; text-transform: uppercase; margin-bottom: 8px; color: rgba(255, 255, 255, 0.85);">3 simple steps</h1>
-            <p style="font-size: clamp(1rem, 2vw, 1.2rem); color: rgba(255, 255, 255, 0.85); margin-bottom: 50px; font-weight: 300;">Your very own, independent vacation booking site will be ready in minutes.</p>
-            
-            <div style="background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 24px; padding: 50px 40px; max-width: 800px; margin: 0 auto;">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; position: relative;">
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
+            <div class="section-header">
+                <h2 style="margin-bottom: 15px;">Create your own website in 3 simple steps.</h2>
+                <a href="#signup" class="btn btn-white" style="display: inline-block; max-width: 200px; background: #8B0000; color: white; font-size: 1.2em; padding: 16px 32px; margin-bottom: 20px; text-decoration: none; border-radius: 8px;">Get Started</a>
+            </div>
+                
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 900px; margin: 0 auto;">
+                    <div style="flex: 1 1 250px; background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; padding: 30px 20px; text-align: center; max-width: 300px;">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
                             <svg viewBox="0 0 24 24" style="width: 32px; height: 32px; stroke: white; fill: none; stroke-width: 2;">
                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                             </svg>
                         </div>
                         <h3 style="font-size: 1.1rem; font-weight: 500; color: white; margin-bottom: 10px;">1. Paste Airbnb URL</h3>
-                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); max-width: 200px; font-weight: 300;">Paste your Airbnb listing link and we will import all your photos and details automatically.</p>
+                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); font-weight: 300;">Paste your Airbnb listing link and we will import all your photos and details automatically.</p>
                     </div>
                     
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
+                    <div style="flex: 1 1 250px; background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; padding: 30px 20px; text-align: center; max-width: 300px;">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
                             <svg viewBox="0 0 24 24" style="width: 32px; height: 32px; stroke: white; fill: none; stroke-width: 2;">
                                 <rect x="1" y="4" width="22" height="16" rx="2"/>
                                 <line x1="1" y1="10" x2="23" y2="10"/>
                             </svg>
                         </div>
                         <h3 style="font-size: 1.1rem; font-weight: 500; color: white; margin-bottom: 10px;">2. Input Bank Details</h3>
-                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); max-width: 200px; font-weight: 300;">Connect your payout account. We support Venmo, PayPal, and direct bank transfers.</p>
+                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); font-weight: 300;">Connect your payout account. We support Venmo, PayPal, and direct bank transfers.</p>
                     </div>
                     
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
+                    <div style="flex: 1 1 250px; background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; padding: 30px 20px; text-align: center; max-width: 300px;">
+                        <div style="width: 70px; height: 70px; border-radius: 50%; background: #C47756; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; box-shadow: 0 8px 32px rgba(196, 119, 86, 0.4);">
                             <svg viewBox="0 0 24 24" style="width: 32px; height: 32px; stroke: white; fill: none; stroke-width: 2;">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
                         </div>
                         <h3 style="font-size: 1.1rem; font-weight: 500; color: white; margin-bottom: 10px;">3. Optimize and Publish</h3>
-                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); max-width: 200px; font-weight: 300;">Select your template, customize your branding, and hit publish. Your site is live!</p>
+                        <p style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); font-weight: 300;">Select your template, customize your branding, and hit publish. Your site is live!</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- UPLOAD SECTION -->
-    <section style="background: #0a0a0a; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 24px;">
-        <div class="preview-container" style="position: relative; top: auto; z-index: 10;">
-            <p style="color: rgba(255,255,255,0.85); margin-bottom: 16px; font-size: 0.9rem;">Upload a photo of your property to quickly see how it looks in the section below.</p>
-            <div class="preview-input-group">
-                <input type="text" class="preview-input" placeholder="Upload Your Property Photo">
-                <button class="preview-btn">View It</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- PREVIEW SECTION -->
-    <section class="preview-section">
-        <!-- Embedded Laptop Page -->
-        <div class="embedded-laptop">
-            <div class="el-bg"></div>
-            <nav class="el-nav">
-                <div class="el-nav-logo">
-                    <span class="el-nav-icon">◈</span>
-                    <span class="el-nav-brand">LuxSpace.Pro</span>
-                </div>
-                <div class="el-nav-links">
-                    <a href="#" class="el-nav-link">Sign in</a>
-                    <button class="el-nav-cta">Sign up</button>
-                </div>
-            </nav>
-            <div class="el-content">
-                <h1 class="el-title">Your Luxury City Retreat</h1>
-                <p class="el-description">Elegant, ultra-comfy New York city apartment with plush interiors, premium amenities, and sweeping skyline views. Perfect for your next city vacation.</p>
-                <div class="el-price-row">
-                    <div class="el-price">$250 <span>/ night</span></div>
-                </div>
-                <div class="el-details">
-                    <div class="el-detail"><span>3 Beds</span></div>
-                    <div class="el-detail"><span>2 Baths</span></div>
-                    <div class="el-detail"><span>6 Guests</span></div>
-                    <div class="el-detail"><span>Fast WiFi</span></div>
-                </div>
-            </div>
-            <div class="el-bottom">
-                <div class="el-rating">
-                    <span class="el-rating-text">★★★★★ 4.97</span>
-                    <span class="el-reviews">(128 reviews)</span>
-                </div>
-                <button class="el-book-btn">Book Now</button>
-            </div>
+                
         </div>
     </section>
 
@@ -1329,7 +1282,7 @@
         <div class="examples-container">
             <div class="section-header">
                 <h2>Hosts are going independent, <br> and you can too.</h2>
-                <p class="subheading" style="font-size: 20px;">Generate your fully branded booking website in minutes and start accepting direct bookings today.</p>
+                <p class="subheading" style="font-size: 20px;">Generate your fully branded booking website in minutes and have an off platform presence, optimized for AI search.</p>
             </div>
             
             <div class="stats-grid">
@@ -1339,7 +1292,7 @@
                             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                         </svg>
                     </div>
-                    <div class="stat-value">+34%</div>
+                    <div class="stat-value">94%</div>
                     <div class="stat-label">Occupancy Rates</div>
                 </div>
                 <div class="stat-card">
@@ -1357,21 +1310,21 @@
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                         </svg>
                     </div>
-                    <div class="stat-value">+47%</div>
+                    <div class="stat-value">81%</div>
                     <div class="stat-label">Host Satisfaction</div>
                 </div>
             </div>
             
-            <p class="subheading" style="text-align: center; color: white; font-size: 1.1rem; margin-top: 40px; font-weight: 400;">You don't need a platform, you need a presence.</p>
+            <p class="subheading" style="text-align: center; color: white; font-size: 1.1rem; margin-top: 60px; font-weight: 400;">You don't need a platform, you need a presence.</p>
         </div>
     </section>
 
     <!-- PRICING -->
-    <section class="section-dark">
+    <section class="section-dark" style="background: url('screen on laptop.jpg') center/cover no-repeat;">
         <div class="container">
             <div class="section-header">
-                <h2>Choose one of our pricing plans</h2>
-                <p class="subheading" style="font-size: 20px;">No commitments, simply auto pay every month that it's working for you.</p>
+                <h2>Simple pricing plans</h2>
+                <p class="subheading" style="font-size: 20px;">Set to auto pay each month that your website is working for you.</p>
             </div>
 
             <div class="pricing-grid">
@@ -1415,15 +1368,11 @@
     <section id="signup" class="cta-section">
         <div class="container">
             <h2>Ready to Get Started?</h2>
-            <p class="subheading" style="font-size: 20px;">Join thousands of property owners earning more.</p>
-            <button class="btn btn-white" onclick="openModal()">Start Building for Free</button>
+            <p class="subheading" style="font-size: 20px; color: white;">Join our properties, our friends properties and many new vacation rental hosts earning more for doing less.</p>
+            <button class="btn" style="background: #8B0000; color: white; padding: 16px 40px; font-size: 1.1rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px;" onclick="openModal()">START NOW</button>
+            <p style="color: white; margin-top: 25px; font-size: 0.8rem;">OffAirbnb.Pro - Create Your Own Vacation Rental Website © 2026</p>
         </div>
     </section>
-
-    <!-- FOOTER -->
-    <footer>
-        <p>&copy; 2026 Vacation Rental Template</p>
-    </footer>
 
     <!-- MODAL -->
     <div class="modal-overlay" id="signupModal">
