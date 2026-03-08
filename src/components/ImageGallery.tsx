@@ -191,10 +191,10 @@ export function ImageGallery({
           />
         </div>
         {/* Gradient overlay on top of image */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%)' }}></div>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.1) 30%, rgba(0, 0, 0, 0.1) 60%, rgba(0, 0, 0, 0.4) 100%)' }}></div>
         
         {/* Title and subtitle overlay with blurred glass */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ width: '100%', zIndex: 1, padding: 'clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px)', background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-20" style={{ width: '100%', zIndex: 1, padding: '20px', background: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
           {isEditing && isAdmin ? (
             <>
               <input
@@ -216,8 +216,16 @@ export function ImageGallery({
             </>
           ) : (
             <>
-              <h1 className="hero-title">Welcome to Surf House Baja</h1>
-              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'white', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
+              <h1 className="hero-title text-white">Welcome to Surf House Baja</h1>
+              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'rgba(255,255,255,0.73)', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
+              
+              {/* Price per night */}
+              <div className="flex items-baseline justify-start mt-4">
+                <span className="text-2xl md:text-3xl font-semibold text-white">
+                  ${property.price_per_night}
+                </span>
+                <span className="ml-2 text-white/80 text-base font-normal">per night</span>
+              </div>
               
               {/* Property stats in lozenges */}
               <div className="flex flex-wrap gap-3 mt-5">

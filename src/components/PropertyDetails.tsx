@@ -82,7 +82,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
           ) : (
             <div className="prose max-w-none w-full">
               {content ? (
-                <p className="whitespace-pre-line text-gray-600">{content}</p>
+                <p className="whitespace-pre-line" style={{ color: 'rgba(255,255,255,0.73)' }}>{content}</p>
               ) : (
                 <p className="text-gray-400 italic">No information available</p>
               )}
@@ -198,7 +198,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
               {isEditing ? (
                 renderEditableText('description', formData.description, 'textarea')
               ) : (
-                <p className="text-lg text-gray-600">{property.description}</p>
+                <p className="text-lg" style={{ color: 'rgba(255,255,255,0.73)' }}>{property.description}</p>
               )}
             </div>
           </div>
@@ -233,8 +233,15 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
           )}
         </div>
 
-        <div className="bg-[#C47756] rounded-lg p-4 flex items-center justify-center cursor-pointer hover:bg-[#B5684A] transition-colors max-w-[280px] mx-auto">
-          <h1 className="hero-title flex items-center" onClick={() => setIsMapOpen(true)}><MapPin className="h-5 w-5 mr-2" />View on Map</h1>
+        <div className="fixed bottom-0 left-0 right-0 bg-black p-4 flex items-center justify-between z-50">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-medium text-sm">★★★★★</span>
+            <span className="text-white/70 text-xs">4.97</span>
+            <span className="text-white/70 text-xs">(128 reviews)</span>
+          </div>
+          <button className="px-6 py-2.5 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] transition-colors">
+            Book Now
+          </button>
         </div>
 
         <div className="bg-white/20 backdrop-blur-sm border border-white/15 rounded p-6">
@@ -307,21 +314,6 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             isOpen={openSection === 'getting_there'}
             onToggle={() => setOpenSection(openSection === 'getting_there' ? null : 'getting_there')}
           />
-        </div>
-
-        <div className="rounded-lg bg-[#FDF2F8] p-6">
-          <div className="flex items-baseline">
-            <span className="text-[2rem] md:text-[3.3rem] text-[#C47756] headline">
-              {isEditing ? (
-                <>$
-                  {renderEditableText('price_per_night', formData.price_per_night, 'number', 'w-32 text-[2rem] md:text-[3.3rem] headline')}
-                </>
-              ) : (
-                `$${property.price_per_night}`
-              )}
-            </span>
-            <span className="ml-2 text-gray-600">per night</span>
-          </div>
         </div>
       </div>
 
