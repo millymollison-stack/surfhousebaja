@@ -313,7 +313,7 @@ export function BookingCalendar({
     <div className="space-y-6">
       <div className="p-2 sm:p-4 bg-white rounded-lg shadow">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-[1.65rem]">
+          <h2 className="text-[1.65rem] hero-title">
             {isAdmin && !isBookingMode ? 'Block Dates' : 'Select Dates'}
           </h2>
           {isAdmin && (

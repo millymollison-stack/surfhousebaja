@@ -32,13 +32,13 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="bg-white/20 backdrop-blur-sm border border-white/15 rounded overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100"
+        className="w-full px-4 py-3 flex items-center justify-between bg-white/10 hover:bg-white/20 transition-colors"
       >
-        <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-        {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+        <h1 className="text-lg font-medium text-white hero-title">{title}</h1>
+        {isOpen ? <ChevronUp className="h-5 w-5 text-white" /> : <ChevronDown className="h-5 w-5 text-white" />}
       </button>
       
       {isOpen && (
@@ -233,51 +233,12 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4 sm:grid-cols-4">
-          <div className="flex items-center space-x-2 text-gray-600">
-            <Bed className="h-5 w-5" />
-            <span>
-              {isEditing ? (
-                renderEditableText('bedrooms', formData.bedrooms, 'number', 'w-20')
-              ) : (
-                property.bedrooms
-              )}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2 text-gray-600">
-            <Bath className="h-5 w-5" />
-            <span>
-              {isEditing ? (
-                renderEditableText('bathrooms', formData.bathrooms, 'number', 'w-20')
-              ) : (
-                property.bathrooms
-              )}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2 text-gray-600">
-            <Users className="h-5 w-5" />
-            <span>
-              {isEditing ? (
-                renderEditableText('max_guests', formData.max_guests, 'number', 'w-20')
-              ) : (
-                `Up to ${property.max_guests}`
-              )}
-            </span>
-          </div>
+        <div className="bg-[#C47756] rounded-lg p-4 flex items-center justify-center cursor-pointer hover:bg-[#B5684A] transition-colors max-w-[280px] mx-auto">
+          <h1 className="hero-title flex items-center" onClick={() => setIsMapOpen(true)}><MapPin className="h-5 w-5 mr-2" />View on Map</h1>
         </div>
 
-        <div className="bg-[#C47756] rounded-lg p-4 flex items-center justify-center cursor-pointer hover:bg-[#B5684A] transition-colors">
-          <button
-            onClick={() => setIsMapOpen(true)}
-            className="flex items-center space-x-2 text-white text-[1.65rem] headline"
-          >
-            <MapPin className="h-5 w-5" />
-            <span>View on Map</span>
-          </button>
-        </div>
-
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-[1.65rem] text-gray-900 mb-6">Amenities</h2>
+        <div className="bg-white/20 backdrop-blur-sm border border-white/15 rounded p-6">
+          <h2 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {[
               { name: 'WiFi', icon: Wifi },

@@ -28,6 +28,8 @@ export function Home() {
   useEffect(() => {
     async function loadProperty() {
       try {
+        let propertyId: string;
+        
         const { data: properties, error: propertyError } = await supabase
           .from('properties')
           .select('*')
@@ -44,14 +46,16 @@ export function Home() {
             .single();
           if (fallbackError) throw fallbackError;
           setProperty(fallbackProperty);
+          propertyId = fallbackProperty.id;
         } else {
           setProperty(properties);
+          propertyId = properties.id;
         }
 
         const { data: propertyImages, error: imagesError } = await supabase
           .from('property_images')
           .select('*')
-          .eq('property_id', properties.id)
+          .eq('property_id', propertyId)
           .order('position');
 
         if (imagesError) throw imagesError;
@@ -59,7 +63,7 @@ export function Home() {
         const { data: propertyBookings, error: bookingsError } = await supabase
           .from('bookings')
           .select('*')
-          .eq('property_id', properties.id)
+          .eq('property_id', propertyId)
           .in('status', ['approved', 'pending']); // Still load all for display, but calendar will filter
 
         if (bookingsError) throw bookingsError;
@@ -67,11 +71,10 @@ export function Home() {
         const { data: propertyBlockedDates, error: blockedError } = await supabase
           .from('blocked_dates')
           .select('*')
-          .eq('property_id', properties.id);
+          .eq('property_id', propertyId);
 
         if (blockedError) throw blockedError;
 
-        setProperty(properties);
         setImages(propertyImages || []);
         setBookings(propertyBookings || []);
         setBlockedDates(propertyBlockedDates || []);
@@ -229,7 +232,7 @@ export function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-[1.65rem] text-gray-900">
+          <h2 className="text-[1.65rem] text-gray-900 hero-title">
             {error || 'Property not found'}
           </h2>
           <p className="mt-2 text-gray-600">Please try again later.</p>
@@ -251,7 +254,8 @@ export function Home() {
         registerSaveHandler={setImageGallerySave}
       />
       
-      <div className="mt-4 sm:mt-8 md:mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-12">
+      <div className="-mt-4 sm:-mt-8 md:-mt-12 bg-black p-4 sm:p-8 md:p-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-12">
         <div className="md:col-span-2">
           <PropertyDetails
             property={property}
@@ -273,10 +277,11 @@ export function Home() {
           />
         </div>
       </div>
+      </div>
 
       <div className="mt-12 md:mt-16 lg:mt-20">
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Guest Reviews</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 hero-title">Guest Reviews</h2>
           <p className="text-gray-600 text-lg">See what our guests have to say about their stay</p>
         </div>
 
@@ -297,7 +302,7 @@ export function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Leave a Review</h2>
+              <h2 className="text-2xl font-bold text-gray-900 hero-title">Leave a Review</h2>
               <button
                 onClick={() => setShowReviewModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"

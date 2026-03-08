@@ -10,3 +10,12 @@
 h1, h2, h3, .headline {
   font-family: 'Rye', serif;
 }
+
+.hero-title {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(1.1rem, 2.8vw, 1.6rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.9);
+}

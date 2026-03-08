@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users } from 'lucide-react';
 import type { PropertyImage, Property } from '../types';
 import { useAuth } from '../store/auth';
 
@@ -170,8 +170,8 @@ export function ImageGallery({
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%)' }}></div>
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600)' }}></div>
         
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ width: '100%', zIndex: 1, padding: 'clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px)', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
-          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(1.1rem, 2.8vw, 1.6rem)', fontWeight: 400, textTransform: 'uppercase', marginBottom: '10px', color: 'rgba(255, 255, 255, 0.9)' }}>Welcome to Surf House Baja</h1>
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ width: '100%', zIndex: 1, padding: 'clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px)', background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
+          <h1 className="hero-title">Welcome to Surf House Baja</h1>
           <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'white', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
         </div>
       </div>
@@ -179,7 +179,7 @@ export function ImageGallery({
   }
 
   return (
-    <div className="relative">
+    <div className="relative bg-black">
       {/* Main large image */}
       <div className="relative h-[500px] md:h-[600px] overflow-hidden" style={{ boxShadow: '0 25px 80px rgba(0, 0, 0, 0.5)', backgroundImage: 'url(https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
         <div className="absolute inset-0">
@@ -194,7 +194,7 @@ export function ImageGallery({
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%)' }}></div>
         
         {/* Title and subtitle overlay with blurred glass */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ width: '100%', zIndex: 1, padding: 'clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px)', background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-20" style={{ width: '100%', zIndex: 1, padding: 'clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px)', background: 'rgba(0, 0, 0, 0.2)', backdropFilter: 'blur(2px)', borderRadius: '0px' }}>
           {isEditing && isAdmin ? (
             <>
               <input
@@ -216,8 +216,24 @@ export function ImageGallery({
             </>
           ) : (
             <>
-              <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(1.1rem, 2.8vw, 1.6rem)', fontWeight: 400, textTransform: 'uppercase', marginBottom: '10px', color: 'rgba(255, 255, 255, 0.9)' }}>Welcome to Surf House Baja</h1>
+              <h1 className="hero-title">Welcome to Surf House Baja</h1>
               <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'white', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
+              
+              {/* Property stats in lozenges */}
+              <div className="flex flex-wrap gap-3 mt-5">
+                <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                  <Bed className="w-4 h-4 mr-2" />
+                  {property.bedrooms} Beds
+                </span>
+                <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                  <Bath className="w-4 h-4 mr-2" />
+                  {property.bathrooms} Bath
+                </span>
+                <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                  <Users className="w-4 h-4 mr-2" />
+                  {property.max_guests} Persons
+                </span>
+              </div>
             </>
           )}
         </div>
@@ -274,7 +290,7 @@ export function ImageGallery({
             <div key={image.id} className="relative group">
               <button
                 onClick={() => setCurrentIndex(index + 1)}
-                className="relative h-48 w-full overflow-hidden rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C47756]"
+                className="relative h-48 md:h-[292px] w-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#C47756]"
               >
                 <img
                   src={image.url}
@@ -311,9 +327,9 @@ export function ImageGallery({
                 <img
                   src={image.url}
                   alt="Property"
-                  className="w-full h-32 object-cover rounded-lg"
+                  className="w-full h-32 object-cover"
                 />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-2">
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
                   <button
                     onClick={() => setMainPhoto(image)}
                     className={`p-2 rounded-full ${
