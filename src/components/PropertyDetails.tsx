@@ -82,7 +82,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
           ) : (
             <div className="prose max-w-none w-full">
               {content ? (
-                <p className="whitespace-pre-line" style={{ color: 'rgba(255,255,255,0.73)' }}>{content}</p>
+                <p className="whitespace-pre-line" style={{ color: 'rgba(255,255,255,0.73)', fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)' }}>{content}</p>
               ) : (
                 <p className="text-gray-400 italic">No information available</p>
               )}
