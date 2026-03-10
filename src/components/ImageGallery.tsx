@@ -50,6 +50,16 @@ export function ImageGallery({
     return a.position - b.position;
   });
 
+  // Auto-advance images every 2 seconds
+  useEffect(() => {
+    if (sortedImages.length > 1 && !isEditing) {
+      const interval = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [sortedImages.length, isEditing]);
+
   const handlePropertyTextSave = async () => {
     if (!onPropertyUpdate) return;
     try {
@@ -216,16 +226,16 @@ export function ImageGallery({
             </>
           ) : (
             <>
-              <h1 className="hero-title text-white">Welcome to Surf House Baja</h1>
-              <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'rgba(255,255,255,0.73)', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
-              
-              {/* Price per night */}
-              <div className="flex items-baseline justify-start mt-4">
-                <span className="text-2xl md:text-3xl font-semibold text-white">
-                  ${property.price_per_night}
-                </span>
-                <span className="ml-2 text-white/80 text-base font-normal">per night</span>
+              <div className="flex items-baseline justify-between">
+                <h1 className="hero-title text-white">Welcome to Surf House Baja</h1>
+                <div className="flex items-baseline">
+                  <span className="text-2xl md:text-3xl font-semibold text-white">
+                    ${property.price_per_night}
+                  </span>
+                  <span className="text-white/80 text-base font-normal">/night</span>
+                </div>
               </div>
+              <h2 className="whitespace-pre-line" style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'rgba(255,255,255,0.73)', fontWeight: 300, textTransform: 'lowercase' }}>A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
               
               {/* Property stats in lozenges */}
               <div className="flex flex-wrap gap-3 mt-5">

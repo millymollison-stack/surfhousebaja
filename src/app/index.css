@@ -19,3 +19,29 @@ h1, h2, h3, .headline {
   margin-bottom: 10px;
   color: rgba(255, 255, 255, 0.9);
 }
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 300ms ease-out forwards;
+}
+
+.animate-slide-out {
+  animation: slideOut 300ms ease-in forwards;
+}

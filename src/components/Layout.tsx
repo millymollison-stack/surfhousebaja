@@ -30,8 +30,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="absolute top-0 left-0 right-0 z-50" style={{ background: 'rgba(0, 0, 0, 0.0)', backdropFilter: 'blur(0px)' }}>
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
+      <header className="absolute top-0 left-0 right-0 z-[9997]" style={{ background: 'rgba(0, 0, 0, 0.0)', backdropFilter: 'blur(0px)' }}>
         <nav className="max-w-7xl mx-auto px-5 lg:px-10 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 text-white hover:text-white">
             <Home className="h-6 w-6 opacity-90" />

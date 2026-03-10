@@ -325,11 +325,28 @@ export function UserMenu() {
 
   if (!user) return null;
 
+  // Animation state
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const openMenu = () => {
+    setIsOpen(true);
+    setIsAnimating(true);
+  };
+
+  const closeMenu = () => {
+    setIsAnimating(true);
+    setIsOpen(false);
+  };
+
+  const handleAnimationEnd = () => {
+    setIsAnimating(false);
+  };
+
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center space-x-1 text-gray-600 hover:text-gray-900"
+        onClick={openMenu}
+        className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 z-50 relative"
       >
         <User className="h-5 w-5" />
         <span>{user.full_name?.split(' ')[0] || 'Profile'}</span>
@@ -338,17 +355,16 @@ export function UserMenu() {
       {/* Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40" 
-          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 bg-black bg-opacity-50 z-[9998]"
+          onClick={closeMenu}
         />
       )}
 
       {/* Slide-out menu */}
-      <div
-        className={`fixed right-0 top-0 h-full w-[calc(100%-72px)] max-w-[380px] bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        } overflow-y-auto`}
-      >
+      {isOpen && (
+        <div
+          className="fixed right-0 top-0 h-screen w-[calc(100%-72px)] max-w-[380px] bg-white shadow-xl z-[9999] overflow-y-auto animate-slide-in"
+        >
         <div className="px-6">
           <div className="flex items-center justify-between h-16 border-b border-gray-200">
             <h2 className="text-[1.65rem] text-gray-900">Profile</h2>
@@ -563,6 +579,7 @@ export function UserMenu() {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }

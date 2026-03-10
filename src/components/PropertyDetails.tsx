@@ -188,64 +188,65 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
 
   return (
     <>
-      <div className="space-y-8">
-        <div className="flex justify-between items-start">
-          <div className="space-y-2 flex-1 w-full">
-            <h1 className="text-3xl text-gray-900">
-              {isEditing ? renderEditableText('title', formData.title) : property.title}
-            </h1>
-            <div className="mt-2 w-full">
-              {isEditing ? (
-                renderEditableText('description', formData.description, 'textarea')
-              ) : (
-                <p className="text-lg" style={{ color: 'rgba(255,255,255,0.73)' }}>{property.description}</p>
-              )}
-            </div>
+      {/* Copy block - outside background container */}
+      <div className="flex justify-between items-start px-4">
+        <div className="space-y-2 flex-1 w-full">
+          <div className="mt-2 w-full">
+            {isEditing ? (
+              renderEditableText('description', formData.description, 'textarea')
+            ) : (
+              <p className="text-lg pt-2.5 whitespace-pre-line" style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'rgba(255,255,255,0.73)', fontWeight: 300, textTransform: 'lowercase' }}>Your luxury Baja surf escape awaits. Wake up to an uncrowded point break, tear through nearby off-road trails, or head out on unforgettable fishing trips. Spend your afternoons in hammocks enjoying the fishermen's fresh daily catch. Experience the raw beauty of Baja with the comforts of Starlink WiFi, hot showers, a full kitchen, a sun-soaked balcony, and a spacious fire-pit gathering area—perfect for sharing with friends.</p>
+            )}
           </div>
-          {isAdmin && onSave && (
-            <div className="flex items-center space-x-2 ml-4">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={() => onEditingChange(false)}
-                    className="p-2 text-gray-600 hover:text-gray-900"
-                    disabled={loading}
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="p-2 text-green-600 hover:text-green-700"
-                    disabled={loading}
-                  >
-                    <Check className="h-5 w-5" />
-                  </button>
-                </>
-              ) : (
+        </div>
+        {isAdmin && onSave && (
+          <div className="flex items-center space-x-2 ml-4">
+            {isEditing ? (
+              <>
                 <button
-                  onClick={() => onEditingChange(true)}
-                  className="text-sm text-[#C47756] hover:text-[#B5684A]"
+                  onClick={() => onEditingChange(false)}
+                  className="p-2 text-gray-600 hover:text-gray-900"
+                  disabled={loading}
                 >
-                  Edit Details
+                  <X className="h-5 w-5" />
                 </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="fixed bottom-0 left-0 right-0 bg-black p-4 flex items-center justify-between z-50">
-          <div className="flex items-center gap-2">
-            <span className="text-white font-medium text-sm">★★★★★</span>
-            <span className="text-white/70 text-xs">4.97</span>
-            <span className="text-white/70 text-xs">(128 reviews)</span>
+                <button
+                  onClick={handleSave}
+                  className="p-2 text-green-600 hover:text-green-700"
+                  disabled={loading}
+                >
+                  <Check className="h-5 w-5" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => onEditingChange(true)}
+                className="text-sm text-[#C47756] hover:text-[#B5684A]"
+              >
+                Edit Details
+              </button>
+            )}
           </div>
-          <button className="px-6 py-2.5 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] transition-colors">
-            Book Now
-          </button>
-        </div>
+        )}
+      </div>
 
-        <div className="bg-white/20 backdrop-blur-sm border border-white/15 rounded p-6">
-          <h2 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h2>
+      <div className="fixed bottom-0 left-0 right-0 bg-black p-4 flex items-center justify-between z-50">
+        <div className="flex items-center gap-2">
+          <span className="text-white font-medium text-sm">★★★★★</span>
+          <span className="text-white/70 text-xs">4.97</span>
+          <span className="text-white/70 text-xs">(128 reviews)</span>
+        </div>
+        <button className="px-6 py-2.5 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] transition-colors">
+          Book Now
+        </button>
+      </div>
+
+      {/* Background container - full width, starts 20px below copy */}
+      <div className="-mx-4 sm:-mx-8 md:-mx-12 mt-5 relative">
+        <div className="absolute inset-0" style={{ backgroundImage: 'url(/template/houseatnight.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.6 }}></div>
+        <div className="relative px-4 sm:px-8 md:px-12 space-y-8 pb-8 pt-[30px]">
+          <div className="bg-white/20 backdrop-blur-sm border border-white/15 rounded p-6">
+            <h2 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {[
               { name: 'WiFi', icon: Wifi },
@@ -264,12 +265,8 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
                 }`}
                 onClick={isEditing ? () => handleAmenityToggle(name) : undefined}
               >
-                <Icon className={`h-5 w-5 ${
-                  formData.amenities.includes(name) ? 'text-[#C47756]' : 'text-[#C47756]'
-                }`} />
-                <span className={
-                  formData.amenities.includes(name) ? 'text-[#C47756]' : 'text-[#C47756]'
-                }>
+                <Icon className="h-5 w-5 text-white" />
+                <span className="text-white">
                   {name}
                 </span>
               </div>
@@ -314,6 +311,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             isOpen={openSection === 'getting_there'}
             onToggle={() => setOpenSection(openSection === 'getting_there' ? null : 'getting_there')}
           />
+        </div>
         </div>
       </div>
 
