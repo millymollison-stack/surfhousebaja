@@ -240,7 +240,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
               <MapContainer
                 center={coordinates}
                 zoom={15}
-                style={{ height: '100%', width: '100%' }}
+                className="map-full-size"
                 onClick={handleMapClick}
               >
                 <TileLayer

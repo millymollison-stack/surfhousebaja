@@ -82,7 +82,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
           ) : (
             <div className="prose max-w-none w-full">
               {content ? (
-                <p className="whitespace-pre-line" style={{ color: 'rgba(255,255,255,0.73)', fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)' }}>{content}</p>
+                <p className="whitespace-pre-line text-white-73">{content}</p>
               ) : (
                 <p className="text-gray-400 italic">No information available</p>
               )}
@@ -195,7 +195,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             {isEditing ? (
               renderEditableText('description', formData.description, 'textarea')
             ) : (
-              <p className="text-lg pt-2.5 whitespace-pre-line" style={{ fontFamily: "'Inter', sans-serif", fontSize: 'clamp(0.86rem, 1.92vw, 1.06rem)', color: 'rgba(255,255,255,0.73)', fontWeight: 300, textTransform: 'lowercase' }}>Your luxury Baja surf escape awaits. Wake up to an uncrowded point break, tear through nearby off-road trails, or head out on unforgettable fishing trips. Spend your afternoons in hammocks enjoying the fishermen's fresh daily catch. Experience the raw beauty of Baja with the comforts of Starlink WiFi, hot showers, a full kitchen, a sun-soaked balcony, and a spacious fire-pit gathering area—perfect for sharing with friends.</p>
+              <p className="text-lg pt-2.5 whitespace-pre-line hero-subtitle">Your luxury Baja surf escape awaits. Wake up to an uncrowded point break, tear through nearby off-road trails, or head out on unforgettable fishing trips. Spend your afternoons in hammocks enjoying the fishermen's fresh daily catch. Experience the raw beauty of Baja with the comforts of Starlink WiFi, hot showers, a full kitchen, a sun-soaked balcony, and a spacious fire-pit gathering area—perfect for sharing with friends.</p>
             )}
           </div>
         </div>
@@ -239,80 +239,6 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
         <button className="px-6 py-2.5 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] transition-colors">
           Book Now
         </button>
-      </div>
-
-      {/* Background container - full width, starts 20px below copy */}
-      <div className="-mx-4 sm:-mx-8 md:-mx-12 mt-5 relative">
-        <div className="absolute inset-0" style={{ backgroundImage: 'url(/template/houseatnight.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.6 }}></div>
-        <div className="relative px-4 sm:px-8 md:px-12 space-y-8 pb-8 pt-[30px]">
-          <div className="bg-white/20 backdrop-blur-sm border border-white/15 rounded p-6">
-            <h2 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {[
-              { name: 'WiFi', icon: Wifi },
-              { name: 'Parking', icon: Car },
-              { name: 'Coffee Maker', icon: Coffee },
-              { name: 'TV', icon: Tv },
-              { name: 'Surfboards', icon: Waves },
-              { name: 'Yoga', icon: Scale },
-              { name: 'Fishing', icon: Fish },
-              { name: '4x4', icon: Truck }
-            ].map(({ name, icon: Icon }) => (
-              <div
-                key={name}
-                className={`flex items-center space-x-2 ${
-                  isEditing ? 'cursor-pointer hover:bg-gray-100 p-2 rounded' : ''
-                }`}
-                onClick={isEditing ? () => handleAmenityToggle(name) : undefined}
-              >
-                <Icon className="h-5 w-5 text-white" />
-                <span className="text-white">
-                  {name}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <CollapsibleSection
-            title="Property Details"
-            content={property.property_details}
-            isEditing={isEditing}
-            onEdit={handleSectionEdit('property_details')}
-            isAdmin={isAdmin}
-            isOpen={openSection === 'property_details'}
-            onToggle={() => setOpenSection(openSection === 'property_details' ? null : 'property_details')}
-          />
-          <CollapsibleSection
-            title="Activities"
-            content={property.activities}
-            isEditing={isEditing}
-            onEdit={handleSectionEdit('activities')}
-            isAdmin={isAdmin}
-            isOpen={openSection === 'activities'}
-            onToggle={() => setOpenSection(openSection === 'activities' ? null : 'activities')}
-          />
-          <CollapsibleSection
-            title="Local Area"
-            content={property.local_area}
-            isEditing={isEditing}
-            onEdit={handleSectionEdit('local_area')}
-            isAdmin={isAdmin}
-            isOpen={openSection === 'local_area'}
-            onToggle={() => setOpenSection(openSection === 'local_area' ? null : 'local_area')}
-          />
-          <CollapsibleSection
-            title="Getting There"
-            content={property.getting_there}
-            isEditing={isEditing}
-            onEdit={handleSectionEdit('getting_there')}
-            isAdmin={isAdmin}
-            isOpen={openSection === 'getting_there'}
-            onToggle={() => setOpenSection(openSection === 'getting_there' ? null : 'getting_there')}
-          />
-        </div>
-        </div>
       </div>
 
       <LocationMap

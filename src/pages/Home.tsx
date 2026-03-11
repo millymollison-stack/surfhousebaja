@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ImageGallery } from '../components/ImageGallery';
 import { PropertyDetails } from '../components/PropertyDetails';
+import { PropertyAmenities } from '../components/PropertyAmenities';
 import { BookingCalendar } from '../components/BookingCalendar';
 import ReviewsList from '../components/ReviewsList';
 import ReviewForm from '../components/ReviewForm';
@@ -254,32 +255,39 @@ export function Home() {
         registerSaveHandler={setImageGallerySave}
       />
       
-      <div className="-mt-4 sm:-mt-8 md:-mt-12 bg-black px-4 py-4 sm:px-8 sm:py-8 md:px-12 md:py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-12">
-        <div className="lg:col-span-2">
-          <PropertyDetails
-            property={property}
-            isEditing={isEditing}
-            onEditingChange={setIsEditing}
-            onSave={user?.role === 'admin' ? handlePropertyUpdate : undefined}
-            onBeforeSave={imageGallerySave}
-          />
+      <div className="section-mt-neg bg-black section-padding">
+        {/* Full width copy section */}
+        <PropertyDetails
+          property={property}
+          isEditing={isEditing}
+          onEditingChange={setIsEditing}
+          onSave={user?.role === 'admin' ? handlePropertyUpdate : undefined}
+          onBeforeSave={imageGallerySave}
+        />
+        
+        {/* Grid: Amenities/Dropdowns + Calendar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-12 mt-8">
+          <div className="lg:col-span-2">
+            <PropertyAmenities
+              property={property}
+              isEditing={isEditing}
+            />
+          </div>
+          <div className="w-full">
+            <BookingCalendar
+              bookings={bookings}
+              blockedDates={blockedDates}
+              propertyId={property.id}
+              property={property}
+              pricePerNight={property.price_per_night}
+              maxGuests={property.max_guests}
+              onBookingSubmit={handleBookingSubmit}
+            />
+          </div>
         </div>
-        <div className="w-full">
-          <BookingCalendar
-            bookings={bookings}
-            blockedDates={blockedDates}
-            propertyId={property.id}
-            property={property}
-            pricePerNight={property.price_per_night}
-            maxGuests={property.max_guests}
-            onBookingSubmit={handleBookingSubmit}
-          />
-        </div>
-      </div>
       </div>
 
-      <div className="mt-12 md:mt-16 lg:mt-20">
+      <div className="reviews-section content-container">
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 hero-title">Guest Reviews</h2>
           <p className="text-gray-600 text-lg">See what our guests have to say about their stay</p>

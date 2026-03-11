@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========== Base Styles ========== */
 .leaflet-container {
   width: 100%;
   height: 100%;
@@ -11,6 +12,7 @@ h1, h2, h3, .headline {
   font-family: 'Rye', serif;
 }
 
+/* ========== Hero & Title Styles ========== */
 .hero-title {
   font-family: 'Inter', sans-serif;
   font-size: clamp(1.1rem, 2.8vw, 1.6rem);
@@ -20,6 +22,265 @@ h1, h2, h3, .headline {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.hero-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(0.86rem, 1.92vw, 1.06rem);
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.73);
+  text-transform: lowercase;
+  line-height: 1.6;
+}
+
+.hero-subtitle-light {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(0.86rem, 1.92vw, 1.06rem);
+  font-weight: 300;
+  color: white;
+  text-transform: lowercase;
+  line-height: 1.6;
+}
+
+/* ========== Section Containers ========== */
+.section-full-width {
+  width: 100%;
+}
+
+.section-padding {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .section-padding {
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .section-padding {
+    padding: 3rem;
+  }
+}
+
+.section-mt-neg {
+  margin-top: -1rem;
+}
+
+@media (min-width: 640px) {
+  .section-mt-neg {
+    margin-top: -2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .section-mt-neg {
+    margin-top: -3rem;
+  }
+}
+
+/* ========== Background Overlays ========== */
+.bg-dark-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+}
+
+.bg-dark-overlay-light {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ========== Image Gallery ========== */
+.gallery-container {
+  position: relative;
+  height: 500px;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .gallery-container {
+    height: 600px;
+  }
+}
+
+.gallery-shadow {
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+}
+
+.gallery-gradient-overlay {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 30%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+.gallery-gradient-overlay-light {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.1) 30%, rgba(0, 0, 0, 0.1) 60%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.gallery-content-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 1.25rem;
+}
+
+.gallery-bg-image {
+  background-image: url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600');
+  background-size: cover;
+  background-position: center;
+}
+
+/* ========== Amenities Background ========== */
+.amenities-bg {
+  position: relative;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+@media (min-width: 640px) {
+  .amenities-bg {
+    margin-left: -2rem;
+    margin-right: -2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .amenities-bg {
+    margin-left: -3rem;
+    margin-right: -3rem;
+  }
+}
+
+.amenities-bg-image {
+  position: absolute;
+  inset: 0;
+  background-image: url('/template/houseatnight.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.6;
+}
+
+.amenities-bg-overlay {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.amenities-content {
+  position: relative;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 1.875rem;
+  padding-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .amenities-content {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .amenities-content {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+/* ========== Glass Cards ========== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+/* ========== Text Colors ========== */
+.text-white-73 {
+  color: rgba(255, 255, 255, 0.73);
+}
+
+.text-white-90 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ========== Lozinges ========== */
+.lozenge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ========== Grid Layouts ========== */
+.grid-3-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .grid-3-cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.grid-2-cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .grid-2-cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .grid-2-cols {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-2-cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ========== Content Container ========== */
+.content-container {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .content-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .content-container {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+/* ========== Footer Spacing ========== */
+.footer-content {
+  margin-bottom: 50px;
+}
+
+/* ========== Animations ========== */
 @keyframes slideIn {
   from {
     transform: translateX(100%);
@@ -44,4 +305,75 @@ h1, h2, h3, .headline {
 
 .animate-slide-out {
   animation: slideOut 300ms ease-in forwards;
+}
+
+/* ========== Transparent Header ========== */
+.header-transparent {
+  background: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0);
+}
+
+/* ========== Dropdown Section ========== */
+.dropdown-section {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.dropdown-header {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background-color 150ms;
+}
+
+.dropdown-header:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ========== Reviews Section ========== */
+.reviews-section {
+  margin-top: 3rem;
+}
+
+@media (min-width: 768px) {
+  .reviews-section {
+    margin-top: 4rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .reviews-section {
+    margin-top: 5rem;
+  }
+}
+
+/* ========== Booking Form ========== */
+.booking-label {
+  display: block;
+  font-size: 1.65rem;
+  font-weight: 500;
+}
+
+.booking-label-white {
+  color: rgba(255, 255, 255, 0.73);
+}
+
+.booking-select-white {
+  color: rgba(255, 255, 255, 0.73);
+}
+
+.booking-option-black {
+  color: black;
+}
+
+/* ========== Map Container ========== */
+.map-full-size {
+  height: 100%;
+  width: 100%;
 }

@@ -31,8 +31,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
-      <header className="absolute top-0 left-0 right-0 z-[9997]" style={{ background: 'rgba(0, 0, 0, 0.0)', backdropFilter: 'blur(0px)' }}>
-        <nav className="max-w-7xl mx-auto px-5 lg:px-10 h-16 flex items-center justify-between">
+      <header className="absolute top-0 left-0 right-0 z-[9997] header-transparent">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 text-white hover:text-white">
             <Home className="h-6 w-6 opacity-90" />
             <span className="text-lg font-medium">@surfhousebaja</span>
@@ -70,7 +70,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             Book Direct, No Airbnb Fees, Chat with Host.
           </p>
         </div>
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8" style={{ marginBottom: '50px' }}>
+        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 footer-content">
           <p className="text-center text-gray-500 text-sm">
             © {new Date().getFullYear()} @surfhousebaja. All rights reserved.
           </p>

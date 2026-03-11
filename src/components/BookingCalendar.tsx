@@ -446,18 +446,17 @@ export function BookingCalendar({
           {isBookingMode ? (
             <>
               <div>
-                <label htmlFor="guestCount" className="block text-[1.65rem] font-medium headline" style={{ color: 'rgba(255,255,255,0.73)' }}>
+                <label htmlFor="guestCount" className="block booking-label headline booking-label-white">
                   Number of Guests
                 </label>
                 <select
                   id="guestCount"
                   value={guestCount}
                   onChange={(e) => setGuestCount(parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
-                  style={{ color: 'rgba(255,255,255,0.73)' }}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] booking-select-white bg-transparent"
                 >
                   {Array.from({ length: maxGuests }, (_, i) => i + 1).map(num => (
-                    <option key={num} value={num} style={{ color: 'black' }}>
+                    <option key={num} value={num} className="booking-option-black">
                       {num} {num === 1 ? 'Guest' : 'Guests'}
                     </option>
                   ))}
@@ -465,7 +464,7 @@ export function BookingCalendar({
               </div>
 
               <div>
-                <label htmlFor="specialRequests" className="block text-[1.65rem] font-medium headline" style={{ color: 'rgba(255,255,255,0.73)' }}>
+                <label htmlFor="specialRequests" className="block booking-label headline booking-label-white">
                   Special Requests (Optional)
                 </label>
                 <textarea
