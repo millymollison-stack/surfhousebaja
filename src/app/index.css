@@ -246,12 +246,6 @@ h1, h2, h3, .headline {
   }
 }
 
-@media (min-width: 1024px) {
-  .grid-2-cols {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 /* ========== Content Container ========== */
 .content-container {
   max-width: 80rem;
@@ -324,12 +318,17 @@ h1, h2, h3, .headline {
 
 .dropdown-header {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: rgba(255, 255, 255, 0.1);
   transition: background-color 150ms;
+  min-height: 3rem;
+}
+
+.dropdown-header .hero-title {
+  margin-bottom: 0;
 }
 
 .dropdown-header:hover {
@@ -338,18 +337,18 @@ h1, h2, h3, .headline {
 
 /* ========== Reviews Section ========== */
 .reviews-section {
-  margin-top: 3rem;
+  margin-top: 0;
 }
 
 @media (min-width: 768px) {
   .reviews-section {
-    margin-top: 4rem;
+    margin-top: 0;
   }
 }
 
 @media (min-width: 1024px) {
   .reviews-section {
-    margin-top: 5rem;
+    margin-top: 0;
   }
 }
 

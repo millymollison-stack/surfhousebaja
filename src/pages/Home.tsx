@@ -265,43 +265,57 @@ export function Home() {
           onBeforeSave={imageGallerySave}
         />
         
-        {/* Grid: Amenities/Dropdowns + Calendar */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-12 mt-8">
-          <div className="lg:col-span-2">
+        {/* Full-width background behind amenities + calendar */}
+        <div className="amenities-bg">
+          <div className="absolute inset-0 amenities-bg-image"></div>
+          <div className="relative">
+            {/* Amenities and Dropdowns */}
             <PropertyAmenities
               property={property}
               isEditing={isEditing}
             />
-          </div>
-          <div className="w-full">
-            <BookingCalendar
-              bookings={bookings}
-              blockedDates={blockedDates}
-              propertyId={property.id}
-              property={property}
-              pricePerNight={property.price_per_night}
-              maxGuests={property.max_guests}
-              onBookingSubmit={handleBookingSubmit}
-            />
+            {/* Calendar below dropdowns */}
+            <div className="amenities-content pb-8">
+              <BookingCalendar
+                bookings={bookings}
+                blockedDates={blockedDates}
+                propertyId={property.id}
+                property={property}
+                pricePerNight={property.price_per_night}
+                maxGuests={property.max_guests}
+                onBookingSubmit={handleBookingSubmit}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="reviews-section content-container">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 hero-title">Guest Reviews</h2>
-          <p className="text-gray-600 text-lg">See what our guests have to say about their stay</p>
+      <div className="reviews-section content-container relative" style={{ backgroundColor: '#f3f4f6', paddingBottom: '2rem' }}>
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0"
+          style={{ 
+            backgroundImage: 'url(/template/bedroom%20view.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.6
+          }}
+        ></div>
+        <div className="relative">
+        <div className="pl-2.5 pt-2">
+          <h2 className="text-3xl md:text-4xl font-bold hero-title" style={{ color: '#000000' }}>See what our guests say</h2>
         </div>
 
         <ReviewsList />
 
-        <div className="text-center mt-8">
+        <div className="flex justify-center mt-6">
           <button
             onClick={() => setShowReviewModal(true)}
-            className="text-blue-600 hover:text-blue-700 font-medium hover:underline text-lg"
+            className="px-5 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
           >
             Leave a review
           </button>
+        </div>
         </div>
       </div>
 

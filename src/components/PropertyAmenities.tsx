@@ -110,63 +110,60 @@ export function PropertyAmenities({ property, isEditing }: PropertyAmenitiesProp
 
   return (
     <>
-      {/* Background container with amenities and dropdowns */}
-      <div className="amenities-bg mt-5 relative">
-        <div className="absolute inset-0 amenities-bg-image"></div>
-        <div className="relative amenities-content space-y-8 pb-8">
-          {/* Amenities */}
-          <div className="glass-card">
-            <h2 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h2>
-            <div className="grid-2-cols">
-              {amenities.map(({ name, icon: Icon }) => (
-                <div
-                  key={name}
-                  className="flex items-center space-x-2"
-                >
-                  <Icon className="h-5 w-5 text-white" />
-                  <span className="text-white">
-                    {name}
-                  </span>
-                </div>
-              ))}
-            </div>
+      {/* Content container - background handled by parent */}
+      <div className="mt-5 relative amenities-content space-y-8 pb-8">
+        {/* Amenities */}
+        <div className="glass-card">
+          <h2 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h2>
+          <div className="grid-2-cols">
+            {amenities.map(({ name, icon: Icon }) => (
+              <div
+                key={name}
+                className="flex items-center space-x-2"
+              >
+                <Icon className="h-5 w-5 text-white" />
+                <span className="text-white">
+                  {name}
+                </span>
+              </div>
+            ))}
           </div>
+        </div>
 
-          {/* Dropdown sections */}
-          <div className="space-y-4">
-            <CollapsibleSection
-              title="Property Details"
-              content={property.property_details}
-              isEditing={isEditing}
-              isAdmin={isAdmin}
-              isOpen={openSection === 'property_details'}
-              onToggle={() => setOpenSection(openSection === 'property_details' ? null : 'property_details')}
-            />
-            <CollapsibleSection
-              title="Activities"
-              content={property.activities}
-              isEditing={isEditing}
-              isAdmin={isAdmin}
-              isOpen={openSection === 'activities'}
-              onToggle={() => setOpenSection(openSection === 'activities' ? null : 'activities')}
-            />
-            <CollapsibleSection
-              title="Local Area"
-              content={property.local_area}
-              isEditing={isEditing}
-              isAdmin={isAdmin}
-              isOpen={openSection === 'local_area'}
-              onToggle={() => setOpenSection(openSection === 'local_area' ? null : 'local_area')}
-            />
-            <CollapsibleSection
-              title="Getting There"
-              content={property.getting_there}
+        {/* Dropdown sections */}
+        <div className="space-y-4">
+          <CollapsibleSection
+            title="Property Details"
+            content={property.property_details}
+            isEditing={isEditing}
+            isAdmin={isAdmin}
+            isOpen={openSection === 'property_details'}
+            onToggle={() => setOpenSection(openSection === 'property_details' ? null : 'property_details')}
+          />
+          <CollapsibleSection
+            title="Activities"
+            content={property.activities}
+            isEditing={isEditing}
+            isAdmin={isAdmin}
+            isOpen={openSection === 'activities'}
+            onToggle={() => setOpenSection(openSection === 'activities' ? null : 'activities')}
+          />
+          <CollapsibleSection
+            title="Local Area"
+            content={property.local_area}
+            isEditing={isEditing}
+            isAdmin={isAdmin}
+            isOpen={openSection === 'local_area'}
+            onToggle={() => setOpenSection(openSection === 'local_area' ? null : 'local_area')}
+          />
+          <CollapsibleSection
+            title="Getting There"
+            content={property.getting_there}
               isEditing={isEditing}
               isAdmin={isAdmin}
               isOpen={openSection === 'getting_there'}
               onToggle={() => setOpenSection(openSection === 'getting_there' ? null : 'getting_there')}
             />
-          </div>
         </div>
       </div>
 
