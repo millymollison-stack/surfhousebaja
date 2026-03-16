@@ -9,6 +9,8 @@ export interface Profile {
   avatar_url: string | null;
   phone_number: string | null;
   role: UserRole;
+  stripe_account_id: string | null;
+  stripe_account_status: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +34,7 @@ export interface Property {
   location_type: 'address' | 'coordinates' | null;
   property_title: string | null;
   property_intro: string | null;
+  custom_domain: string | null;
   created_at: string;
   updated_at: string;
 }

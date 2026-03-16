@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Shield, Building } from 'lucide-react';
+import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Shield, Building, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { supabase } from '../lib/supabase';
@@ -17,8 +17,11 @@ export function UserMenu() {
   const [profileData, setProfileData] = useState({
     full_name: '',
     email: '',
-    phone_number: ''
+    phone_number: '',
+    stripe_account_id: '',
+    stripe_account_status: ''
   });
+  const [userProperty, setUserProperty] = useState<Property | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const { user, signOut } = useAuth();
@@ -56,16 +59,34 @@ export function UserMenu() {
   useEffect(() => {
     if (isOpen && user) {
       loadBookings();
+      loadUserProperty();
       setProfileData({
         full_name: user.full_name || '',
         email: user.email || '',
-        phone_number: user.phone_number || ''
+        phone_number: user.phone_number || '',
+        stripe_account_id: (user as any).stripe_account_id || '',
+        stripe_account_status: (user as any).stripe_account_status || ''
       });
       // Clear any previous messages when opening
       setProfileError(null);
       setProfileSuccess(null);
     }
   }, [isOpen, user]);
+
+  // Load user's property for custom domain
+  const loadUserProperty = async () => {
+    if (!user) return;
+    
+    const { data: property, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('owner_id', user.id)
+      .maybeSingle();
+    
+    if (property) {
+      setUserProperty(property);
+    }
+  };
 
   const loadBookings = async () => {
     if (!user) return;
@@ -268,7 +289,9 @@ export function UserMenu() {
 
       const updates: any = {
         full_name: profileData.full_name.trim(),
-        phone_number: profileData.phone_number?.trim() || null
+        phone_number: profileData.phone_number?.trim() || null,
+        stripe_account_id: profileData.stripe_account_id?.trim() || null,
+        stripe_account_status: profileData.stripe_account_status?.trim() || null
       };
       
       // Add email to updates if it changed
@@ -318,6 +341,14 @@ export function UserMenu() {
         setProfileSuccess('Profile updated! Please check your new email address for a confirmation link.');
       } else {
         setProfileSuccess('Profile updated successfully!');
+        
+        // Save custom domain to property if changed
+        if (userProperty && userProperty.custom_domain !== undefined) {
+          await supabase
+            .from('properties')
+            .update({ custom_domain: userProperty.custom_domain })
+            .eq('id', userProperty.id);
+        }
         
         // Refresh user data from auth store
         setTimeout(() => {
@@ -381,27 +412,11 @@ export function UserMenu() {
         <span>{user.full_name?.split(' ')[0] || 'Profile'}</span>
       </button>
 
-      {/* Overlay */}
-      {isOpen && (
-        <div 
-          className="bg-black bg-opacity-50 cursor-pointer"
-          onClick={() => setIsOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 9998,
-          }}
-        />
-      )}
-
-      {/* Slide-out menu */}
+      {/* Slide-out menu with large drop shadow */}
       {isOpen && (
         <div
           data-user-menu-panel
-          className="fixed right-0 top-0 h-screen w-[calc(100%-72px)] max-w-[380px] bg-white shadow-xl z-[9999] overflow-y-auto animate-slide-in cursor-default"
+          className="fixed right-0 top-0 h-full min-h-screen w-[calc(100%-72px)] max-w-[380px] bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.4)] z-[99999] overflow-y-auto animate-slide-in cursor-default"
         >
         <div className="px-6">
           <div className="flex items-center justify-between h-16 border-b border-gray-200">
@@ -432,8 +447,8 @@ export function UserMenu() {
               </div>
             )}
 
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Profile Information</h3>
+            <div className="flex justify-between items-start">
+              <div></div>
               {!isEditingProfile ? (
                 <button
                   onClick={() => setIsEditingProfile(true)}
@@ -471,9 +486,33 @@ export function UserMenu() {
               )}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 leading-relaxed">
+              {/* Page URL - for custom domain or subdomain */}
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
+                <label className="block text-sm font-normal text-gray-500 mb-0.5">
+                  <span className="flex items-center gap-1">
+                    Page URL
+                    <Info className="h-3 w-3 text-gray-400" />
+                  </span>
+                </label>
+                {isEditingProfile ? (
+                  <input
+                    type="text"
+                    value={userProperty?.custom_domain || ''}
+                    onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                    disabled={loading}
+                    placeholder="your-domain.com"
+                  />
+                ) : (
+                  <p className="text-base font-normal text-gray-900">
+                    {userProperty?.custom_domain || 'surfhousebaja.com'}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-normal text-gray-500 mb-0.5">
                   Full Name
                 </label>
                 {isEditingProfile ? (
@@ -485,12 +524,12 @@ export function UserMenu() {
                     disabled={loading}
                   />
                 ) : (
-                  <p className="text-lg font-medium text-gray-900">{user.full_name}</p>
+                  <p className="text-base font-normal text-gray-900">{user.full_name}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
+                <label className="block text-sm font-normal text-gray-500 mb-0.5">
                   Email Address
                 </label>
                 {isEditingProfile ? (
@@ -502,12 +541,12 @@ export function UserMenu() {
                     disabled={loading}
                   />
                 ) : (
-                  <p className="text-lg font-medium text-gray-900">{user.email}</p>
+                  <p className="text-base font-normal text-gray-900">{user.email}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
+                <label className="block text-sm font-normal text-gray-500 mb-0.5">
                   Phone Number
                 </label>
                 {isEditingProfile ? (
@@ -520,16 +559,53 @@ export function UserMenu() {
                     disabled={loading}
                   />
                 ) : (
-                  <p className="text-lg font-medium text-gray-900">
+                  <p className="text-base font-normal text-gray-900">
                     {user.phone_number || 'Not provided'}
                   </p>
                 )}
               </div>
-            </div>
 
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Role</p>
-              <p className="text-lg font-medium text-gray-900 capitalize">{user.role}</p>
+              {/* Payout Bank Account - for admin users */}
+              {user.role === 'admin' && (
+                <div>
+                  <label className="block text-sm font-normal text-gray-500 mb-0.5">
+                    <span className="flex items-center gap-1">
+                      Payout Bank Account
+                      <Info className="h-3 w-3 text-gray-400" />
+                    </span>
+                  </label>
+                  {isEditingProfile ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={profileData.stripe_account_id}
+                        onChange={(e) => handleProfileInputChange('stripe_account_id', e.target.value)}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                        placeholder="Stripe Account ID"
+                        disabled={loading}
+                      />
+                      <input
+                        type="text"
+                        value={profileData.stripe_account_status}
+                        onChange={(e) => handleProfileInputChange('stripe_account_status', e.target.value)}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                        placeholder="Status (e.g., pending, active)"
+                        disabled={loading}
+                      />
+                    </div>
+                  ) : (
+                    <button className="text-base font-normal text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                      <Building className="h-4 w-4" />
+                      {profileData.stripe_account_id ? 'Connected' : 'Set up payouts'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="pt-1">
+                <p className="text-sm font-normal text-gray-500 mb-0.5">Role</p>
+                <p className="text-base font-normal text-gray-900 capitalize">{user.role}</p>
+              </div>
             </div>
 
             {user.role === 'admin' && (
