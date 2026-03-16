@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { Layout } from '../components/Layout';
@@ -9,10 +9,14 @@ import { AdminDashboard } from '../pages/AdminDashboard';
 import { PropertyAdmin } from '../pages/PropertyAdmin';
 import { EmailConfirmation } from '../pages/EmailConfirmation';
 import { Onboarding } from '../pages/Onboarding';
+import PaymentPage from '../pages/PaymentPage';
 
 function AppContent() {
   const { initialize, user } = useAuth();
   const location = useLocation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const saveAllRef = useRef<(() => Promise<void>) | null>(null);
   
   useEffect(() => {
     initialize();
@@ -34,10 +38,18 @@ function AppContent() {
     handleAuthRedirect();
   }, [location]);
 
+  const handleSaveAll = async () => {
+    if (saveAllRef.current) {
+      await saveAllRef.current();
+    }
+    setHasChanges(false);
+    setIsEditing(false);
+  };
+
   return (
-    <Layout>
+    <Layout isEditing={isEditing} onToggleEdit={() => setIsEditing(!isEditing)} hasChanges={hasChanges} onSaveChanges={handleSaveAll}>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; }} />} />
         <Route path="/auth/confirm" element={<EmailConfirmation />} />
         <Route
           path="/login"
@@ -68,6 +80,7 @@ function AppContent() {
           }
         />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/pay/:bookingId" element={<PaymentPage />} />
       </Routes>
     </Layout>
   );

@@ -10,6 +10,7 @@ interface PropertyDetailsProps {
   onEditingChange: (isEditing: boolean) => void;
   onSave?: (updates: Partial<Property>) => Promise<void>;
   onBeforeSave?: (() => Promise<void>) | null;
+  onHasChanges?: (hasChanges: boolean) => void;
 }
 
 interface CollapsibleSectionProps {
@@ -60,16 +61,17 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
               <textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/15 rounded-lg focus:border-[#C47756] focus:ring-[#C47756]"
                 rows={6}
                 placeholder={`Enter ${title.toLowerCase()} information...`}
+                style={{ fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit' }}
               />
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={() => setIsEditingSection(false)}
                   className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
                 >
-                  Cancel
+                  Done
                 </button>
                 <button
                   onClick={handleSave}
@@ -94,7 +96,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
   );
 }
 
-export function PropertyDetails({ property, isEditing, onEditingChange, onSave, onBeforeSave }: PropertyDetailsProps) {
+export function PropertyDetails({ property, isEditing, onEditingChange, onSave, onBeforeSave, onHasChanges }: PropertyDetailsProps) {
   const [formData, setFormData] = useState(property);
   const [loading, setLoading] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -108,6 +110,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
       ...prev,
       [name]: value
     }));
+    onHasChanges?.(true);
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +119,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
       ...prev,
       [name]: parseFloat(value)
     }));
+    onHasChanges?.(true);
   };
 
   const handleAmenityToggle = (amenity: string) => {
@@ -138,6 +142,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
       // Then save the property details
       await onSave(formData);
       onEditingChange(false);
+      onHasChanges?.(false);
     } finally {
       setLoading(false);
     }
@@ -153,11 +158,15 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
     }
   };
 
+  // Consistent edit input style - apply to all editable fields
+  const editInputClass = "w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#C47756]";
+
   const renderEditableText = (
     name: keyof Property,
     value: string | number,
     type: 'text' | 'textarea' | 'number' = 'text',
-    className = ''
+    className = '',
+    hideIcons = false
   ) => {
     if (!isEditing) {
       return <span className={className}>{value}</span>;
@@ -169,7 +178,16 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
           name={name}
           value={value}
           onChange={handleInputChange}
-          className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+          className={editInputClass}
+          style={{ 
+            fontFamily: 'inherit', 
+            fontSize: 'inherit', 
+            color: '#ffffff',
+            backdropFilter: 'blur(10px)',
+            background: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: '0.5rem',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+          }}
           rows={4}
         />
       );
@@ -181,7 +199,16 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
         name={name}
         value={value}
         onChange={type === 'number' ? handleNumberChange : handleInputChange}
-        className={`rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] ${className}`}
+        className={editInputClass}
+        style={{ 
+          fontFamily: 'inherit', 
+          fontSize: 'inherit', 
+          color: 'inherit',
+          backdropFilter: 'blur(10px)',
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderRadius: '0.5rem',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+        }}
       />
     );
   };
@@ -195,51 +222,27 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             {isEditing ? (
               renderEditableText('description', formData.description, 'textarea')
             ) : (
-              <p className="text-lg pt-2.5 whitespace-pre-line hero-subtitle">Your luxury Baja surf escape awaits. Wake up to an uncrowded point break, tear through nearby off-road trails, or head out on unforgettable fishing trips. Spend your afternoons in hammocks enjoying the fishermen's fresh daily catch. Experience the raw beauty of Baja with the comforts of Starlink WiFi, hot showers, a full kitchen, a sun-soaked balcony, and a spacious fire-pit gathering area—perfect for sharing with friends.</p>
+              <p className="text-lg py-5 whitespace-pre-line hero-subtitle">Your luxury Baja surf escape awaits. Wake up to an uncrowded point break, tear through nearby off-road trails, or head out on unforgettable fishing trips. Spend your afternoons in hammocks enjoying the fishermen's fresh daily catch. Experience the raw beauty of Baja with the comforts of Starlink WiFi, hot showers, a full kitchen, a sun-soaked balcony, and a spacious fire-pit gathering area—perfect for sharing with friends.</p>
             )}
           </div>
         </div>
-        {isAdmin && onSave && (
-          <div className="flex items-center space-x-2 ml-4">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={() => onEditingChange(false)}
-                  className="p-2 text-gray-600 hover:text-gray-900"
-                  disabled={loading}
-                >
-                  <X className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="p-2 text-green-600 hover:text-green-700"
-                  disabled={loading}
-                >
-                  <Check className="h-5 w-5" />
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => onEditingChange(true)}
-                className="text-sm text-[#C47756] hover:text-[#B5684A]"
-              >
-                Edit Details
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-black p-4 flex items-center justify-between z-50">
-        <div className="flex items-center gap-2">
-          <span className="text-white font-medium text-sm">★★★★★</span>
-          <span className="text-white/70 text-xs">4.97</span>
-          <span className="text-white/70 text-xs">(128 reviews)</span>
+      {!isEditing && (
+        <div className="fixed bottom-0 left-0 right-0 bg-black p-4 flex items-center justify-between z-50">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-medium text-sm">★★★★★</span>
+            <span className="text-white/70 text-xs">4.97</span>
+            <span className="text-white/70 text-xs">(128 reviews)</span>
+          </div>
+          <button 
+            onClick={() => document.getElementById('calendar-section')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-6 py-2.5 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] transition-colors"
+          >
+            Book Now
+          </button>
         </div>
-        <button className="px-6 py-2.5 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] transition-colors">
-          Book Now
-        </button>
-      </div>
+      )}
 
       <LocationMap
         property={property}

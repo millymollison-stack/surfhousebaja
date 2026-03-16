@@ -24,6 +24,35 @@ export function UserMenu() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  // Close menu on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Check if click is outside the menu panel
+      const menuPanel = document.querySelector('[data-user-menu-panel]');
+      const menuButton = document.querySelector('[data-user-menu-button]');
+      if (menuPanel && !menuPanel.contains(target) && menuButton && !menuButton.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen && user) {
       loadBookings();
@@ -328,13 +357,12 @@ export function UserMenu() {
   // Animation state
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const openMenu = () => {
-    setIsOpen(true);
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
     setIsAnimating(true);
   };
 
   const closeMenu = () => {
-    setIsAnimating(true);
     setIsOpen(false);
   };
 
@@ -345,32 +373,44 @@ export function UserMenu() {
   return (
     <>
       <button
-        onClick={openMenu}
-        className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 z-50 relative"
+        onClick={toggleMenu}
+        data-user-menu-button
+        className="flex items-center space-x-1 px-3 py-1.5 bg-white/20 backdrop-blur-sm border border-white/15 rounded text-white font-bold text-sm hover:bg-white/30"
       >
-        <User className="h-5 w-5" />
+        <User className="h-4 w-4" />
         <span>{user.full_name?.split(' ')[0] || 'Profile'}</span>
       </button>
 
       {/* Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-[9998]"
-          onClick={closeMenu}
+          className="bg-black bg-opacity-50 cursor-pointer"
+          onClick={() => setIsOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9998,
+          }}
         />
       )}
 
       {/* Slide-out menu */}
       {isOpen && (
         <div
-          className="fixed right-0 top-0 h-screen w-[calc(100%-72px)] max-w-[380px] bg-white shadow-xl z-[9999] overflow-y-auto animate-slide-in"
+          data-user-menu-panel
+          className="fixed right-0 top-0 h-screen w-[calc(100%-72px)] max-w-[380px] bg-white shadow-xl z-[9999] overflow-y-auto animate-slide-in cursor-default"
         >
         <div className="px-6">
           <div className="flex items-center justify-between h-16 border-b border-gray-200">
             <h2 className="text-[1.65rem] text-gray-900">Profile</h2>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
-              className="p-2 rounded-full hover:bg-gray-100 z-10"
+              aria-label="Close menu"
+              className="p-2 rounded-full hover:bg-gray-100 z-50 relative"
             >
               <X className="h-6 w-6 text-gray-500" />
             </button>
@@ -397,8 +437,7 @@ export function UserMenu() {
               {!isEditingProfile ? (
                 <button
                   onClick={() => setIsEditingProfile(true)}
-                  className="flex items-center space-x-1 text-[#C47756] hover:text-[#B5684A] z-10"
-                  style={{ pointerEvents: 'auto' }}
+                  className="flex items-center space-x-1 text-[#C47756] hover:text-[#B5684A] z-10 pointer-events-auto"
                 >
                   <Edit2 className="h-4 w-4" />
                   <span>Edit</span>
@@ -416,16 +455,14 @@ export function UserMenu() {
                       setProfileError(null);
                       setProfileSuccess(null);
                     }}
-                    className="text-gray-600 hover:text-gray-900 z-10"
-                    style={{ pointerEvents: 'auto' }}
+                    className="text-gray-600 hover:text-gray-900 z-10 pointer-events-auto"
                     disabled={loading}
                   >
                     <X className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleProfileUpdate}
-                    className="text-green-600 hover:text-green-700 z-10"
-                    style={{ pointerEvents: 'auto' }}
+                    className="text-green-600 hover:text-green-700 z-10 pointer-events-auto"
                     disabled={loading}
                   >
                     <Save className="h-4 w-4" />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wifi, Car, Coffee, Tv, Waves, Scale, Fish, Truck, ChevronDown, ChevronUp, Edit2, MapPin } from 'lucide-react';
+import { Wifi, Car, Coffee, Tv, Waves, Scale, Fish, Truck, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 import type { Property } from '../types';
 import { useAuth } from '../store/auth';
 import { LocationMap } from './LocationMap';
@@ -7,26 +7,21 @@ import { LocationMap } from './LocationMap';
 interface PropertyAmenitiesProps {
   property: Property;
   isEditing: boolean;
+  onHasChanges?: (hasChanges: boolean) => void;
 }
 
 interface CollapsibleSectionProps {
   title: string;
   content: string | null;
   isEditing: boolean;
-  onEdit?: (content: string) => void;
   isAdmin: boolean;
   isOpen: boolean;
   onToggle: () => void;
+  onHasChanges?: (hasChanges: boolean) => void;
 }
 
-function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen, onToggle }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, content, isEditing, isAdmin, isOpen, onToggle, onHasChanges }: CollapsibleSectionProps) {
   const [editedContent, setEditedContent] = useState(content || '');
-  const [isEditingSection, setIsEditingSection] = useState(false);
-
-  const handleSave = () => {
-    onEdit?.(editedContent);
-    setIsEditingSection(false);
-  };
 
   return (
     <div className="dropdown-section">
@@ -40,41 +35,26 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
       
       {isOpen && (
         <div className="p-4">
-          {isAdmin && !isEditingSection ? (
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={() => setIsEditingSection(true)}
-                className="flex items-center space-x-2 text-sm text-[#C47756] hover:text-[#B5684A]"
-              >
-                <Edit2 className="h-4 w-4" />
-                <span>Edit Section</span>
-              </button>
-            </div>
-          ) : null}
-
-          {isEditingSection ? (
+          {isEditing ? (
             <div className="space-y-4">
               <textarea
                 value={editedContent}
-                onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                onChange={(e) => {
+                  setEditedContent(e.target.value);
+                  onHasChanges?.(true);
+                }}
+                className="w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#C47756]"
                 rows={6}
                 placeholder={`Enter ${title.toLowerCase()} information...`}
+                style={{ 
+                  fontFamily: 'inherit', 
+                  fontSize: 'inherit',
+                  backdropFilter: 'blur(10px)',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                }}
               />
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setIsEditingSection(false)}
-                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-3 py-1 text-sm bg-[#C47756] text-white rounded hover:bg-[#B5684A]"
-                >
-                  Save Changes
-                </button>
-              </div>
             </div>
           ) : (
             <div className="prose max-w-none w-full">
@@ -91,7 +71,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
   );
 }
 
-export function PropertyAmenities({ property, isEditing }: PropertyAmenitiesProps) {
+export function PropertyAmenities({ property, isEditing, onHasChanges }: PropertyAmenitiesProps) {
   const [openSection, setOpenSection] = useState<string | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const { user } = useAuth();
@@ -139,6 +119,7 @@ export function PropertyAmenities({ property, isEditing }: PropertyAmenitiesProp
             isAdmin={isAdmin}
             isOpen={openSection === 'property_details'}
             onToggle={() => setOpenSection(openSection === 'property_details' ? null : 'property_details')}
+            onHasChanges={onHasChanges}
           />
           <CollapsibleSection
             title="Activities"
@@ -147,6 +128,7 @@ export function PropertyAmenities({ property, isEditing }: PropertyAmenitiesProp
             isAdmin={isAdmin}
             isOpen={openSection === 'activities'}
             onToggle={() => setOpenSection(openSection === 'activities' ? null : 'activities')}
+            onHasChanges={onHasChanges}
           />
           <CollapsibleSection
             title="Local Area"
@@ -155,15 +137,17 @@ export function PropertyAmenities({ property, isEditing }: PropertyAmenitiesProp
             isAdmin={isAdmin}
             isOpen={openSection === 'local_area'}
             onToggle={() => setOpenSection(openSection === 'local_area' ? null : 'local_area')}
+            onHasChanges={onHasChanges}
           />
           <CollapsibleSection
             title="Getting There"
             content={property.getting_there}
-              isEditing={isEditing}
-              isAdmin={isAdmin}
-              isOpen={openSection === 'getting_there'}
-              onToggle={() => setOpenSection(openSection === 'getting_there' ? null : 'getting_there')}
-            />
+            isEditing={isEditing}
+            isAdmin={isAdmin}
+            isOpen={openSection === 'getting_there'}
+            onToggle={() => setOpenSection(openSection === 'getting_there' ? null : 'getting_there')}
+            onHasChanges={onHasChanges}
+          />
         </div>
       </div>
 

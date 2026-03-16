@@ -8,14 +8,83 @@
   height: 100%;
 }
 
+/* ========== Headings - H1 & H2 with Breakpoints ========== */
+/* 
+  Breakpoints:
+  - Default: mobile first
+  - sm: 640px
+  - md: 768px  
+  - lg: 1024px
+  - xl: 1280px
+*/
+
 h1, h2, h3, .headline {
   font-family: 'Rye', serif;
+  font-weight: 400;
+}
+
+/* H1 - Page Titles */
+h1 {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+@media (min-width: 640px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  h1 {
+    font-size: 1.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  h1 {
+    font-size: 2rem;
+  }
+}
+
+/* H2 - Section Titles */
+h2 {
+  font-size: 1.125rem;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.73);
+}
+
+@media (min-width: 640px) {
+  h2 {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 768px) {
+  h2 {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  h2 {
+    font-size: 1.25rem;
+  }
+}
+
+/* H2 variants */
+h2.text-black {
+  color: #000000;
+}
+
+h2.text-white {
+  color: #ffffff;
 }
 
 /* ========== Hero & Title Styles ========== */
 .hero-title {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(1.1rem, 2.8vw, 1.6rem);
+  font-size: clamp(1.5rem, 2.8vw, 1.875rem);
   font-weight: 400;
   text-transform: uppercase;
   margin-bottom: 10px;
@@ -25,19 +94,81 @@ h1, h2, h3, .headline {
 .hero-subtitle {
   font-family: 'Inter', sans-serif;
   font-size: clamp(0.86rem, 1.92vw, 1.06rem);
-  font-weight: 300;
+  font-weight: 400;
   color: rgba(255, 255, 255, 0.73);
-  text-transform: lowercase;
   line-height: 1.6;
 }
 
 .hero-subtitle-light {
   font-family: 'Inter', sans-serif;
   font-size: clamp(0.86rem, 1.92vw, 1.06rem);
-  font-weight: 300;
+  font-weight: 400;
   color: white;
-  text-transform: lowercase;
   line-height: 1.6;
+}
+
+/* ========== Extracted Inline Styles ========== */
+
+/* Pointer Events */
+.pointer-events-auto {
+  pointer-events: auto;
+}
+
+/* Width utilities */
+.width-full {
+  width: 100%;
+}
+
+.width-full-min {
+  min-width: 100%;
+  width: 100%;
+}
+
+/* Background Image */
+.bg-image-gallery {
+  background-image: url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Email confirmation box */
+.email-confirm-box {
+  background: #e0e0e0;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 12px;
+}
+
+/* Reviews section background */
+.reviews-bg {
+  background-color: #f3f4f6;
+  padding-bottom: 2rem;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  box-sizing: border-box;
+}
+
+/* Reviews background image */
+.reviews-bg-image {
+  background-image: url('https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/Bedroom%20view.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.6;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  box-sizing: border-box;
+}
+.progress-bar {
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #C47756;
+  transition: width 300ms ease;
 }
 
 /* ========== Section Containers ========== */

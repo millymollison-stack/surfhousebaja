@@ -1,11 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home, LogIn, Share } from 'lucide-react';
+import { Home, LogIn, Share, User } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import { UserMenu } from './UserMenu';
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges }: { 
+  children: React.ReactNode; 
+  isEditing?: boolean; 
+  onToggleEdit?: () => void;
+  hasChanges?: boolean;
+  onSaveChanges?: () => void;
+}) {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const handleShare = async () => {
     try {
@@ -38,7 +45,37 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span className="text-lg font-medium">@surfhousebaja</span>
           </Link>
           
-          <div className="flex items-center space-x-5">
+          <div className="flex items-center space-x-3">
+            {isAdmin && (
+              <>
+                {hasChanges ? (
+                  <button
+                    onClick={() => {
+                      onSaveChanges?.();
+                    }}
+                    className="px-3 py-1.5 rounded text-sm font-bold transition-all bg-green-600 hover:bg-green-700 text-white animate-pulse"
+                  >
+                    Save Now
+                  </button>
+                ) : isEditing ? (
+                  <button
+                    onClick={() => {
+                      onToggleEdit?.();
+                    }}
+                    className="px-3 py-1.5 rounded text-sm font-bold transition-all bg-[#C47756] hover:bg-[#B5684A] text-white"
+                  >
+                    Save & Exit
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onToggleEdit?.()}
+                    className="px-3 py-1.5 rounded text-sm font-medium transition-all bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Edit Mode
+                  </button>
+                )}
+              </>
+            )}
             <button
               onClick={handleShare}
               className="flex items-center space-x-1 text-white/80 hover:text-white text-sm"
@@ -65,13 +102,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="bg-gray-50 border-t">
-        <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white py-3 px-4 text-center z-40">
-          <p className="text-base sm:text-lg font-medium">
-            Book Direct, No Airbnb Fees, Chat with Host.
-          </p>
-        </div>
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 footer-content">
-          <p className="text-center text-gray-500 text-sm">
+        {!(isEditing ?? false) && (
+          <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white py-3 px-4 text-center z-40">
+            <p className="text-base sm:text-lg font-medium">
+              Book Direct, No Airbnb Fees, Chat with Host.
+            </p>
+          </div>
+        )}
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 footer-content ${isEditing ?? false ? '' : 'pt-3'}`} style={{ height: isEditing ?? false ? '40px' : '60px' }}>
+          <p className="text-center text-gray-500 text-sm" style={{ paddingTop: '10px' }}>
             © {new Date().getFullYear()} @surfhousebaja. All rights reserved.
           </p>
         </div>

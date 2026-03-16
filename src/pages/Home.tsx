@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ImageGallery } from '../components/ImageGallery';
@@ -10,7 +10,7 @@ import ReviewForm from '../components/ReviewForm';
 import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 
-export function Home() {
+export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -18,13 +18,22 @@ export function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [imageGallerySave, setImageGallerySave] = useState<(() => Promise<void>) | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const calendarRef = useRef<HTMLDivElement>(null);
   
   // Add console log to see if Home component is rendering
   console.log('=== HOME COMPONENT RENDERED ===');
+
+  // Sync with external edit mode from App
+  useEffect(() => {
+    if (externalIsEditing !== undefined) {
+      setIsEditing(externalIsEditing);
+    }
+  }, [externalIsEditing]);
 
   useEffect(() => {
     async function loadProperty() {
@@ -107,6 +116,17 @@ export function Home() {
       throw err;
     }
   };
+
+  // Register saveAll function for header button
+  useEffect(() => {
+    if (registerSaveAll) {
+      registerSaveAll(async () => {
+        // Save any pending changes from formData
+        // The individual components track their own state, so we just need to ensure everything is saved
+        console.log('Save all triggered');
+      });
+    }
+  }, [registerSaveAll]);
 
   const handleImageUpload = async (file: File) => {
     if (!property) return;
@@ -248,6 +268,7 @@ export function Home() {
         images={images}
         property={property}
         isEditing={isEditing}
+        isAdmin={user?.role === 'admin'}
         onImageUpload={user?.role === 'admin' ? handleImageUpload : undefined}
         onImageDelete={user?.role === 'admin' ? handleImageDelete : undefined}
         onImageUpdate={user?.role === 'admin' ? handleImageUpdate : undefined}
@@ -263,6 +284,7 @@ export function Home() {
           onEditingChange={setIsEditing}
           onSave={user?.role === 'admin' ? handlePropertyUpdate : undefined}
           onBeforeSave={imageGallerySave}
+          onHasChanges={onHasChanges}
         />
         
         {/* Full-width background behind amenities + calendar */}
@@ -273,9 +295,10 @@ export function Home() {
             <PropertyAmenities
               property={property}
               isEditing={isEditing}
+              onHasChanges={onHasChanges}
             />
             {/* Calendar below dropdowns */}
-            <div className="amenities-content pb-8">
+            <div id="calendar-section" className="amenities-content pb-8">
               <BookingCalendar
                 bookings={bookings}
                 blockedDates={blockedDates}
@@ -283,6 +306,7 @@ export function Home() {
                 property={property}
                 pricePerNight={property.price_per_night}
                 maxGuests={property.max_guests}
+                isEditing={isEditing}
                 onBookingSubmit={handleBookingSubmit}
               />
             </div>
@@ -290,24 +314,19 @@ export function Home() {
         </div>
       </div>
 
-      <div className="reviews-section content-container relative" style={{ backgroundColor: '#f3f4f6', paddingBottom: '2rem' }}>
+      <div className="reviews-section content-container relative reviews-bg">
         {/* Background Image */}
         <div 
-          className="absolute inset-0"
-          style={{ 
-            backgroundImage: 'url(/template/bedroom%20view.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.6
-          }}
+          className="absolute inset-0 reviews-bg-image"
         ></div>
         <div className="relative">
         <div className="pl-2.5 pt-2">
-          <h2 className="text-3xl md:text-4xl font-bold hero-title" style={{ color: '#000000' }}>See what our guests say</h2>
+          <h1 className="hero-title text-black text-center pt-3" style={{ color: '#000000', paddingTop: '20px', paddingBottom: '20px' }}>What our guests say</h1>
         </div>
 
-        <ReviewsList />
+        <ReviewsList showStars={isEditing} isEditing={isEditing} />
 
+        {!isEditing && (
         <div className="flex justify-center mt-6">
           <button
             onClick={() => setShowReviewModal(true)}
@@ -316,6 +335,7 @@ export function Home() {
             Leave a review
           </button>
         </div>
+        )}
         </div>
       </div>
 

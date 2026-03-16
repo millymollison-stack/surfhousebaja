@@ -7,6 +7,7 @@ interface ImageGalleryProps {
   images: PropertyImage[];
   property: Property;
   isEditing: boolean;
+  isAdmin?: boolean;
   onImageUpload?: (file: File) => Promise<void>;
   onImageDelete?: (imageId: string) => Promise<void>;
   onImageUpdate?: (imageId: string, updates: Partial<PropertyImage>) => Promise<void>;
@@ -18,6 +19,7 @@ export function ImageGallery({
   images,
   property,
   isEditing,
+  isAdmin: externalIsAdmin,
   onImageUpload,
   onImageDelete,
   onImageUpdate,
@@ -28,8 +30,13 @@ export function ImageGallery({
   const [loading, setLoading] = useState(false);
   const [propertyTitle, setPropertyTitle] = useState(property?.property_title || '@surfhousebaja');
   const [propertyIntro, setPropertyIntro] = useState(property?.property_intro || '');
+  const [editPrice, setEditPrice] = useState(property?.price_per_night || 0);
+  const [editBedrooms, setEditBedrooms] = useState(property?.bedrooms || 0);
+  const [editBathrooms, setEditBathrooms] = useState(property?.bathrooms || 0);
+  const [editMaxGuests, setEditMaxGuests] = useState(property?.max_guests || 0);
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  // Use external isAdmin if provided, otherwise check local auth
+  const isAdmin = externalIsAdmin ?? user?.role === 'admin';
 
   useEffect(() => {
     setPropertyTitle(property?.property_title || '@surfhousebaja');
@@ -50,12 +57,12 @@ export function ImageGallery({
     return a.position - b.position;
   });
 
-  // Auto-advance images every 2 seconds
+  // Auto-advance images every 4 seconds
   useEffect(() => {
     if (sortedImages.length > 1 && !isEditing) {
       const interval = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
-      }, 2000);
+      }, 4000);
       return () => clearInterval(interval);
     }
   }, [sortedImages.length, isEditing]);
@@ -69,6 +76,20 @@ export function ImageGallery({
       });
     } catch (error) {
       console.error('Failed to update property text:', error);
+    }
+  };
+
+  const handlePropertyStatsSave = async () => {
+    if (!onPropertyUpdate) return;
+    try {
+      await onPropertyUpdate({
+        price_per_night: editPrice,
+        bedrooms: editBedrooms,
+        bathrooms: editBathrooms,
+        max_guests: editMaxGuests
+      });
+    } catch (error) {
+      console.error('Failed to update property stats:', error);
     }
   };
 
@@ -178,12 +199,12 @@ export function ImageGallery({
     return (
       <div className="relative h-[500px] md:h-[600px] overflow-hidden gallery-shadow">
         <div className="absolute inset-0 gallery-gradient-overlay"></div>
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600)' }}></div>
+        <div className="absolute inset-0 bg-cover bg-center bg-image-gallery"></div>
         
         <div className="absolute bottom-0 left-0 right-0 z-20 gallery-content-overlay bg-dark-overlay">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
-            <h1 className="hero-title">Welcome to Surf House Baja</h1>
-            <h2 className="hero-subtitle-light">A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
+            <h1 className="hero-title">{propertyTitle}</h1>
+            <p className="hero-subtitle-light">{propertyIntro}</p>
           </div>
         </div>
       </div>
@@ -208,56 +229,181 @@ export function ImageGallery({
         {/* Title and subtitle overlay with blurred glass */}
         <div className="absolute bottom-0 left-0 right-0 z-20 gallery-content-overlay bg-dark-overlay">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
-          {isEditing && isAdmin ? (
-            <>
+            {/* Title - always show */}
+            {isEditing && isAdmin ? (
               <input
                 type="text"
                 value={propertyTitle}
                 onChange={(e) => setPropertyTitle(e.target.value)}
                 onBlur={handlePropertyTextSave}
-                className="text-3xl md:text-4xl font-black text-white bg-transparent border-b-2 border-white/70 w-full focus:outline-none focus:border-white placeholder-white/50 px-2 py-1"
+                className="text-2xl md:text-3xl font-normal uppercase text-white w-full focus:outline-none focus:ring-2 focus:ring-[#C47756] px-2 py-1"
                 placeholder="Enter property title..."
+                style={{
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
               />
-              <textarea
-                value={propertyIntro}
-                onChange={(e) => setPropertyIntro(e.target.value)}
-                onBlur={handlePropertyTextSave}
-                className="w-full text-white bg-transparent border-2 border-white/30 rounded focus:outline-none focus:border-white resize-none font-medium p-2 mt-4"
-                rows={3}
-                placeholder="Enter property introduction..."
-              />
-            </>
-          ) : (
-            <>
-              <div className="flex items-baseline justify-between">
-                <h1 className="hero-title text-white">Welcome to Surf House Baja</h1>
-                <div className="flex items-baseline">
+            ) : (
+              <h1 className="hero-title text-white">{propertyTitle}</h1>
+            )}
+
+            {/* Price - always show */}
+            <div className="flex items-baseline justify-between mb-2">
+              {isEditing && isAdmin ? (
+                <>
+                  <span></span>
+                  <div className="flex items-baseline">
+                    <span className="text-2xl md:text-3xl font-bold text-white">$</span>
+                    <input
+                      type="number"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
+                      onBlur={handlePropertyStatsSave}
+                      className="w-20 text-2xl md:text-3xl font-bold text-white focus:outline-none"
+                      style={{ 
+                        background: 'rgba(255, 255, 255, 0.3)',
+                        borderRadius: '0.5rem',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        padding: '4px 8px',
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.border = '3px solid #8B4513';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+                      }}
+                      min="0"
+                    />
+                    <span className="text-white/80 text-base font-normal">/night</span>
+                  </div>
+                </>
+              ) : (
+                <>
                   <span className="text-2xl md:text-3xl font-semibold text-white">
                     ${property.price_per_night}
                   </span>
                   <span className="text-white/80 text-base font-normal">/night</span>
-                </div>
-              </div>
-              <h2 className="whitespace-pre-line hero-subtitle">A beautiful 4-bedroom beach house sitting directly in front of the, iconic surf break "Shipwrecks". Away from any crowds, located just 4 hours south of the US border.</h2>
+                </>
+              )}
+            </div>
+
+            {/* Intro - always show */}
+            {isEditing && isAdmin ? (
+              <textarea
+                value={propertyIntro}
+                onChange={(e) => setPropertyIntro(e.target.value)}
+                onBlur={handlePropertyTextSave}
+                className="w-full text-white resize-none font-normal p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-[#C47756]"
+                rows={1}
+                placeholder="Enter property introduction..."
+                style={{
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              />
+            ) : (
+              <p className="whitespace-pre-line hero-subtitle">{propertyIntro}</p>
+            )}
               
-              {/* Property stats in lozenges */}
-              <div className="flex flex-wrap gap-3 mt-5">
-                <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
-                  <Bed className="w-4 h-4 mr-2" />
-                  {property.bedrooms} Beds
-                </span>
-                <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
-                  <Bath className="w-4 h-4 mr-2" />
-                  {property.bathrooms} Bath
-                </span>
-                <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
-                  <Users className="w-4 h-4 mr-2" />
-                  {property.max_guests} Persons
-                </span>
-              </div>
-            </>
-          )}
-        </div>
+            {/* Property stats - always show */}
+            <div className="flex flex-wrap gap-3 mt-3">
+              {isEditing && isAdmin ? (
+                <>
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-sm font-medium">
+                    <Bed className="w-4 h-4 mr-2" />
+                    <input
+                      type="number"
+                      value={editBedrooms}
+                      onChange={(e) => setEditBedrooms(parseInt(e.target.value) || 0)}
+                      onBlur={handlePropertyStatsSave}
+                      className="w-12 bg-transparent text-white focus:outline-none"
+                      style={{ 
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '2px 6px'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.border = '3px solid #8B4513';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
+                      }}
+                      min="0"
+                    />
+                    <span className="ml-1">Beds</span>
+                  </span>
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-sm font-medium">
+                    <Bath className="w-4 h-4 mr-2" />
+                    <input
+                      type="number"
+                      value={editBathrooms}
+                      onChange={(e) => setEditBathrooms(parseInt(e.target.value) || 0)}
+                      onBlur={handlePropertyStatsSave}
+                      className="w-12 bg-transparent text-white focus:outline-none"
+                      style={{ 
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '2px 6px'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.border = '3px solid #8B4513';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
+                      }}
+                      min="0"
+                    />
+                    <span className="ml-1">Bath</span>
+                  </span>
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-sm font-medium">
+                    <Users className="w-4 h-4 mr-2" />
+                    <input
+                      type="number"
+                      value={editMaxGuests}
+                      onChange={(e) => setEditMaxGuests(parseInt(e.target.value) || 0)}
+                      onBlur={handlePropertyStatsSave}
+                      className="w-12 bg-transparent text-white focus:outline-none"
+                      style={{ 
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '2px 6px'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.border = '3px solid #8B4513';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
+                      }}
+                      min="0"
+                    />
+                    <span className="ml-1">Persons</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                    <Bed className="w-4 h-4 mr-2" />
+                    {property.bedrooms} Beds
+                  </span>
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                    <Bath className="w-4 h-4 mr-2" />
+                    {property.bathrooms} Bath
+                  </span>
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                    <Users className="w-4 h-4 mr-2" />
+                    {property.max_guests} Persons
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Navigation arrows */}
@@ -278,36 +424,32 @@ export function ImageGallery({
           </div>
         )}
 
-        {/* Admin controls */}
-        {isAdmin && isEditing && (
-          <div className="absolute top-4 right-4 flex space-x-2 z-30">
-            <label className="rounded-full bg-white/80 p-2 text-gray-800 hover:bg-white cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                className="hidden"
-                disabled={loading}
-              />
-              <Upload className="h-5 w-5" />
-            </label>
-            {sortedImages.length > 0 && (
-              <button
-                onClick={() => handleImageDelete(sortedImages[currentIndex].id)}
-                className="rounded-full bg-red-600/80 p-2 text-white hover:bg-red-600"
-                disabled={loading}
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Upload button - above thumbnails in edit mode */}
+      {isAdmin && isEditing && (
+        <div className="px-4 mt-4" style={{ paddingBottom: '24px' }}>
+          <label 
+            className="inline-flex items-center bg-[#C47756] text-white rounded-lg hover:bg-[#B5684A] cursor-pointer shadow-lg"
+            style={{ padding: '10px 30px' }}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+              className="hidden"
+              disabled={loading}
+            />
+            <Upload className="h-5 w-5 mr-2" />
+            Upload New Photo
+          </label>
+        </div>
+      )}
 
       {/* Thumbnail grid */}
       {sortedImages.length > 1 && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-0">
           {sortedImages.slice(1, 3).map((image, index) => (
             <div key={image.id} className="relative group">
               <button
@@ -331,6 +473,12 @@ export function ImageGallery({
                     } hover:bg-yellow-500 hover:text-white transition-colors`}
                   >
                     <Star className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleImageDelete(image.id)}
+                    className="p-2 rounded-full bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               )}

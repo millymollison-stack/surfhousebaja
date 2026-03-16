@@ -5,7 +5,12 @@ import { useAuth } from '../store/auth';
 import { Review } from '../types';
 import { format } from 'date-fns';
 
-export default function ReviewsList() {
+interface ReviewsListProps {
+  showStars?: boolean;
+  isEditing?: boolean;
+}
+
+export default function ReviewsList({ showStars = true, isEditing = false }: ReviewsListProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -169,14 +174,12 @@ export default function ReviewsList() {
         {/* Reviews Container - Full Width */}
         <div 
           ref={sliderRef}
-          className="flex gap-6 px-8 overflow-hidden"
-          style={{ width: '100%' }}
+          className="flex gap-6 px-8 overflow-hidden width-full"
         >
           {getVisibleReviews().map((review) => (
             <div
               key={review.id}
-              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-6 border border-white/20 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-              style={{ minWidth: '100%', width: '100%' }}
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-6 border border-white/20 hover:shadow-xl transition-all duration-300 flex flex-col h-full width-full-min"
             >
               {/* Review Text */}
               <p className="text-gray-700 leading-relaxed mb-6 flex-grow italic">"{review.review_text}"</p>
@@ -190,19 +193,23 @@ export default function ReviewsList() {
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={`w-5 h-5 ${
-                        star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'
-                      }`}
-                    />
-                  ))}
+                  {showStars && (
+                    <>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-5 h-5 ${
+                            star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Admin Controls */}
-              {isAdmin && (
+              {/* Admin Controls - only show in Edit Mode */}
+              {isAdmin && isEditing && (
                 <div className="flex items-center gap-2 pt-4 mt-4 border-t border-gray-200">
                   <button
                     onClick={() => handleReorder(review.id, 'up')}
@@ -231,23 +238,6 @@ export default function ReviewsList() {
           ))}
         </div>
 
-        {/* Dots Indicator */}
-        {reviews.length > 1 && (
-          <div className="flex justify-center gap-2 mt-8">
-            {reviews.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  currentIndex === index
-                    ? 'bg-[#C47756] w-8'
-                    : 'bg-gray-300 hover:bg-gray-400'
-                }`}
-                aria-label={`Go to review ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
