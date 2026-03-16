@@ -13,6 +13,7 @@ import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
+  const [backgroundImages, setBackgroundImages] = useState<PropertyImage[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +70,17 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           .order('position');
 
         if (imagesError) throw imagesError;
+
+        // Get background images (first 2 with is_background flag)
+        // Use try-catch to handle case where column doesn't exist yet in DB
+        let bgImages: PropertyImage[] = [];
+        try {
+          bgImages = (propertyImages || []).filter((img: PropertyImage) => (img as any).is_background).slice(0, 2);
+        } catch (e) {
+          // Column might not exist yet, use default backgrounds
+          bgImages = [];
+        }
+        setBackgroundImages(bgImages);
 
         const { data: propertyBookings, error: bookingsError } = await supabase
           .from('bookings')
@@ -289,7 +301,13 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         
         {/* Full-width background behind amenities + calendar */}
         <div className="amenities-bg">
-          <div className="absolute inset-0 amenities-bg-image"></div>
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ 
+              backgroundImage: backgroundImages[0] ? `url('${backgroundImages[0].url}')` : undefined,
+              opacity: backgroundImages[0] ? 0.6 : 0
+            }}
+          ></div>
           <div className="relative">
             {/* Amenities and Dropdowns */}
             <PropertyAmenities
@@ -298,7 +316,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
               onHasChanges={onHasChanges}
             />
             {/* Calendar below dropdowns */}
-            <div id="calendar-section" className="amenities-content pb-8">
+            <div id="calendar-section" className="amenities-content pb-5">
               <BookingCalendar
                 bookings={bookings}
                 blockedDates={blockedDates}
@@ -317,7 +335,11 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       <div className="reviews-section content-container relative reviews-bg">
         {/* Background Image */}
         <div 
-          className="absolute inset-0 reviews-bg-image"
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ 
+            backgroundImage: backgroundImages[1] ? `url('${backgroundImages[1].url}')` : undefined,
+            opacity: backgroundImages[1] ? 0.6 : 0
+          }}
         ></div>
         <div className="relative">
         <div className="pl-2.5 pt-2">

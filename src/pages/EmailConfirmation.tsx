@@ -144,7 +144,7 @@ export function EmailConfirmation() {
         <div className="text-center">
           <h1 className="text-[1.65rem] text-gray-900 mb-4">Email Confirmation</h1>
           
-          <div style={{ background: '#e0e0e0', padding: '10px', margin: '10px 0', fontSize: '12px' }}>
+          <div className="email-confirm-box">
             <strong>DEBUG INFO:</strong><br/>
             Status: {status}<br/>
             Current URL: {location.pathname + location.search + location.hash}<br/>

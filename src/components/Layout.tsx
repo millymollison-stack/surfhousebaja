@@ -102,7 +102,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
       </main>
 
       <footer className="bg-gray-50 border-t">
-        {!(isEditing ?? false) && (
+        {isEditing ? null : (
           <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white py-3 px-4 text-center z-40">
             <p className="text-base sm:text-lg font-medium">
               Book Direct, No Airbnb Fees, Chat with Host.

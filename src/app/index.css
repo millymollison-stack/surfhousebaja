@@ -142,7 +142,7 @@ h2.text-white {
 /* Reviews section background */
 .reviews-bg {
   background-color: #f3f4f6;
-  padding-bottom: 2rem;
+  padding-bottom: 1.4rem;
   width: 100vw;
   margin-left: calc(-50vw + 50%);
   box-sizing: border-box;
@@ -402,7 +402,7 @@ h2.text-white {
 
 /* ========== Footer Spacing ========== */
 .footer-content {
-  margin-bottom: 50px;
+  margin-bottom: 35px;
 }
 
 /* ========== Animations ========== */
@@ -507,3 +507,21 @@ h2.text-white {
   height: 100%;
   width: 100%;
 }
+
+/* Calendar day headers */
+.booking-calendar .rdp-head_cell {
+  text-align: center !important;
+  padding-left: 0 !important;
+  justify-content: center !important;
+}
+
+.booking-calendar .rdp-head_cell span {
+  text-align: center !important;
+}
+
+/* Also target the actual th elements */
+.booking-calendar th {
+  text-align: center !important;
+  padding-left: 0 !important;
+}
+

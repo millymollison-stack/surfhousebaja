@@ -334,6 +334,8 @@ export function BookingCalendar({
         <div className="overflow-x-auto">
           <DayPicker
             mode="range"
+            className="booking-calendar"
+            disableDefaultStyles
             selected={selected}
             onSelect={setSelected}
             disabled={disabledDays}
@@ -365,13 +367,13 @@ export function BookingCalendar({
               head_row: { width: '100%' },
               head_cell: { 
                 width: '14.28%', 
-                textAlign: 'left',
+                textAlign: 'center',
                 paddingLeft: '0px'
               },
               row: { width: '100%' },
               cell: { 
                 width: '14.28%', 
-                textAlign: 'left',
+                textAlign: 'center',
                 paddingLeft: '0px'
               },
               day: { 

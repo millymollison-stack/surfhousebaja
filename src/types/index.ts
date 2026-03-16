@@ -43,6 +43,7 @@ export interface PropertyImage {
   position: number;
   is_featured: boolean;
   is_main: boolean;
+  is_background: boolean;
   created_at: string;
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users, Layers } from 'lucide-react';
 import type { PropertyImage, Property } from '../types';
 import { useAuth } from '../store/auth';
 
@@ -163,6 +163,17 @@ export function ImageGallery({
     }
   };
 
+  const toggleBackground = async (image: PropertyImage) => {
+    if (!onImageUpdate) return;
+
+    try {
+      await onImageUpdate(image.id, { is_background: !image.is_background });
+    } catch (error) {
+      console.error('Failed to update image:', error);
+      alert('Failed to update image. Please try again.');
+    }
+  };
+
   const setMainPhoto = async (image: PropertyImage) => {
     if (!onImageUpdate) return;
 
@@ -231,63 +242,58 @@ export function ImageGallery({
           <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
             {/* Title - always show */}
             {isEditing && isAdmin ? (
-              <input
-                type="text"
-                value={propertyTitle}
-                onChange={(e) => setPropertyTitle(e.target.value)}
-                onBlur={handlePropertyTextSave}
-                className="text-2xl md:text-3xl font-normal uppercase text-white w-full focus:outline-none focus:ring-2 focus:ring-[#C47756] px-2 py-1"
-                placeholder="Enter property title..."
-                style={{
-                  background: 'rgba(255, 255, 255, 0.3)',
-                  borderRadius: '0.5rem',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              />
+              <div className="flex items-baseline justify-between w-full">
+                <input
+                  type="text"
+                  value={propertyTitle}
+                  onChange={(e) => setPropertyTitle(e.target.value)}
+                  onBlur={handlePropertyTextSave}
+                  className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[#C47756] px-2 py-1"
+                  placeholder="Enter property title..."
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '0.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    fontFamily: "'Inter', sans-serif",
+                    width: '70%',
+                  }}
+                />
+                <div className="flex items-baseline">
+                  <span className="text-2xl md:text-3xl font-bold text-white">$</span>
+                  <input
+                    type="number"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
+                    onBlur={handlePropertyStatsSave}
+                    className="w-24 text-2xl md:text-3xl font-bold text-white focus:outline-none"
+                    style={{ 
+                      background: 'rgba(255, 255, 255, 0.3)',
+                      borderRadius: '0.5rem',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      padding: '4px 8px',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '3px solid #8B4513';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+                    }}
+                    min="0"
+                  />
+                  <span className="text-white/80 text-base font-normal ml-1">/night</span>
+                </div>
+              </div>
             ) : (
-              <h1 className="hero-title text-white">{propertyTitle}</h1>
-            )}
-
-            {/* Price - always show */}
-            <div className="flex items-baseline justify-between mb-2">
-              {isEditing && isAdmin ? (
-                <>
-                  <span></span>
-                  <div className="flex items-baseline">
-                    <span className="text-2xl md:text-3xl font-bold text-white">$</span>
-                    <input
-                      type="number"
-                      value={editPrice}
-                      onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
-                      onBlur={handlePropertyStatsSave}
-                      className="w-20 text-2xl md:text-3xl font-bold text-white focus:outline-none"
-                      style={{ 
-                        background: 'rgba(255, 255, 255, 0.3)',
-                        borderRadius: '0.5rem',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        padding: '4px 8px',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.border = '3px solid #8B4513';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-                      }}
-                      min="0"
-                    />
-                    <span className="text-white/80 text-base font-normal">/night</span>
-                  </div>
-                </>
-              ) : (
-                <>
+              <div className="flex items-baseline justify-between w-full">
+                <h1 className="hero-title text-white">{propertyTitle}</h1>
+                <div className="flex items-baseline">
                   <span className="text-2xl md:text-3xl font-semibold text-white">
                     ${property.price_per_night}
                   </span>
                   <span className="text-white/80 text-base font-normal">/night</span>
-                </>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
 
             {/* Intro - always show */}
             {isEditing && isAdmin ? (
@@ -302,6 +308,7 @@ export function ImageGallery({
                   background: 'rgba(255, 255, 255, 0.3)',
                   borderRadius: '0.5rem',
                   border: '1px solid rgba(255, 255, 255, 0.3)',
+                marginTop: '30px',
                   fontFamily: "'Inter', sans-serif",
                 }}
               />
@@ -426,27 +433,6 @@ export function ImageGallery({
 
       </div>
 
-      {/* Upload button - above thumbnails in edit mode */}
-      {isAdmin && isEditing && (
-        <div className="px-4 mt-4" style={{ paddingBottom: '24px' }}>
-          <label 
-            className="inline-flex items-center bg-[#C47756] text-white rounded-lg hover:bg-[#B5684A] cursor-pointer shadow-lg"
-            style={{ padding: '10px 30px' }}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageUpload}
-              className="hidden"
-              disabled={loading}
-            />
-            <Upload className="h-5 w-5 mr-2" />
-            Upload New Photo
-          </label>
-        </div>
-      )}
-
       {/* Thumbnail grid */}
       {sortedImages.length > 1 && (
         <div className="grid grid-cols-2 gap-0">
@@ -490,6 +476,23 @@ export function ImageGallery({
       {/* Image management grid for admins */}
       {isAdmin && isEditing && (
         <div className="mt-8">
+          <div className="flex justify-end mb-4" style={{ marginRight: '20px' }}>
+            <label 
+              className="inline-flex items-center bg-[#C47756] text-white rounded-lg hover:bg-[#B5684A] cursor-pointer shadow-lg"
+              style={{ padding: '8px 24px' }}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                disabled={loading}
+              />
+              <Upload className="h-5 w-5 mr-2" />
+              Upload New Photo
+            </label>
+          </div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">Manage Images</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {sortedImages.map((image) => (
@@ -523,6 +526,17 @@ export function ImageGallery({
                     <Star className="h-4 w-4" />
                   </button>
                   <button
+                    onClick={() => toggleBackground(image)}
+                    className={`p-2 rounded-full ${
+                      image.is_background
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-white/80 text-gray-800'
+                    } hover:bg-purple-500 hover:text-white transition-colors`}
+                    title={image.is_background ? 'Remove from background' : 'Use as background'}
+                  >
+                    <Layers className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={() => handleImageDelete(image.id)}
                     className="p-2 rounded-full bg-red-600/80 text-white hover:bg-red-600"
                   >
@@ -538,6 +552,11 @@ export function ImageGallery({
                   {image.is_featured && (
                     <span className="bg-yellow-400 text-white text-xs px-2 py-1 rounded-full">
                       Featured
+                    </span>
+                  )}
+                  {image.is_background && (
+                    <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                      Background
                     </span>
                   )}
                 </div>

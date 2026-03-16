@@ -1,0 +1,48 @@
+/* Override react-day-picker internal padding and margins */
+.rdp,
+.rdp-root,
+.rdp-months,
+.rdp-month,
+.rdp-caption,
+.rdp-table {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+  outline: none !important;
+}
+
+/* Remove any dotted outlines */
+.rdp-button {
+  outline: none !important;
+}
+
+/* Ensure no overflow */
+.rdp-root {
+  overflow: hidden !important;
+}
+
+/* Weekday headers - force 3 letters */
+.rdp-head_cell::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+}
+
+/* Style weekday cells to fit 3 letters */
+.rdp-head_cell {
+  font-size: 14px !important;
+  letter-spacing: 0 !important;
+}
+
+/* Align navigation arrows to sit next to month text */
+.rdp-caption {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.rdp-nav {
+  display: flex !important;
+  gap: 8px;
+}

@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking } from '../types';
+import { Layers, Star, X } from 'lucide-react';
 
 export function PropertyAdmin() {
   const { user } = useAuth();
@@ -111,9 +112,23 @@ export function PropertyAdmin() {
         url: publicUrl,
         position: images.length,
         is_featured: images.length === 0,
-        is_main: images.length === 0
+        is_main: images.length === 0,
+        is_background: false
       });
       
+      await loadPropertyData(selectedProperty.id);
+    }
+  }
+
+  async function updateImage(imageId: string, updates: Partial<PropertyImage>) {
+    if (!selectedProperty) return;
+    
+    const { error } = await supabase
+      .from('property_images')
+      .update(updates)
+      .eq('id', imageId);
+    
+    if (!error) {
       await loadPropertyData(selectedProperty.id);
     }
   }
@@ -213,6 +228,7 @@ export function PropertyAdmin() {
           <ImageManager
             images={images}
             onUpload={uploadImage}
+            onUpdate={updateImage}
             propertyId={selectedProperty.id}
           />
         )}
@@ -355,15 +371,21 @@ function BookingsList({ bookings }: { bookings: Booking[] }) {
 }
 
 // Image Manager Component
-function ImageManager({ images, onUpload, propertyId }: { 
+function ImageManager({ images, onUpload, onUpdate, propertyId }: { 
   images: PropertyImage[]; 
   onUpload: (file: File) => Promise<void>;
+  onUpdate?: (imageId: string, updates: Partial<PropertyImage>) => Promise<void>;
   propertyId: string;
 }) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       onUpload(e.target.files[0]);
     }
+  };
+
+  const toggleBackground = async (image: PropertyImage) => {
+    if (!onUpdate) return;
+    await onUpdate(image.id, { is_background: !image.is_background });
   };
 
   return (
@@ -380,11 +402,23 @@ function ImageManager({ images, onUpload, propertyId }: {
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {images.map(image => (
-          <div key={image.id} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+          <div key={image.id} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group">
             <img src={image.url} alt="" className="w-full h-full object-cover" />
             {image.is_main && (
               <span className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">Main</span>
             )}
+            {/* Background toggle button */}
+            <button
+              onClick={() => toggleBackground(image)}
+              className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
+                image.is_background 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-black/50 text-white opacity-0 group-hover:opacity-100'
+              }`}
+              title={image.is_background ? 'Remove from background' : 'Use as background'}
+            >
+              <Layers className="w-4 h-4" />
+            </button>
           </div>
         ))}
       </div>

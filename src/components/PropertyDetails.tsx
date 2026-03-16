@@ -183,10 +183,10 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             fontFamily: 'inherit', 
             fontSize: 'inherit', 
             color: '#ffffff',
-            backdropFilter: 'blur(10px)',
-            background: 'rgba(255, 255, 255, 0.2)',
+            background: 'rgba(255, 255, 255, 0.3)',
             borderRadius: '0.5rem',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            marginTop: '30px',
           }}
           rows={4}
         />

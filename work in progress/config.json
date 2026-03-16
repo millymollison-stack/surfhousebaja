@@ -1,0 +1,48 @@
+{
+  "property": {
+    "name": "Surf House Baja",
+    "tagline": "Luxury Beachfront Vacation Rental",
+    "description": "Beautiful ocean views, 4 bedrooms, sleeps 8 guests",
+    "pricePerNight": 250,
+    "currency": "USD",
+    "timezone": "America/Tijuana"
+  },
+  "features": {
+    "bookingEnabled": true,
+    "reviewsEnabled": true,
+    "mapEnabled": true,
+    "paymentEnabled": true
+  },
+  "contact": {
+    "email": "info@surfhousebaja.com",
+    "phone": "+52 123 456 7890",
+    "whatsapp": "+52 123 456 7890"
+  },
+  "social": {
+    "instagram": "@surfhousebaja",
+    "facebook": "surfhousebaja",
+    "twitter": "@surfhousebaja"
+  },
+  "appearance": {
+    "primaryColor": "#006699",
+    "accentColor": "#ff6600",
+    "fontFamily": "default"
+  },
+  "content": {
+    "amenities": [
+      "Ocean View",
+      "WiFi",
+      "Kitchen",
+      "Air Conditioning",
+      "Parking",
+      "Beach Access"
+    ],
+    "houseRules": [
+      "No smoking",
+      "No pets",
+      "Check-in: 3PM",
+      "Check-out: 11AM"
+    ],
+    "cancellationPolicy": "Free cancellation up to 7 days before check-in"
+  }
+}

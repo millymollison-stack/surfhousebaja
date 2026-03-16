@@ -167,8 +167,8 @@ export function AdminDashboard() {
             console.log('Booking data:', JSON.stringify(booking, null, 2));
             
             if (status === 'approved') {
-              console.log('Calling sendBookingConfirmationEmail...');
-              await EmailNotificationService.sendBookingConfirmationEmail({
+              console.log('Calling sendBookingApprovedEmail...');
+              await EmailNotificationService.sendBookingApprovedEmail({
                 booking: {
                   start_date: booking.start_date,
                   end_date: booking.end_date,
