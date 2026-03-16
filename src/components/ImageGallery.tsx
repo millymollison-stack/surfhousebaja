@@ -38,10 +38,11 @@ export function ImageGallery({
   // Use external isAdmin if provided, otherwise check local auth
   const isAdmin = externalIsAdmin ?? user?.role === 'admin';
 
+  // Initialize state from property - only on mount or when property ID changes
   useEffect(() => {
     setPropertyTitle(property?.property_title || '@surfhousebaja');
     setPropertyIntro(property?.property_intro || '');
-  }, [property?.property_title, property?.property_intro]);
+  }, [property?.id]);  // Only reinitialize when property ID changes, not when content changes
 
   useEffect(() => {
     if (registerSaveHandler) {
