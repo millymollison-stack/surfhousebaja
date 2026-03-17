@@ -402,6 +402,18 @@ export function BookingCalendar({
               }
             }}
             className="w-full"
+            components={{
+              HeadCell: ({ ...props }) => (
+                <th 
+                  {...props} 
+                  style={{ 
+                    ...props.style, 
+                    textAlign: 'center',
+                    width: '14.28%'
+                  }} 
+                />
+              )
+            }}
           />
         </div>
 

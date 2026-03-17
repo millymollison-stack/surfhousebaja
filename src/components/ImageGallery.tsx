@@ -302,14 +302,13 @@ export function ImageGallery({
                 value={propertyIntro}
                 onChange={(e) => setPropertyIntro(e.target.value)}
                 onBlur={handlePropertyTextSave}
-                className="w-full text-white resize-none font-normal p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-[#C47756]"
-                rows={1}
+                className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[#C47756]"
+                rows={2}
                 placeholder="Enter property introduction..."
                 style={{
                   background: 'rgba(255, 255, 255, 0.3)',
                   borderRadius: '0.5rem',
                   border: '1px solid rgba(255, 255, 255, 0.3)',
-                marginTop: '30px',
                   fontFamily: "'Inter', sans-serif",
                 }}
               />
@@ -318,32 +317,32 @@ export function ImageGallery({
             )}
               
             {/* Property stats - always show */}
-            <div className="flex flex-wrap gap-3 mt-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3 mt-3">
               {isEditing && isAdmin ? (
                 <>
-                  <span className="inline-flex items-center px-4 py-1.5 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-sm font-medium">
-                    <Bed className="w-4 h-4 mr-2" />
+                  <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-xs sm:text-sm font-medium">
+                    <Bed className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                     <input
                       type="number"
                       value={editBedrooms}
                       onChange={(e) => setEditBedrooms(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-12 bg-transparent text-white focus:outline-none"
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
                       style={{ 
-                        borderRadius: '8px',
+                        borderRadius: '4px',
                         border: '1px solid rgba(255,255,255,0.3)',
                         background: 'rgba(255,255,255,0.2)',
-                        padding: '2px 6px'
+                        padding: '1px 4px'
                       }}
                       onFocus={(e) => {
-                        e.target.style.border = '3px solid #8B4513';
+                        e.target.style.border = '2px solid #8B4513';
                       }}
                       onBlur={(e) => {
                         e.target.style.border = '1px solid rgba(255,255,255,0.3)';
                       }}
                       min="0"
                     />
-                    <span className="ml-1">Beds</span>
+                    <span className="ml-1 text-xs sm:text-sm">Beds</span>
                   </span>
                   <span className="inline-flex items-center px-4 py-1.5 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-sm font-medium">
                     <Bath className="w-4 h-4 mr-2" />
@@ -352,46 +351,46 @@ export function ImageGallery({
                       value={editBathrooms}
                       onChange={(e) => setEditBathrooms(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-12 bg-transparent text-white focus:outline-none"
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
                       style={{ 
-                        borderRadius: '8px',
+                        borderRadius: '4px',
                         border: '1px solid rgba(255,255,255,0.3)',
                         background: 'rgba(255,255,255,0.2)',
-                        padding: '2px 6px'
+                        padding: '1px 4px'
                       }}
                       onFocus={(e) => {
-                        e.target.style.border = '3px solid #8B4513';
+                        e.target.style.border = '2px solid #8B4513';
                       }}
                       onBlur={(e) => {
                         e.target.style.border = '1px solid rgba(255,255,255,0.3)';
                       }}
                       min="0"
                     />
-                    <span className="ml-1">Bath</span>
+                    <span className="ml-1 text-xs sm:text-sm">Bath</span>
                   </span>
-                  <span className="inline-flex items-center px-4 py-1.5 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-sm font-medium">
-                    <Users className="w-4 h-4 mr-2" />
+                  <span className="inline-flex items-center px-2 sm:px-3 py-1 rounded-[0.5rem] bg-white/10 backdrop-blur-sm border border-white/15 text-white text-xs sm:text-sm font-medium">
+                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                     <input
                       type="number"
                       value={editMaxGuests}
                       onChange={(e) => setEditMaxGuests(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-12 bg-transparent text-white focus:outline-none"
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
                       style={{ 
-                        borderRadius: '8px',
+                        borderRadius: '4px',
                         border: '1px solid rgba(255,255,255,0.3)',
                         background: 'rgba(255,255,255,0.2)',
-                        padding: '2px 6px'
+                        padding: '1px 4px'
                       }}
                       onFocus={(e) => {
-                        e.target.style.border = '3px solid #8B4513';
+                        e.target.style.border = '2px solid #8B4513';
                       }}
                       onBlur={(e) => {
                         e.target.style.border = '1px solid rgba(255,255,255,0.3)';
                       }}
                       min="0"
                     />
-                    <span className="ml-1">Persons</span>
+                    <span className="ml-1 text-xs sm:text-sm">Persons</span>
                   </span>
                 </>
               ) : (

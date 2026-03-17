@@ -314,6 +314,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
               property={property}
               isEditing={isEditing}
               onHasChanges={onHasChanges}
+              onUpdate={handlePropertyUpdate}
             />
             {/* Calendar below dropdowns */}
             <div id="calendar-section" className="amenities-content pb-5">
