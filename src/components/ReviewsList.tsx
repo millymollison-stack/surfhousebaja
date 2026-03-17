@@ -214,23 +214,23 @@ export default function ReviewsList({ showStars = true, isEditing = false }: Rev
                   <button
                     onClick={() => handleReorder(review.id, 'up')}
                     disabled={actionLoading === review.id || currentIndex === 0}
-                    className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    <ArrowUp className="w-3 h-3" />
+                    <ArrowUp className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleReorder(review.id, 'down')}
                     disabled={actionLoading === review.id || currentIndex === reviews.length - 1}
-                    className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    <ArrowDown className="w-3 h-3" />
+                    <ArrowDown className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(review.id)}
                     disabled={actionLoading === review.id}
-                    className="flex items-center gap-1 px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ml-auto"
+                    className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ml-auto"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               )}

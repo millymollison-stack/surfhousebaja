@@ -420,7 +420,7 @@ export function UserMenu() {
         >
         <div className="px-6">
           <div className="flex items-center justify-between h-16 border-b border-gray-200">
-            <h2 className="text-[1.65rem] text-gray-900">Profile</h2>
+            <h2 className="text-[1.65rem] text-black hero-title">Profile</h2>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
