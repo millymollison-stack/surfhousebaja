@@ -485,19 +485,33 @@
             gap: 20px;
             max-width: 100%;
             margin: 0 auto;
+            padding: 0 20px;
         }
         
         .example-cards iframe {
-            flex: 1 1 calc(25% - 20px);
-            min-width: 200px;
-            max-width: 350px;
+            flex: 1 1 calc(20% - 20px);
+            min-width: 180px;
+            max-width: 320px;
             height: 528px;
         }
         
-        @media (max-width: 1000px) {
+        .example-cards iframe:nth-child(5) {
+            display: none;
+        }
+        
+        @media (max-width: 1180px) {
+            .example-cards iframe {
+                flex: 1 1 calc(33.33% - 20px);
+                max-width: none;
+            }
+            .example-cards iframe:nth-child(5) {
+                display: block;
+            }
+        }
+        
+        @media (max-width: 780px) {
             .example-cards iframe {
                 flex: 1 1 calc(50% - 20px);
-                max-width: none;
             }
         }
         
@@ -1140,7 +1154,7 @@
     <section id="features" class="section-dark">
         <div class="container">
             <div class="section-header">
-                <h2>Hosting isn't what it used to be, so we decided to take control and build the perfect booking site for our own properties. Things really picked up for us — and now we're excited to offer you the opportunity.</h2>
+                <h2>Hosting isn't what it used to be, so we built our own, perfect booking site and watched our business turn around — so why not share it with other hosts.</h2>
             </div>
 
             <div class="features">
@@ -1223,10 +1237,11 @@
             </div>
 
             <div class="example-cards">
-                <iframe src="Example 1/index.html" loading="lazy"></iframe>
-                <iframe src="Example 2/index.html" loading="lazy"></iframe>
-                <iframe src="Example 3/index.html" loading="lazy"></iframe>
-                <iframe src="Example 4/index.html" loading="lazy"></iframe>
+                <iframe src="Airbnb scrape 1/index.html" loading="lazy"></iframe>
+                <iframe src="Airbnb scrape 2/index.html" loading="lazy"></iframe>
+                <iframe src="Airbnb scrape 3/index.html" loading="lazy"></iframe>
+                <iframe src="Airbnb scrape 4/index.html" loading="lazy"></iframe>
+                <iframe src="Airbnb scrape 5/index.html" loading="lazy"></iframe>
             </div>
         </div>
     </section>
@@ -1276,6 +1291,44 @@
                 
         </div>
     </section>
+
+    <!-- PREVIEW PANEL -->
+    <section class="preview-panel" style="padding: 60px 24px; background: #f5f5f5; text-align: center;">
+        <div style="max-width: 600px; margin: 0 auto;">
+            <p class="subheading" style="color: #1a1a1a; margin-bottom: 20px; font-size: 1.1rem;">Paste the link to your Airbnb profile here to see your site preview.</p>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <input type="text" id="airbnbUrl" placeholder="Airbnb Profile URL" style="width: 280px; padding: 14px 18px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.2); background: white; font-size: 1rem; color: #333;">
+                    <button onclick="previewAirbnb()" style="padding: 14px 24px; border-radius: 8px; border: none; background: #22c55e; color: white; font-size: 1rem; font-weight: bold; cursor: pointer;">Preview</button>
+                </div>
+                <a href="#signup" class="btn btn-white" style="display: inline-block; background: #8B0000; color: white; font-size: 1.2em; padding: 16px 32px; text-decoration: none; border-radius: 8px; width: 100%; max-width: 300px;">Get Your Own Site Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- PREVIEW MODAL -->
+    <div id="previewModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #0a0a0a; border-radius: 16px; width: 95%; max-width: 500px; height: 90vh; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.1);">
+            <button onclick="closePreviewModal()" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; z-index: 10; font-size: 18px;">×</button>
+            <iframe id="previewFrame" src="" style="width: 100%; height: 100%; border: none; border-radius: 16px;"></iframe>
+        </div>
+    </div>
+
+    <script>
+    function previewAirbnb() {
+        let url = document.getElementById('airbnbUrl').value.trim();
+        if (!url) { alert('Please enter an Airbnb URL'); return; }
+        if (!url.startsWith('http')) { url = 'https://' + url; }
+        document.getElementById('previewModal').style.display = 'flex';
+        document.getElementById('previewFrame').src = 'http://localhost:6900/scrape?url=' + encodeURIComponent(url) + '&t=' + Date.now();
+    }function closePreviewModal() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+    
+    document.getElementById('previewModal').addEventListener('click', function(e) {
+        if (e.target === this) closePreviewModal();
+    });
+    </script>
 
     <section class="examples-section with-bg">
         <div class="examples-bg"></div>
@@ -1403,7 +1456,7 @@
     </div>
 
     <script>
-        const input = document.getElementById('airbnbInput');
+        const input = document.getElementById('airbnbUrl');
         const icon = document.getElementById('uploadIcon');
         
         input.addEventListener('input', function() {
