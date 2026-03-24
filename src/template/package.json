@@ -1,0 +1,13 @@
+{
+  "name": "surfhousebaja-template",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build needed'",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "puppeteer": "^21.11.0"
+  }
+}

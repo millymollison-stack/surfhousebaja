@@ -216,7 +216,7 @@ export function ImageGallery({
         <div className="absolute bottom-0 left-0 right-0 z-20 gallery-content-overlay bg-dark-overlay">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
             <h1 className="hero-title">{propertyTitle}</h1>
-            <p className="hero-subtitle-light">{propertyIntro}</p>
+            <p className="hero-subtitle">{propertyIntro}</p>
           </div>
         </div>
       </div>

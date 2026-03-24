@@ -93,7 +93,7 @@ h2.text-white {
 
 .hero-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(0.86rem, 1.92vw, 1.06rem);
+  /* font-size: clamp(0.86rem, 1.92vw, 1.06rem); */
   font-weight: 400;
   color: rgba(255, 255, 255, 0.73);
   line-height: 1.6;
@@ -101,7 +101,7 @@ h2.text-white {
 
 .hero-subtitle-light {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(0.86rem, 1.92vw, 1.06rem);
+  /* font-size: clamp(0.86rem, 1.92vw, 1.06rem); */
   font-weight: 400;
   color: white;
   line-height: 1.6;

@@ -124,7 +124,7 @@ function CollapsibleSection({ title, content, isEditing, isAdmin, isOpen, onTogg
           ) : (
             <div className="prose max-w-none w-full">
               {content ? (
-                <p className="whitespace-pre-line text-white-73">{content}</p>
+                <p className="whitespace-pre-line hero-subtitle">{content}</p>
               ) : (
                 <p className="text-gray-400 italic">No information available</p>
               )}

@@ -419,17 +419,19 @@ export function UserMenu() {
           className="fixed right-0 top-0 h-full min-h-screen w-[calc(100%-72px)] max-w-[380px] bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.4)] z-[99999] overflow-y-auto animate-slide-in cursor-default"
         >
         <div className="px-6">
-          <div className="flex items-center justify-between h-16 border-b border-gray-200">
-            <h2 className="text-[1.65rem] text-black hero-title">Profile</h2>
+          <div className="flex items-center justify-between h-16">
+            <h2 className="hero-title" style={{ color: '#000000' }}>PROFILE</h2>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
               aria-label="Close menu"
-              className="p-2 rounded-full hover:bg-gray-100 z-50 relative"
+              className="p-2 rounded-full hover:bg-gray-100 z-50 relative -mt-3"
             >
               <X className="h-6 w-6 text-gray-500" />
             </button>
           </div>
+
+          <hr className="border-t border-gray-200 px-5" style={{ position: 'absolute', top: '53px', left: '20px', right: '20px' }} />
 
           <div className="py-4 space-y-4">
             {profileError && (
@@ -447,14 +449,13 @@ export function UserMenu() {
               </div>
             )}
 
-            <div className="flex justify-between items-start">
-              <div></div>
+            <div className="flex justify-end -mt-6">
               {!isEditingProfile ? (
                 <button
                   onClick={() => setIsEditingProfile(true)}
-                  className="flex items-center space-x-1 text-[#C47756] hover:text-[#B5684A] z-10 pointer-events-auto"
+                  className="flex items-center space-x-2 text-base font-normal text-[#C47756] hover:text-[#B5684A] z-50 relative pointer-events-auto"
                 >
-                  <Edit2 className="h-4 w-4" />
+                  <Edit2 className="h-5 w-5" />
                   <span>Edit</span>
                 </button>
               ) : (
@@ -473,43 +474,47 @@ export function UserMenu() {
                     className="text-gray-600 hover:text-gray-900 z-10 pointer-events-auto"
                     disabled={loading}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                   <button
                     onClick={handleProfileUpdate}
                     className="text-green-600 hover:text-green-700 z-10 pointer-events-auto"
                     disabled={loading}
                   >
-                    <Save className="h-4 w-4" />
+                    <Save className="h-5 w-5" />
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="space-y-3 leading-relaxed">
-              {/* Page URL - for custom domain or subdomain */}
-              <div>
-                <label className="block text-sm font-normal text-gray-500 mb-0.5">
-                  <span className="flex items-center gap-1">
-                    Page URL
-                    <Info className="h-3 w-3 text-gray-400" />
-                  </span>
-                </label>
-                {isEditingProfile ? (
-                  <input
-                    type="text"
-                    value={userProperty?.custom_domain || ''}
-                    onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
-                    disabled={loading}
-                    placeholder="your-domain.com"
-                  />
-                ) : (
-                  <p className="text-base font-normal text-gray-900">
-                    {userProperty?.custom_domain || 'surfhousebaja.com'}
-                  </p>
-                )}
-              </div>
+            <div className="pt-6 pb-6 space-y-3 leading-relaxed -mt-6">
+              {user.role === 'admin' && (
+                <>
+                  {/* Page URL - for custom domain or subdomain */}
+                  <div>
+                    <label className="block text-sm font-normal text-gray-500 mb-0.5">
+                      <span className="flex items-center gap-1">
+                        Page URL
+                        <Info className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </label>
+                    {isEditingProfile ? (
+                      <input
+                        type="text"
+                        value={userProperty?.custom_domain || ''}
+                        onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                        disabled={loading}
+                        placeholder="your-domain.com"
+                      />
+                    ) : (
+                      <p className="text-base font-normal text-gray-900">
+                        {userProperty?.custom_domain || 'surfhousebaja.com'}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="block text-sm font-normal text-gray-500 mb-0.5">
@@ -602,10 +607,12 @@ export function UserMenu() {
                 </div>
               )}
 
-              <div className="pt-1">
-                <p className="text-sm font-normal text-gray-500 mb-0.5">Role</p>
-                <p className="text-base font-normal text-gray-900 capitalize">{user.role}</p>
-              </div>
+              {user.role === 'admin' && (
+                <div className="pt-1">
+                  <p className="text-sm font-normal text-gray-500 mb-0.5">Role</p>
+                  <p className="text-base font-normal text-gray-900 capitalize">{user.role}</p>
+                </div>
+              )}
             </div>
 
             {user.role === 'admin' && (
@@ -623,18 +630,20 @@ export function UserMenu() {
               </div>
             )}
 
-            <div className="pt-4 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate('/property-admin');
-                }}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors z-10"
-              >
-                <Building className="h-5 w-5" />
-                <span className="font-medium">My Property</span>
-              </button>
-            </div>
+            {user.role === 'admin' && (
+              <div className="pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate('/property-admin');
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors z-10"
+                >
+                  <Building className="h-5 w-5" />
+                  <span className="font-medium">My Property</span>
+                </button>
+              </div>
+            )}
 
             <div className="flex justify-center pt-4">
               <button
@@ -652,8 +661,8 @@ export function UserMenu() {
           </div>
 
           <div className="mt-6 pt-6">
-            <h2 className="text-[1.65rem] text-gray-900 pb-4 border-b border-gray-200">
-              Bookings
+            <h2 className="hero-title" style={{ color: '#000000' }}>
+              BOOKINGS
             </h2>
             
             {bookingError && (
