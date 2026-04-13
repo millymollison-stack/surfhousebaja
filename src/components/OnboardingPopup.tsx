@@ -36,7 +36,14 @@ export function OnboardingPopup({ onComplete, onImported, scrapedProperty, scrap
   const [scrapedData, setScrapedData] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
 
-  const handleClose = () => setIsOpen(false);
+  const handleClose = () => {
+    // Reset all scraped data so fresh template loads next time
+    setScrapedData(null);
+    setAirbnbUrl('');
+    setWebsiteName('');
+    setWebsiteDesc('');
+    setIsOpen(false);
+  };
 
   // Load saved onboarding data from Supabase on mount
   // Load saved data from Supabase on mount
