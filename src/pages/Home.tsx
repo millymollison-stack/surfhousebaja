@@ -7,8 +7,11 @@ import { PropertyAmenities } from '../components/PropertyAmenities';
 import { BookingCalendar } from '../components/BookingCalendar';
 import ReviewsList from '../components/ReviewsList';
 import ReviewForm from '../components/ReviewForm';
+import { OnboardingPopup } from '../components/OnboardingPopup';
 import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
+
+const SURF_HOUSE_BAJA_ID = 'f3d3e867-e0c6-4cc5-a05d-b5e368f8c766';
 
 export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void }) {
   const [property, setProperty] = useState<Property | null>(null);
@@ -22,11 +25,12 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const [hasChanges, setHasChanges] = useState(false);
   const [imageGallerySave, setImageGallerySave] = useState<(() => Promise<void>) | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [defaultProperty, setDefaultProperty] = useState<Property | null>(null);
+  const [defaultImages, setDefaultImages] = useState<PropertyImage[]>([]);
   const { user } = useAuth();
   const navigate = useNavigate();
   const calendarRef = useRef<HTMLDivElement>(null);
-  
-  // Add console log to see if Home component is rendering
+
   console.log('=== HOME COMPONENT RENDERED ===');
 
   // Sync with external edit mode from App
@@ -39,67 +43,49 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   useEffect(() => {
     async function loadProperty() {
       try {
-        let propertyId: string;
-        
-        const { data: properties, error: propertyError } = await supabase
+        // Always load from surfhousebaja database on first load
+        const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .ilike('title', '%surf house baja%')
-          .limit(1)
+          .eq('id', SURF_HOUSE_BAJA_ID)
           .single();
 
-        if (propertyError) {
-          // Fallback: try getting first property if named search fails
-          const { data: fallbackProperty, error: fallbackError } = await supabase
-            .from('properties')
-            .select('*')
-            .limit(1)
-            .single();
-          if (fallbackError) throw fallbackError;
-          setProperty(fallbackProperty);
-          propertyId = fallbackProperty.id;
-        } else {
-          setProperty(properties);
-          propertyId = properties.id;
-        }
+        if (propError) throw propError;
+        setProperty(propData);
+        setDefaultProperty(propData);
 
-        const { data: propertyImages, error: imagesError } = await supabase
+        const { data: imgData, error: imgError } = await supabase
           .from('property_images')
           .select('*')
-          .eq('property_id', propertyId)
+          .eq('property_id', SURF_HOUSE_BAJA_ID)
           .order('position');
 
-        if (imagesError) throw imagesError;
+        if (imgError) throw imgError;
+        setImages(imgData || []);
+        setDefaultImages(imgData || []);
 
-        // Get background images (first 2 with is_background flag)
-        // Use try-catch to handle case where column doesn't exist yet in DB
+        // Background images (first 2 with is_background flag)
         let bgImages: PropertyImage[] = [];
         try {
-          bgImages = (propertyImages || []).filter((img: PropertyImage) => (img as any).is_background).slice(0, 2);
-        } catch (e) {
-          // Column might not exist yet, use default backgrounds
-          bgImages = [];
-        }
+          bgImages = (imgData || []).filter((img: PropertyImage) => (img as any).is_background).slice(0, 2);
+        } catch (e) { bgImages = []; }
         setBackgroundImages(bgImages);
 
-        const { data: propertyBookings, error: bookingsError } = await supabase
+        const { data: bkgData, error: bkgError } = await supabase
           .from('bookings')
           .select('*')
-          .eq('property_id', propertyId)
-          .in('status', ['approved', 'pending']); // Still load all for display, but calendar will filter
+          .eq('property_id', SURF_HOUSE_BAJA_ID)
+          .in('status', ['approved', 'pending']);
+        if (bkgError) throw bkgError;
 
-        if (bookingsError) throw bookingsError;
-
-        const { data: propertyBlockedDates, error: blockedError } = await supabase
+        const { data: blkData, error: blkError } = await supabase
           .from('blocked_dates')
           .select('*')
-          .eq('property_id', propertyId);
+          .eq('property_id', SURF_HOUSE_BAJA_ID);
+        if (blkError) throw blkError;
 
-        if (blockedError) throw blockedError;
-
-        setImages(propertyImages || []);
-        setBookings(propertyBookings || []);
-        setBlockedDates(propertyBlockedDates || []);
+        setBookings(bkgData || []);
+        setBlockedDates(blkData || []);
       } catch (err) {
         setError('Failed to load property details');
         console.error(err);
@@ -113,15 +99,12 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
 
   const handlePropertyUpdate = async (updates: Partial<Property>) => {
     if (!property) return;
-
     try {
       const { error: updateError } = await supabase
         .from('properties')
         .update(updates)
         .eq('id', property.id);
-
       if (updateError) throw updateError;
-
       setProperty({ ...property, ...updates });
     } catch (err) {
       console.error('Failed to update property:', err);
@@ -129,12 +112,9 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     }
   };
 
-  // Register saveAll function for header button
   useEffect(() => {
     if (registerSaveAll) {
       registerSaveAll(async () => {
-        // Save any pending changes from formData
-        // The individual components track their own state, so we just need to ensure everything is saved
         console.log('Save all triggered');
       });
     }
@@ -142,34 +122,22 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
 
   const handleImageUpload = async (file: File) => {
     if (!property) return;
-
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${property.id}/${Date.now()}.${fileExt}`;
-
       const { error: uploadError } = await supabase.storage
         .from('property-images')
         .upload(fileName, file);
-
       if (uploadError) throw uploadError;
-
       const { data: { publicUrl } } = supabase.storage
         .from('property-images')
         .getPublicUrl(fileName);
-
       const { data: image, error: insertError } = await supabase
         .from('property_images')
-        .insert({
-          property_id: property.id,
-          url: publicUrl,
-          position: images.length + 1,
-          is_featured: images.length < 3 // Make first 3 images featured by default
-        })
+        .insert({ property_id: property.id, url: publicUrl, position: images.length + 1, is_featured: images.length < 3 })
         .select()
         .single();
-
       if (insertError) throw insertError;
-
       setImages([...images, image]);
     } catch (err) {
       console.error('Failed to upload image:', err);
@@ -181,23 +149,17 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     try {
       const imageToDelete = images.find(img => img.id === imageId);
       if (!imageToDelete) return;
-
       const urlParts = imageToDelete.url.split('/');
       const filePath = urlParts[urlParts.length - 2] + '/' + urlParts[urlParts.length - 1];
-
       const { error: storageError } = await supabase.storage
         .from('property-images')
         .remove([filePath]);
-
       if (storageError) throw storageError;
-
       const { error: dbError } = await supabase
         .from('property_images')
         .delete()
         .eq('id', imageId);
-
       if (dbError) throw dbError;
-
       setImages(images.filter(img => img.id !== imageId));
     } catch (err) {
       console.error('Failed to delete image:', err);
@@ -211,15 +173,99 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         .from('property_images')
         .update(updates)
         .eq('id', imageId);
-
       if (updateError) throw updateError;
-
-      setImages(images.map(img => 
-        img.id === imageId ? { ...img, ...updates } : img
-      ));
+      setImages(images.map(img => img.id === imageId ? { ...img, ...updates } : img));
     } catch (err) {
       console.error('Failed to update image:', err);
       throw err;
+    }
+  };
+
+  // Called when Airbnb import completes — saves to onboarding_data table + 'onboarding' bucket
+  const handleImportedImages = async (imported: {
+    hero_image: string;
+    images: string[];
+    title: string;
+    location: string;
+    price: string;
+    description: string;
+    guests?: number;
+    bedrooms?: number;
+    beds?: number;
+    baths?: number;
+    rating?: number;
+    reviews?: number;
+    host_name?: string;
+  }) => {
+    console.log('[Home] Received imported data:', imported.title);
+
+    try {
+      // Upload images to 'onboarding' bucket in Supabase Storage
+      const imageUrls: string[] = [];
+      for (let i = 0; i < imported.images.length; i++) {
+        const imgUrl = imported.images[i];
+        try {
+          const response = await fetch(imgUrl);
+          const buffer = await response.arrayBuffer();
+          const filename = `onboarding/${Date.now()}-${i}.jpg`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('onboarding')
+            .upload(filename, buffer, { contentType: 'image/jpeg' });
+          if (uploadError) {
+            console.log('[Home] Upload error for image', i, uploadError.message);
+            imageUrls.push(imgUrl); // fallback to original URL
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('onboarding')
+              .getPublicUrl(filename);
+            imageUrls.push(publicUrl);
+          }
+        } catch (e) {
+          console.log('[Home] Image fetch/upload failed, using original URL');
+          imageUrls.push(imgUrl);
+        }
+      }
+
+      // Use hero_image from images array if no separate hero_image
+      const primaryImage = imageUrls[0] || imported.hero_image || '';
+
+      // Save to onboarding_data table (temp onboarding session data)
+      const { data: onboardingRecord, error: insertError } = await supabase
+        .from('onboarding_data')
+        .insert({
+          property_name: imported.title,
+          description: imported.description,
+          location: imported.location,
+          price: imported.price,
+          hero_image: primaryImage,
+          images: imageUrls,
+          host_name: imported.host_name || null,
+          guests: imported.guests ? String(imported.guests) : null,
+          bedrooms: imported.bedrooms ? String(imported.bedrooms) : null,
+          beds: imported.beds ? String(imported.beds) : null,
+          baths: imported.baths ? String(imported.baths) : null,
+          rating: imported.rating ? String(imported.rating) : null,
+          reviews: imported.reviews ? String(imported.reviews) : null,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.log('[Home] onboarding_data insert error:', insertError.message);
+      } else {
+        console.log('[Home] Saved to onboarding_data, id:', onboardingRecord.id);
+      }
+
+      // Pass data to OnboardingPopup via onImported callback
+      if (onImported) {
+        onImported({
+          ...imported,
+          hero_image: primaryImage,
+          images: imageUrls,
+        });
+      }
+    } catch (err) {
+      console.error('[Home] handleImportedImages error:', err);
     }
   };
 
@@ -231,24 +277,15 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     special_requests?: string;
   }) => {
     if (!user || !property) return;
-
     const { error } = await supabase
       .from('bookings')
-      .insert({
-        property_id: property.id,
-        user_id: user.id,
-        ...bookingData
-      });
-
+      .insert({ property_id: property.id, user_id: user.id, ...bookingData });
     if (error) throw error;
-
-    // Reload bookings to show the new pending booking
     const { data: updatedBookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('*')
       .eq('property_id', property.id)
       .in('status', ['approved', 'pending']);
-
     if (bookingsError) throw bookingsError;
     setBookings(updatedBookings || []);
   };
@@ -287,9 +324,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         onPropertyUpdate={user?.role === 'admin' ? handlePropertyUpdate : undefined}
         registerSaveHandler={setImageGallerySave}
       />
-      
+
       <div className="section-mt-neg bg-black section-padding">
-        {/* Full width copy section */}
         <PropertyDetails
           property={property}
           isEditing={isEditing}
@@ -298,25 +334,22 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           onBeforeSave={imageGallerySave}
           onHasChanges={onHasChanges}
         />
-        
-        {/* Full-width background behind amenities + calendar */}
+
         <div className="amenities-bg">
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ 
+            style={{
               backgroundImage: backgroundImages[0] ? `url('${backgroundImages[0].url}')` : undefined,
               opacity: backgroundImages[0] ? 0.6 : 0
             }}
           ></div>
           <div className="relative">
-            {/* Amenities and Dropdowns */}
             <PropertyAmenities
               property={property}
               isEditing={isEditing}
               onHasChanges={onHasChanges}
               onUpdate={handlePropertyUpdate}
             />
-            {/* Calendar below dropdowns */}
             <div id="calendar-section" className="amenities-content pb-5">
               <BookingCalendar
                 bookings={bookings}
@@ -334,44 +367,37 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       </div>
 
       <div className="reviews-section content-container relative reviews-bg">
-        {/* Background Image */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ 
+          style={{
             backgroundImage: backgroundImages[1] ? `url('${backgroundImages[1].url}')` : undefined,
             opacity: backgroundImages[1] ? 0.6 : 0
           }}
         ></div>
         <div className="relative">
-        <div className="pl-2.5 pt-2">
-          <h1 className="hero-title text-black text-center pt-3" style={{ color: '#000000', paddingTop: '20px', paddingBottom: '20px' }}>What our guests say</h1>
-        </div>
-
-        <ReviewsList showStars={isEditing} isEditing={isEditing} />
-
-        {!isEditing && (
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={() => setShowReviewModal(true)}
-            className="px-5 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            Leave a review
-          </button>
-        </div>
-        )}
+          <div className="pl-2.5 pt-2">
+            <h1 className="hero-title text-black text-center pt-3" style={{ color: '#000000', paddingTop: '20px', paddingBottom: '20px' }}>What our guests say</h1>
+          </div>
+          <ReviewsList showStars={isEditing} isEditing={isEditing} />
+          {!isEditing && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => setShowReviewModal(true)}
+                className="px-5 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+              >
+                Leave a review
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Review Modal */}
       {showReviewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900 hero-title">Leave a Review</h2>
-              <button
-                onClick={() => setShowReviewModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={() => setShowReviewModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -383,6 +409,12 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           </div>
         </div>
       )}
+
+      <OnboardingPopup
+        onImported={handleImportedImages}
+        defaultProperty={defaultProperty}
+        defaultImages={defaultImages}
+      />
     </div>
   );
 }

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surf House Baja - Setup Your Site</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #000; color: white; min-height: 100vh; }
+        
+        /* Image Slider Styles */
+        .image-slider { position: relative; height: 500px; overflow: hidden; background: #111; }
+        .slider-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.5s; }
+        .slider-image.active { opacity: 1; }
+        .slider-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 10; font-size: 20px; }
+        .slider-nav:hover { background: rgba(0,0,0,0.8); }
+        .slider-nav.prev { left: 20px; }
+        .slider-nav.next { right: 20px; }
+        .slider-dots { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10; }
+        .slider-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.5); border: none; cursor: pointer; }
+        .slider-dot.active { background: white; }
+        
+        /* Property Info Overlay */
+        .property-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 30px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); }
+        .property-title { font-size: 1.5rem; font-weight: 600; text-transform: uppercase; margin-bottom: 5px; }
+        .property-location { font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-bottom: 10px; }
+        .property-price { font-size: 1.2rem; font-weight: 700; }
+        
+        /* Setup Modal */
+        #setupModal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; background: rgba(10, 10, 10, 0.97); z-index: 9999; border-radius: 16px; padding: 30px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+        #setupModal h1 { font-size: 1.2rem; font-weight: 600; text-transform: uppercase; margin-bottom: 25px; color: #fff; letter-spacing: 0.05em; }
+        #setupModal h2 { font-size: 0.85rem; font-weight: 500; text-transform: uppercase; margin: 20px 0 15px; color: #ccc; letter-spacing: 0.05em; }
+        #setupModal input[type="text"], #setupModal input[type="email"], #setupModal input[type="password"], #setupModal textarea { padding: 14px 16px; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; background: rgba(255,255,255,0.08); color: white; font-size: 0.95rem; width: 100%; margin-bottom: 12px; font-family: inherit; }
+        #setupModal textarea { resize: vertical; height: 60px; }
+        #setupModal input[type="radio"] { width: 18px; height: 18px; margin-right: 12px; accent-color: #C47756; cursor: pointer; }
+        #setupModal ul { list-style: none; margin-left: 0; color: rgba(255,255,255,0.7); text-align: left; }
+        #setupModal li { margin-bottom: 10px; display: flex; align-items: center; }
+        #setupModal hr { color: #fff; opacity: 15%; margin: 25px 0; width: 100%; border: none; border-top: 1px solid rgba(255,255,255,0.15); }
+        #setupModal label { cursor: pointer; color: rgba(255,255,255,0.85); }
+        #setupModal .btn { display: inline-block; padding: 14px 28px; background: #C47756; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin: 20px 0; width: 100%; }
+        #setupModal .btn:hover { background: #d4896a; }
+        #setupModal .btn-secondary { background: rgba(255,255,255,0.1); }
+        #setupModal .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Import Section */
+        #importSection { display: none; margin-top: 20px; padding: 20px; background: rgba(196, 119, 86, 0.1); border-radius: 12px; border: 1px solid rgba(196, 119, 86, 0.3); }
+        #airbnbUrl { width: 100%; }
+        
+        /* Preview */
+        #previewContainer { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 12px; display: none; }
+        .preview-thumb { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; margin-right: 8px; margin-bottom: 8px; }
+        
+        /* Loading spinner */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { border: 3px solid rgba(255,255,255,0.2); border-top: 3px solid #C47756; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        
+        /* Navigation */
+        .navbar { position: fixed; top: 0; left: 0; right: 0; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); z-index: 100; }
+        .navbar-brand { font-size: 1.2rem; font-weight: 600; color: white; text-decoration: none; }
+        .navbar-links { display: flex; gap: 20px; }
+        .navbar-links a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.9rem; }
+        
+        /* Main content */
+        .main-content { padding-top: 80px; }
+        .section { padding: 40px 20px; max-width: 1200px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">@surfhousebaja</a>
+        <div class="navbar-links">
+            <a href="#" onclick="showSetupModal()">Setup</a>
+            <a href="#">Share</a>
+            <a href="#">Sign In</a>
+        </div>
+    </nav>
+
+    <!-- Image Slider (Main Display) -->
+    <div class="image-slider" id="imageSlider">
+        <div id="sliderImages"></div>
+        <button class="slider-nav prev" onclick="prevImage()">&#8249;</button>
+        <button class="slider-nav next" onclick="nextImage()">&#8250;</button>
+        <div class="slider-dots" id="sliderDots"></div>
+        
+        <!-- Property Info -->
+        <div class="property-info">
+            <h1 class="property-title" id="displayTitle">Your Property</h1>
+            <p class="property-location" id="displayLocation">Location</p>
+            <div class="property-price" id="displayPrice">$150 / night</div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="section">
+            <h2 style="font-size: 1.5rem; margin-bottom: 20px;">About this property</h2>
+            <p id="displayDescription" style="color: rgba(255,255,255,0.7); line-height: 1.6;">
+                Welcome to our beautiful property! Book directly for the best rates.
+            </p>
+        </div>
+    </div>
+
+    <!-- Setup Modal -->
+    <div id="setupModal">
+        <h1>Setup Your Site</h1>
+        
+        <h2>1. Design your website</h2>
+        <ul>
+            <li><input type="radio" name="design" id="d1" onchange="showImportSection(false)"> <label for="d1">Manual photo and text upload - no fee</label></li>
+            <li><input type="radio" name="design" id="d2" onchange="showImportSection(true)"> <label for="d2">Airbnb profile import - one off fee</label></li>
+        </ul>
+        
+        <div id="importSection">
+            <label style="display: block; margin-bottom: 8px; color: rgba(255,255,255,0.8);">Airbnb Listing URL</label>
+            <input type="text" id="airbnbUrl" placeholder="https://www.airbnb.com/rooms/123456789" value="https://www.airbnb.com/rooms/670576704094588867">
+            <button class="btn" onclick="importFromAirbnb()">Import from Airbnb</button>
+            <div id="importStatus"></div>
+            <div id="previewContainer">
+                <p style="color: #4ade80; font-weight: 600; margin-bottom: 10px;">✓ Import Successful!</p>
+                <div id="previewThumbs"></div>
+            </div>
+        </div>
+        
+        <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+        <hr>
+        
+        <h2>2. Name your property</h2>
+        <input type="text" id="propertyName" placeholder="Website name" onchange="updatePropertyDisplay()">
+        <textarea id="propertyDesc" placeholder="Website description" onchange="updatePropertyDisplay()"></textarea>
+        
+        <hr>
+        
+        <h2>3. Banking Details</h2>
+        <ul>
+            <li><input type="radio" name="bank" id="b1" checked> <label for="b1">Bank - 4-8% processing fee</label></li>
+            <li><input type="radio" name="bank" id="b2"> <label for="b2">Venmo - 6% processing fee</label></li>
+            <li><input type="radio" name="bank" id="b3"> <label for="b3">PayPal - 6% processing fee</label></li>
+        </ul>
+        
+        <hr>
+        
+        <h2>4. Choose your plan</h2>
+        <ul>
+            <li><input type="radio" name="plan" id="p1" checked> <label for="p1">Starter – $10, 1st month free</label></li>
+            <li><input type="radio" name="plan" id="p2"> <label for="p2">Professional – $30</label></li>
+            <li><input type="radio" name="plan" id="p3"> <label for="p3">Agency – $150</label></li>
+        </ul>
+        
+        <hr>
+        
+        <button class="btn" onclick="publishSite()">PUBLISH MY SITE</button>
+    </div>
+
+    <script>
+        // Supabase config
+        const SUPABASE_URL = 'https://jtzagpbdrqfifdisxipr.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0emFncGJkcnFmaWZkaXN4aXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3MzUyODUsImV4cCI6MjA2MDMxMTI4NX0.uWqc82Hb-qnRq4H9kg5IPykUosm9VvU2s6e8mOalkR0';
+        
+        // State
+        let images = [];
+        let currentImageIndex = 0;
+        let mainImage = '';
+        
+        // Initialize on load
+        window.onload = async function() {
+            // First load from Supabase
+            await loadFromSupabase();
+            
+            // Then check localStorage - if user has imported Airbnb data, use that
+            loadFromLocalStorage();
+            
+            // Show modal after 1 second
+            setTimeout(() => {
+                document.getElementById('setupModal').style.display = 'block';
+            }, 1000);
+        };
+        
+        // Load data from Supabase
+        async function loadFromSupabase() {
+            console.log('Loading from Supabase...');
+            try {
+                // Get property
+                const propRes = await fetch(`${SUPABASE_URL}/rest/v1/properties?title=ilike.%25surf%20house%25baja%25&limit=1`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                const properties = await propRes.json();
+                
+                if (properties && properties.length > 0) {
+                    const prop = properties[0];
+                    console.log('Property found:', prop.title);
+                    
+                    // Update display
+                    document.getElementById('displayTitle').textContent = prop.title || 'Surf House Baja';
+                    document.getElementById('displayLocation').textContent = prop.city ? `${prop.city}, ${prop.country || ''}` : 'Location';
+                    document.getElementById('displayPrice').textContent = prop.price_per_night ? `$${prop.price_per_night} / night` : '$150 / night';
+                    
+                    // Get images for this property
+                    const imgRes = await fetch(`${SUPABASE_URL}/rest/v1/property_images?property_id=eq.${prop.id}&order=position`, {
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                    });
+                    const propertyImages = await imgRes.json();
+                    
+                    if (propertyImages && propertyImages.length > 0) {
+                        images = propertyImages.map(img => img.url);
+                        console.log('Loaded', images.length, 'images from Supabase');
+                        renderSlider();
+                    } else {
+                        console.log('No images in Supabase, using defaults');
+                        useDefaultImages();
+                    }
+                } else {
+                    console.log('No property found, using defaults');
+                    useDefaultImages();
+                }
+            } catch (err) {
+                console.log('Supabase error:', err.message);
+                useDefaultImages();
+            }
+        }
+        
+        function useDefaultImages() {
+            images = [
+                'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600',
+                'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600',
+                'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600'
+            ];
+            renderSlider();
+        }
+        
+        // Load from localStorage (only if user has imported)
+        function loadFromLocalStorage() {
+            console.log('Loading from localStorage...');
+            
+            const savedMain = localStorage.getItem('airbnb_main_image');
+            const savedGallery = localStorage.getItem('airbnb_gallery_images');
+            const savedTitle = localStorage.getItem('airbnb_property_title');
+            const savedLocation = localStorage.getItem('airbnb_property_location');
+            
+            console.log('Main image:', savedMain ? 'yes' : 'no');
+            console.log('Gallery:', savedGallery ? 'yes' : 'no');
+            
+            if (savedMain || savedGallery) {
+                images = [];
+                
+                if (savedMain) {
+                    mainImage = savedMain;
+                    images.push(savedMain);
+                }
+                
+                if (savedGallery) {
+                    const gallery = JSON.parse(savedGallery);
+                    gallery.forEach(img => {
+                        if (img !== savedMain) images.push(img);
+                    });
+                }
+                
+                // Update display with Airbnb data (overrides Supabase)
+                if (savedTitle) {
+                    document.getElementById('displayTitle').textContent = savedTitle;
+                    document.getElementById('propertyName').value = savedTitle;
+                }
+                if (savedLocation) {
+                    document.getElementById('displayLocation').textContent = savedLocation;
+                }
+                
+                renderSlider();
+                console.log('Using Airbnb imported data -', images.length, 'images');
+            } else {
+                console.log('No Airbnb data in localStorage, keeping Supabase/default images');
+            }
+        }
+        
+        // Render the image slider
+        function renderSlider() {
+            const container = document.getElementById('sliderImages');
+            const dotsContainer = document.getElementById('sliderDots');
+            
+            container.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            
+            images.forEach((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'slider-image' + (index === 0 ? ' active' : '');
+                img.onerror = function() { this.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600'; };
+                container.appendChild(img);
+                
+                const dot = document.createElement('button');
+                dot.className = 'slider-dot' + (index === 0 ? ' active' : '');
+                dot.onclick = () => goToImage(index);
+                dotsContainer.appendChild(dot);
+            });
+            
+            currentImageIndex = 0;
+        }
+        
+        // Slider navigation
+        function nextImage() {
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            updateSlider();
+        }
+        
+        function prevImage() {
+            currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+            updateSlider();
+        }
+        
+        function goToImage(index) {
+            currentImageIndex = index;
+            updateSlider();
+        }
+        
+        function updateSlider() {
+            const imgs = document.querySelectorAll('.slider-image');
+            const dots = document.querySelectorAll('.slider-dot');
+            
+            imgs.forEach((img, i) => {
+                img.classList.toggle('active', i === currentImageIndex);
+            });
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentImageIndex);
+            });
+        }
+        
+        // Auto-advance every 5 seconds
+        setInterval(nextImage, 5000);
+        
+        // Modal functions
+        function showSetupModal() {
+            document.getElementById('setupModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('setupModal').style.display = 'none';
+        }
+        
+        function showImportSection(show) {
+            document.getElementById('importSection').style.display = show ? 'block' : 'none';
+        }
+        
+        // Update property display
+        function updatePropertyDisplay() {
+            const title = document.getElementById('propertyName').value;
+            const desc = document.getElementById('propertyDesc').value;
+            
+            if (title) document.getElementById('displayTitle').textContent = title;
+            if (desc) document.getElementById('displayDescription').textContent = desc;
+        }
+        
+        // Import from Airbnb
+        async function importFromAirbnb() {
+            const url = document.getElementById('airbnbUrl').value.trim();
+            if (!url) { alert('Please enter an Airbnb URL'); return; }
+            
+            const status = document.getElementById('importStatus');
+            status.innerHTML = '<div class="spinner"></div><p style="text-align: center;">Importing...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:6904/scrape?url=' + encodeURIComponent(url));
+                if (!response.ok) throw new Error('Failed: ' + response.status);
+                
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+                
+                const data = result.data || {};
+                
+                // Save to localStorage
+                mainImage = data.hero_image || '';
+                const additionalImages = data.images || [];
+                
+                localStorage.setItem('airbnb_main_image', mainImage);
+                localStorage.setItem('airbnb_gallery_images', JSON.stringify(additionalImages.slice(1)));
+                localStorage.setItem('airbnb_property_title', data.title || '');
+                localStorage.setItem('airbnb_property_location', data.location || '');
+                
+                // Reload display
+                images = [];
+                if (mainImage) images.push(mainImage);
+                additionalImages.slice(1).forEach(img => {
+                    if (img !== mainImage) images.push(img);
+                });
+                
+                // Update property info
+                if (data.title) {
+                    document.getElementById('displayTitle').textContent = data.title;
+                    document.getElementById('propertyName').value = data.title;
+                }
+                if (data.location) {
+                    document.getElementById('displayLocation').textContent = data.location;
+                }
+                
+                renderSlider();
+                
+                // Show preview
+                document.getElementById('previewContainer').style.display = 'block';
+                const thumbsContainer = document.getElementById('previewThumbs');
+                thumbsContainer.innerHTML = '';
+                images.forEach(src => {
+                    const thumb = document.createElement('img');
+                    thumb.src = src;
+                    thumb.className = 'preview-thumb';
+                    thumb.onerror = function() { this.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600'; };
+                    thumbsContainer.appendChild(thumb);
+                });
+                
+                status.innerHTML = '<p style="color: #4ade80; text-align: center;">✓ Import complete!</p>';
+                
+            } catch (err) {
+                status.innerHTML = '<p style="color: #f87171; text-align: center;">Error: ' + err.message + '</p>';
+            }
+        }
+        
+        function publishSite() {
+            alert('Publishing your site... (demo)');
+            closeModal();
+        }
+    </script>
+</body>
+</html>

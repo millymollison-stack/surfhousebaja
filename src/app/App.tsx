@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, Component, ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { Layout } from '../components/Layout';
@@ -10,6 +10,40 @@ import { PropertyAdmin } from '../pages/PropertyAdmin';
 import { EmailConfirmation } from '../pages/EmailConfirmation';
 import { Onboarding } from '../pages/Onboarding';
 import PaymentPage from '../pages/PaymentPage';
+
+// ── Error Boundary ────────────────────────────────────────────────────────────
+interface ErrorBoundaryProps { children: ReactNode; }
+interface ErrorBoundaryState { hasError: boolean; error: string; }
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(e: Error): ErrorBoundaryState {
+    return { hasError: true, error: e.message };
+  }
+  componentDidCatch(e: Error, info: React.ErrorInfo) {
+    console.error('🔴 App ErrorBoundary caught:', e.message, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'sans-serif', color: '#333' }}>
+          <h2>Something went wrong</h2>
+          <p style={{ color: '#666' }}>{this.state.error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ padding: '10px 20px', marginTop: '16px', cursor: 'pointer' }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AppContent() {
   const { initialize, user } = useAuth();
@@ -89,7 +123,9 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

@@ -61,10 +61,11 @@ export function ImageGallery({
   // Auto-advance images every 4 seconds
   useEffect(() => {
     if (sortedImages.length > 1 && !isEditing) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
-      }, 4000);
-      return () => clearInterval(interval);
+      // Auto-slider disabled for testing - re-enable by removing this comment
+      // const interval = setInterval(() => {
+      //   setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
+      // }, 4000);
+      // return () => clearInterval(interval);
     }
   }, [sortedImages.length, isEditing]);
 
@@ -229,10 +230,10 @@ export function ImageGallery({
       <div className="relative h-[500px] md:h-[600px] overflow-hidden gallery-shadow gallery-bg-image">
         <div className="absolute inset-0">
           <img
-            src={sortedImages[currentIndex]?.url || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600'}
+            src={sortedImages[currentIndex]?.url || ''}
             alt={`Property view ${currentIndex + 1}`}
             className="h-full w-full object-cover"
-            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600'; }}
+            onError={(e) => { e.currentTarget.src = sortedImages[0]?.url || ''; }}
           />
         </div>
         {/* Gradient overlay on top of image */}

@@ -1,0 +1,372 @@
+    <!-- PAGE CONTENT START -->
+    <div id="page-content">
+    
+    <!-- P1 -->
+    <div class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="h1">Your property deserves its own website.</h1>
+            <h3 class="h3">And you deserve to not be competing with every host in your area on the same platform.</h3>
+            <button class="h2">Get your own site now</button>
+            <h3 class="h3">Stand out from the crowd with your own vacation property booking website.</h3>
+
+
+            <h3 class="h3">Visit a live site <a class="h3" href="https://surfhousebaja.com">here</a> to see exactly what you'll get.</h3>
+        </div>
+    </div>
+
+
+
+    <!-- P2 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Hosting isn't what it used to be—so we built our own simple, beautiful short-term rental booking site.</h1>
+            <h3 class="h3">We turned our business around, and now we're offering it to other smart hosts.</h3>
+            <h3 class="h3">It's time to take control.</h3>
+            <h3 class="h3">No Airbnb Fees</h3>
+            <h4 class="h4">Keep 100% of your booking revenue. Pay your own taxes.</h4>
+            <h3 class="h3">No Competing Listings</h3>
+            <h4 class="h4">Shine in your own space—no more clicks to cheaper options.</h4>
+            <h3 class="h3">Easy Management</h3>
+            <h4 class="h4">Simple calendar, review control, emailed booking requests.</h4>
+            <h3 class="h3">Your Own Brand</h3>
+            <h4 class="h4">Custom domains, logos, photos, and descriptions.</h4>
+            <h3 class="h3">Secure Payments</h3>
+            <h4 class="h4">Stripe payments with instant payouts to Venmo, PayPal, or your bank.</h4>
+            <h3 class="h3">No Call Center</h3>
+            <h4 class="h4">Your property, your guests, your direct relationships.</h4>
+            <h3 class="h3">Now let us build your gorgeous, custom site that reflects your property's personality—and gets you paid your way.</h3>
+        </div>
+    </div>
+
+    <!-- P3 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Your property is unique. Your website should be too.</h1>
+            <p style="color: rgba(255,255,255,0.6); margin-top: 40px;">[4-5 example site previews here]</p>
+        </div>
+    </div>
+
+
+
+    <!-- P4 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Create your own website in 3 simple steps.</h1>
+            <button class="h2">GET YOUR OWN SITE NOW</button>
+            <h3 class="h3">1. Paste Airbnb URL</h3>
+            <h4 class="h4">Paste your Airbnb listing link to auto-import photos and property details.</h4>
+            <h3 class="h3">2. Input Bank Details</h3>
+            <h4 class="h4">Connect your payout account. We support Venmo, PayPal, and direct bank transfers.</h4>
+            <h3 class="h3">3. Optimize and Publish</h3>
+            <h4 class="h4">Edit your listing, customize branding, and go live. Your site is ready!</h4>
+        </div>
+    </div>
+
+
+
+    <!-- P5 -->
+    <div class="section section-light">
+        <div class="section-content">
+            <h3 class="h3" style="color: #333;">Paste your Airbnb profile link here for an instant site preview.</h3>
+            <div class="input-group">
+                <input type="text" placeholder="Airbnb Profile URL">
+                <button class="h2" style="background: #22c55e;">GET PREVIEW</button>
+            </div>
+            <h3 class="h3" style="color: #333;">Ready to build your full site and publish?</h3>
+            <button class="h2">GET YOUR OWN SITE NOW</button>
+        </div>
+    </div>
+
+
+
+    <!-- P6 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Hosts are going independent—you can too.</h1>
+            <h3 class="h3">Generate your fully branded booking website in minutes. Get an off-platform presence optimized for AI search.</h3>
+            <div class="callout-section">
+                <div class="callout-item">
+                    <div class="icon-placeholder">📊</div>
+                    <div class="hero-text">94%</div>
+                    <h4 class="h4">Occupancy Rates</h4>
+                </div>
+                <div class="callout-item">
+                    <div class="icon-placeholder">👍</div>
+                    <div class="hero-text">4.9*</div>
+                    <h4 class="h4">Guest Satisfaction</h4>
+                </div>
+                <div class="callout-item">
+                    <div class="icon-placeholder">📊</div>
+                    <div class="hero-text">96%</div>
+                    <h4 class="h4">Host Satisfaction</h4>
+                </div>
+            </div>
+            <h3 class="h3">You don't need a platform. You need a presence.</h3>
+        </div>
+    </div>
+
+
+
+    <!-- P7 -->
+    <div class="section section-light">
+        <div class="section-content">
+            <h1 class="h1" style="color: #333;">Simple Pricing Plans</h1>
+            <h3 class="h3" style="color: #333;">Auto-pay monthly while your site works for you. Cancel anytime.</h3>
+            <div>
+                <div class="pricing-card">
+                    <h1 class="h1" style="color: #333; font-size: 1.2rem;">Starter</h1>
+                    <h3 class="h3" style="color: #333;">$10/mo (1st month free)</h3>
+                    <h4 class="h4" style="color: #666;">1 Property</h4>
+                    <h4 class="h4" style="color: #666;">Custom Website</h4>
+                    <h4 class="h4" style="color: #666;">Budget Hosting</h4>
+                    <h4 class="h4" style="color: #666;">Email Support</h4>
+                </div>
+                <div class="pricing-card">
+                    <h1 class="h1" style="color: #333; font-size: 1.2rem;">Pro</h1>
+                    <h3 class="h3" style="color: #333;">$30/mo</h3>
+                    <h4 class="h4" style="color: #666;">Everything in Starter +</h4>
+                    <h4 class="h4" style="color: #666;">5 Properties</h4>
+                    <h4 class="h4" style="color: #666;">Custom Domain</h4>
+                    <h4 class="h4" style="color: #666;">Priority Support</h4>
+                </div>
+                <div class="pricing-card">
+                    <h1 class="h1" style="color: #333; font-size: 1.2rem;">Agency</h1>
+                    <h3 class="h3" style="color: #333;">$150/mo</h3>
+                    <h4 class="h4" style="color: #666;">Everything in Starter &amp; Pro +</h4>
+                    <h4 class="h4" style="color: #666;">50 Properties</h4>
+                    <h4 class="h4" style="color: #666;">White Label Service</h4>
+                    <h4 class="h4" style="color: #666;">Dedicated Support</h4>
+                </div>
+            </div>
+            <div class="pricing-card" style="margin-top: 20px;">
+                <h1 class="h1" style="color: #333; font-size: 1.2rem;">Extras</h1>
+                <h3 class="h3" style="color: #333;">$100/mo</h3>
+                <h4 class="h4" style="color: #666;">AI SEO</h4>
+                <h4 class="h4" style="color: #666;">Ads &amp; Marketing</h4>
+                <h4 class="h4" style="color: #666;">Analytics</h4>
+                <h4 class="h4" style="color: #666;">Social Media Support</h4>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- P8 -->
+    <div class="section section-dark" style="background: #C47756;">
+        <div class="section-content">
+            <h1 class="h1">Ready to Get Started?</h1>
+            <h3 class="h3">Join hundreds of properties—our friends' listings and new vacation rental hosts—earning more while doing less.</h3>
+            <button class="h2">BUILD YOUR SITE NOW</button>
+            <h5 class="h5">OffAirbnb.Pro - Create Your Own Vacation Rental Website © 2026</h5>
+        </div>
+    </div>
+
+
+
+
+
+
+<!-- P9 -->
+
+    <div class="section section-dark">
+        <div class="section-content" style="text-align: left; max-width: 600px;">
+
+
+            <h1 class="h1">Create your site</h1>
+
+            <h3 class="h3">After you complete this sign up process, you'll receive a link to your hosted website template. You can then open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience. Let's create your account.</h3> 
+
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">You will be able to edit these details later from your site's dashboard.</p>
+
+            
+<br>
+<hr>
+<h1 class="h1">Sign Up</h1>
+
+
+            <h3 class="h3">Create your new sites admin account.</h3>
+
+            <h4 class="h4">Email</h4>
+
+            <input type="email" placeholder="Email">
+
+
+            <h4 class="h4">Password</h4>
+
+            <input type="password" placeholder="Password">
+
+            <ul style="margin: 30px 0px 30px 0px;">
+                <li><input type="checkbox" id="1-1"> <label for="1-1">Request admin account</label></li>
+            </ul>
+
+
+
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">Enter the email address you would like your booking notifications to be sent.</p>
+
+<h4 class="h4">Bookings email</h4>
+
+            <input type="email" placeholder="Bookings email">
+
+<br>
+
+            <button class="btn">Create Admin Account</button>
+   
+
+<br>
+
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">Respond to the verification email now to get verified. Then sign into your website as the Admin.</p>
+
+<br>
+<hr>
+
+
+<h1 class="h1" style="margin-top: 40px;">Sign In</h1>
+
+            <h4 class="h4">Email</h4>
+
+<input type="email" placeholder="Email">
+
+            <h4 class="h4">Password</h4>
+
+            <input type="password" placeholder="Password">
+
+<br>
+
+            <button class="btn">Sign In</button>
+
+<br>
+<br>        
+<hr>
+
+
+<h1 class="h1">1. Banking Details</h1>
+
+ 
+            <h3 class="h3" style="margin-top: 40px;">Now you are signed in, lets set up the important stuff. How do you want to get paid?</h3>
+            
+            <ul>
+                <li><input type="checkbox" id="2-1"> <label for="2-1">Bank - 4 - 8% processing fee</label></li>
+
+                <li><input type="checkbox" id="2-2"> <label for="2-2">Venmo - 6% processing fee</label></li>
+
+                <li><input type="checkbox" id="2-3"> <label for="2-3">PayPal - 6% processing fee</label></li>
+            </ul>
+
+<br>
+
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">Your banking information is held by your 3rd‑party payment platform</p>
+
+
+<button class="btn">Link your account</button>
+
+<br>
+<br>
+<hr>
+
+            
+<h1 class="h1">2. Design your website</h1>
+
+            <ul>
+                <li><input type="checkbox" id="3-1"> <label for="3-1">Manual photo and text upload - no fee</label></li>
+
+                <li><input type="checkbox" id="3-2"> <label for="3-2">Airbnb profile import - $10, one off fee</label></li>
+
+            </ul>
+
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; padding-top: 20px;">Choose your brand color to highlight buttons and call out text.</p>
+
+<button class="btn">Launch color picker</button>
+
+<hr>
+
+            
+<h1 class="h1">3. Name your property</h1>
+
+
+            <h4 class="h4">Website name</h4>
+
+            <input type="text" placeholder="Website name">
+
+            <h4 class="h4">Website description</h4>
+
+
+<textarea rows="2" cols="50" placeholder="Website description"></textarea>
+
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; padding-top: 20px;">Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
+
+             <button class="btn">Launch Name Cheap</button>
+
+<hr>
+       
+     
+<h1 class="h1">4. Hosting options</h1>
+
+
+            <ul>
+                <li><input type="radio" name="plan" id="5-1"> <label for="4-1">Your own server - no fee</label></li>
+
+                <li><input type="radio" name="plan" id="5-2"> <label for="4-2">Published to our server - $5 per month</label></li>
+            </ul>
+<br>           
+<hr>
+
+
+<h1 class="h1">5. Subscription plan</h1>
+
+            <ul>
+                <li><input type="radio" name="plan" id="5-1"> <label for="5-1">Starter – $10, 1st month free</label></li>
+
+                <li><input type="radio" name="plan" id="5-2"> <label for="5-2">Professional – $30</label></li>
+
+                <li><input type="radio" name="plan" id="5-3"> <label for="5-3">Agency – $150</label></li>
+            </ul>
+            
+<br>
+<hr>
+
+            
+<h1 class="h1">6. Optional extras</h1>
+
+<h3 class="h3" style="margin-top: 30px;">Select these options now and get a 25% discount. You will not have another chance to sign up for these services.</h3>
+
+            <ul>
+                <li><input type="checkbox" id="6-1"> <label for="6-1">AI SEO - $10 per month</label></li>
+
+                <li><input type="checkbox" id="6-2"> <label for="6-2">Ads &amp; Marketing - $30 per month</label></li>
+
+                <li><input type="checkbox" id="6-3"> <label for="6-3">Analytics - $20 per month</label></li>
+
+                <li><input type="checkbox" id="6-4"> <label for="6-4">Social Media Marketing - $50 per month</label></li>
+            </ul>
+
+<br>
+<hr>
+
+<h1 class="h1">Payment Calculated</h1>
+        
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">Input your card detials with our 3rd‑party, secure payment partner.</p>
+
+
+
+            <button class="btn">Open payment gateway</button>
+<br>
+<br>
+<hr>
+    
+<h1 class="h1">7. Publish your site</h1>
+
+            <h3 class="h3">Now you are ready to launch your very own short‑term rental booking site. Congratulations!</h3>
+
+            <ul>
+                <li><input type="checkbox" id="7-1"> <label for="6-4">Click to agree to our Terms &amp; Conditions</label></li>
+            </ul>
+
+<br>
+
+            <button class="h2">PUBLISH MY SITE</button>
+        </div>
+    </div>
+    
+</div>
+    <!-- PAGE CONTENT END -->
