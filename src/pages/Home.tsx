@@ -447,6 +447,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         onImported={handleImportedImages}
         defaultProperty={defaultProperty}
         defaultImages={defaultImages}
+        scrapedProperty={scrapedProperty}
+        scrapedImages={scrapedImages}
       />
     </div>
   );

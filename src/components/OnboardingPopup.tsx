@@ -9,9 +9,11 @@ const TEMPLATE_USER_ID = 'surfhouse-baja-template';
 export interface OnboardingPopupProps {
   onComplete?: (data: any) => void;
   onImported?: (data: any) => void;
+  scrapedProperty?: any | null;
+  scrapedImages?: any[];
 }
 
-export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps) {
+export function OnboardingPopup({ onComplete, onImported, scrapedProperty, scrapedImages }: OnboardingPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,8 +39,27 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
   const handleClose = () => setIsOpen(false);
 
   // Load saved onboarding data from Supabase on mount
+  // Load saved data from Supabase on mount
   useEffect(() => {
     async function loadSavedData() {
+      // If parent has fresh scraped data, use it instead of stale saved data
+      if (scrapedProperty) {
+        const imgs = scrapedImages?.map((img: any) => img.url) || [];
+        setWebsiteName(scrapedProperty.property_title || scrapedProperty.title || '');
+        setScrapedData({
+          title: scrapedProperty.property_title || scrapedProperty.title || '',
+          location: scrapedProperty.location || '',
+          description: scrapedProperty.property_intro || scrapedProperty.description || '',
+          hero_image: imgs[0] || '',
+          images: imgs,
+          guests: scrapedProperty.max_guests || null,
+          rating: null,
+          reviews: null,
+          host_name: null,
+        });
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('onboarding_data')
@@ -88,7 +109,7 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
     }
 
     loadSavedData();
-  }, []);
+  }, [scrapedProperty, scrapedImages]);
 
   // Auto-open popup after 2s
   useEffect(() => {
@@ -99,22 +120,12 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
   // Save or update onboarding data in Supabase
   const saveToSupabase = async (overrides: any = {}) => {
     try {
+      // Only save account/form data — NOT scraped data (that lives in React state only)
       const row = {
         user_id: TEMPLATE_USER_ID,
         property_name: websiteName,
         property_desc: websiteDesc,
-        location: scrapedData?.location || '',
-        price: scrapedData?.price || '',
-        hero_image: scrapedData?.hero_image || '',
-        images: scrapedData?.images || [],
         airbnb_url: airbnbUrl,
-        guests: scrapedData?.guests || null,
-        bedrooms: scrapedData?.bedrooms || null,
-        beds: scrapedData?.beds || null,
-        baths: scrapedData?.baths || null,
-        rating: scrapedData?.rating || null,
-        reviews: scrapedData?.reviews || null,
-        host_name: scrapedData?.host_name || '',
         design_choice: designChoice,
         bank_choice: bankChoice,
         hosting_choice: hostingChoice,
