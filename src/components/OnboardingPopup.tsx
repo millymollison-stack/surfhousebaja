@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './styles.css';
 import { TemplatePreview } from './TemplatePreview';
+import { supabase } from '../lib/supabase';
+
+// Hardcoded user ID for this template (replace with auth.user.id when auth is wired)
+const TEMPLATE_USER_ID = 'surfhouse-baja-template';
 
 export interface OnboardingPopupProps {
   onComplete?: (data: any) => void;
@@ -32,10 +36,108 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
 
   const handleClose = () => setIsOpen(false);
 
+  // Load saved onboarding data from Supabase on mount
+  useEffect(() => {
+    async function loadSavedData() {
+      try {
+        const { data, error } = await supabase
+          .from('onboarding_data')
+          .select('*')
+          .eq('user_id', TEMPLATE_USER_ID)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.warn('Could not load saved onboarding data:', error.message);
+          return;
+        }
+
+        if (data) {
+          // Populate form fields from saved data
+          if (data.property_name) setWebsiteName(data.property_name);
+          if (data.property_desc) setWebsiteDesc(data.property_desc);
+          if (data.airbnb_url) setAirbnbUrl(data.airbnb_url);
+          if (data.design_choice) setDesignChoice(data.design_choice);
+          if (data.bank_choice) setBankChoice(data.bank_choice);
+          if (data.hosting_choice) setHostingChoice(data.hosting_choice);
+          if (data.plan_choice) setPlanChoice(data.plan_choice);
+          if (data.email) setEmail(data.email);
+          if (data.bookings_email) setBookingsEmail(data.bookings_email);
+
+          // Reconstruct scrapedData from saved fields
+          if (data.hero_image || (data.images && data.images.length > 0)) {
+            setScrapedData({
+              title: data.property_name || '',
+              location: data.location || '',
+              description: data.property_desc || '',
+              price: data.price || '',
+              hero_image: data.hero_image || '',
+              images: data.images || [],
+              guests: data.guests,
+              bedrooms: data.bedrooms,
+              beds: data.beds,
+              baths: data.baths,
+              rating: data.rating,
+              reviews: data.reviews,
+              host_name: data.host_name,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase load error (table may not exist yet):', err);
+      }
+    }
+
+    loadSavedData();
+  }, []);
+
+  // Auto-open popup after 2s
   useEffect(() => {
     const timer = setTimeout(() => setIsOpen(true), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Save or update onboarding data in Supabase
+  const saveToSupabase = async (overrides: any = {}) => {
+    try {
+      const row = {
+        user_id: TEMPLATE_USER_ID,
+        property_name: websiteName,
+        property_desc: websiteDesc,
+        location: scrapedData?.location || '',
+        price: scrapedData?.price || '',
+        hero_image: scrapedData?.hero_image || '',
+        images: scrapedData?.images || [],
+        airbnb_url: airbnbUrl,
+        guests: scrapedData?.guests || null,
+        bedrooms: scrapedData?.bedrooms || null,
+        beds: scrapedData?.beds || null,
+        baths: scrapedData?.baths || null,
+        rating: scrapedData?.rating || null,
+        reviews: scrapedData?.reviews || null,
+        host_name: scrapedData?.host_name || '',
+        design_choice: designChoice,
+        bank_choice: bankChoice,
+        hosting_choice: hostingChoice,
+        plan_choice: planChoice,
+        email,
+        bookings_email: bookingsEmail,
+        updated_at: new Date().toISOString(),
+        ...overrides,
+      };
+
+      const { error } = await supabase
+        .from('onboarding_data')
+        .upsert(row, { onConflict: 'user_id' });
+
+      if (error) {
+        console.warn('Supabase save error:', error.message);
+      } else {
+        console.log('Saved to Supabase onboarding_data');
+      }
+    } catch (err) {
+      console.warn('Could not save to Supabase (table may not exist yet):', err);
+    }
+  };
 
   const handleAirbnbScrape = async () => {
     if (!airbnbUrl) { setImportError('Please enter an Airbnb URL'); return; }
@@ -55,11 +157,13 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
       const result = await resp.json();
       clearInterval(countInterval);
       if (result.success) {
-        setScrapedData(result.data);
-        // Auto-fill name and description from scraped data
-        if (result.data.title) setWebsiteName(result.data.title);
-        if (result.data.description) setWebsiteDesc(result.data.description.slice(0, 200));
-        if (onImported) onImported(result.data);
+        const data = result.data;
+        setScrapedData(data);
+        if (data.title) setWebsiteName(data.title);
+        if (data.description) setWebsiteDesc(data.description.slice(0, 200));
+        if (onImported) onImported(data);
+        // Save to Supabase immediately after scrape
+        await saveToSupabase();
       } else {
         setImportError('Failed to import listing. Please check the URL.');
       }
@@ -72,7 +176,8 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
     }
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
+    await saveToSupabase();
     if (onComplete) {
       onComplete({
         email, bookingsEmail, adminRequest, bankChoice, designChoice,
@@ -95,66 +200,51 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 popup-backdrop">
+        <div className="popup-backdrop">
           <div className="popup-modal">
             <button onClick={handleClose} className="popup-close">×</button>
 
             {/* Intro */}
             <h1 className="h1">Create your site</h1>
-            <h3 className="h3">After you complete this sign up process, you'll receive a link to your hosted website template. You can then open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience. Let&apos;s create your account.</h3>
+            <h3 className="h3">After you complete this sign up process, you&apos;ll receive a link to your hosted website template. You can then open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience. Let&apos;s create your account.</h3>
             <p className="popup-note">You will be able to edit these details later from your site&apos;s dashboard.</p>
-
             <br /><hr />
 
             {/* Sign Up */}
             <h1 className="h1 popup-mt">Sign Up</h1>
             <h3 className="h3">Create your new sites admin account.</h3>
-
             <h4 className="h4">Email</h4>
             <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-
             <h4 className="h4">Password</h4>
             <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-
             <ul className="popup-checkbox-list">
               <li>
                 <input type="checkbox" id="1-1" checked={adminRequest} onChange={e => setAdminRequest(e.target.checked)} />
                 <label htmlFor="1-1">Request admin account</label>
               </li>
             </ul>
-
             <p className="popup-note">Enter the email address you would like your booking notifications to be sent.</p>
-
             <h4 className="h4">Bookings email</h4>
             <input type="email" placeholder="Bookings email" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
-
             <br />
             <button className="btn">Create Admin Account</button>
-
             <br />
             <p className="popup-note">Respond to the verification email now to get verified. Then sign into your website as the Admin.</p>
-
             <br /><hr />
 
             {/* Sign In */}
             <h1 className="h1 popup-mt">Sign In</h1>
-
             <h4 className="h4">Email</h4>
             <input type="email" placeholder="Email" />
-
             <h4 className="h4">Password</h4>
             <input type="password" placeholder="Password" />
-
             <br />
             <button className="btn">Sign In</button>
-
             <br /><br /><hr />
 
             {/* Banking Details */}
             <h1 className="h1">1. Banking Details</h1>
-
             <h3 className="h3 popup-mt">Now you are signed in, lets set up the important stuff. How do you want to get paid?</h3>
-
             <ul>
               <li>
                 <input type="radio" name="bank" id="2-1" checked={bankChoice === 'bank'} onChange={() => setBankChoice('bank')} />
@@ -169,16 +259,13 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                 <label htmlFor="2-3">PayPal - 6% processing fee</label>
               </li>
             </ul>
-
             <br />
             <p className="popup-note">Your banking information is held by your 3rd‑party payment platform</p>
             <button className="btn">Link your account</button>
-
             <br /><br /><hr />
 
             {/* Design */}
             <h1 className="h1">2. Design your website</h1>
-
             <ul>
               <li>
                 <input type="radio" name="design" id="3-1" checked={designChoice === 'manual'} onChange={() => { setDesignChoice('manual'); setScrapedData(null); }} />
@@ -212,7 +299,7 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                   <p className="popup-note">Please wait — scraping your listing...</p>
                 )}
 
-                {/* Preview — appears directly below Get data button after import */}
+                {/* Preview — appears below Get data after import */}
                 {scrapedData && (
                   <div className="popup-preview">
                     <p className="popup-preview-label">Preview:</p>
@@ -221,6 +308,7 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                       location={scrapedData.location || ''}
                       price={scrapedData.price || ''}
                       description={scrapedData.description || ''}
+                      hero_image={scrapedData.hero_image || ''}
                       images={scrapedData.images || []}
                       guests={scrapedData.guests}
                       bedrooms={scrapedData.bedrooms}
@@ -229,7 +317,6 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                       rating={scrapedData.rating}
                       reviews={scrapedData.reviews}
                       host_name={scrapedData.host_name}
-                      images={scrapedData.images || []}
                     />
                   </div>
                 )}
@@ -243,13 +330,10 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
 
             {/* Name property */}
             <h1 className="h1">3. Name your property</h1>
-
             <h4 className="h4">Website name</h4>
             <input type="text" placeholder="Website name" value={websiteName} onChange={e => setWebsiteName(e.target.value)} />
-
             <h4 className="h4">Website description</h4>
-            <textarea rows="2" cols="50" placeholder="Website description" value={websiteDesc} onChange={e => setWebsiteDesc(e.target.value)} style={{ borderRadius: "6px" }} />
-
+            <textarea rows="2" cols="50" placeholder="Website description" value={websiteDesc} onChange={e => setWebsiteDesc(e.target.value)} />
             <p className="popup-note popup-top">Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
             <button className="btn">Launch Name Cheap</button>
 
@@ -257,7 +341,6 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
 
             {/* Hosting */}
             <h1 className="h1">4. Hosting options</h1>
-
             <ul>
               <li>
                 <input type="radio" name="hosting" id="4-1" checked={hostingChoice === 'own'} onChange={() => setHostingChoice('own')} />
@@ -268,12 +351,10 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                 <label htmlFor="4-2">Published to our server - $5 per month</label>
               </li>
             </ul>
-
             <br /><hr />
 
             {/* Subscription */}
             <h1 className="h1">5. Subscription plan</h1>
-
             <ul>
               <li>
                 <input type="radio" name="plan" id="5-1" checked={planChoice === 'starter'} onChange={() => setPlanChoice('starter')} />
@@ -288,14 +369,11 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                 <label htmlFor="5-3">Agency – $150</label>
               </li>
             </ul>
-
             <br /><hr />
 
             {/* Extras */}
             <h1 className="h1">6. Optional extras</h1>
-
             <h3 className="h3 popup-mt">Select these options now and get a 25% discount. You will not have another chance to sign up for these services.</h3>
-
             <ul>
               <li>
                 <input type="checkbox" id="6-1" checked={extras.seo} onChange={e => setExtras({...extras, seo: e.target.checked})} />
@@ -314,29 +392,23 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                 <label htmlFor="6-4">Social Media Marketing - $50 per month</label>
               </li>
             </ul>
-
             <br /><hr />
 
             {/* Payment */}
             <h1 className="h1">Payment Calculated</h1>
-
             <p className="popup-note">Input your card details with our 3rd‑party, secure payment partner.</p>
             <button className="btn">Open payment gateway</button>
-
             <br /><br /><hr />
 
             {/* Publish */}
             <h1 className="h1">7. Publish your site</h1>
-
             <h3 className="h3">Now you are ready to launch your very own short‑term rental booking site. Congratulations!</h3>
-
             <ul>
               <li>
                 <input type="checkbox" id="7-1" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
                 <label htmlFor="7-1">Click to agree to our Terms &amp; Conditions</label>
               </li>
             </ul>
-
             <br />
             <button
               className="h2 publish-btn"
