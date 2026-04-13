@@ -9,11 +9,12 @@ const TEMPLATE_USER_ID = 'surfhouse-baja-template';
 export interface OnboardingPopupProps {
   onComplete?: (data: any) => void;
   onImported?: (data: any) => void;
+  onClose?: () => void;
   scrapedProperty?: any | null;
   scrapedImages?: any[];
 }
 
-export function OnboardingPopup({ onComplete, onImported, scrapedProperty, scrapedImages }: OnboardingPopupProps) {
+export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages }: OnboardingPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,12 +38,8 @@ export function OnboardingPopup({ onComplete, onImported, scrapedProperty, scrap
   const [showDebug, setShowDebug] = useState(false);
 
   const handleClose = () => {
-    // Reset all scraped data so fresh template loads next time
-    setScrapedData(null);
-    setAirbnbUrl('');
-    setWebsiteName('');
-    setWebsiteDesc('');
     setIsOpen(false);
+    if (onClose) onClose();
   };
 
   // Load saved onboarding data from Supabase on mount

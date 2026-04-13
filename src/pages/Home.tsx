@@ -24,7 +24,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [scrapedImages, setScrapedImages] = useState<PropertyImage[]>([]);
-  const [scrapedProperty, setScrapedProperty] = useState<Partial<Property> | null>(null);
+  const [resetKey, setResetKey] = useState(0);
   const [imageGallerySave, setImageGallerySave] = useState<(() => Promise<void>) | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [defaultProperty, setDefaultProperty] = useState<Property | null>(null);
@@ -288,7 +288,14 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         max_guests: imported.guests || property?.max_guests || null,
       });
 
-      // Pass data to OnboardingPopup via onImported callback
+      const handlePopupClose = () => {
+    // Reset scraped data so popup mounts fresh next time
+    setScrapedProperty(null);
+    setScrapedImages([]);
+    setResetKey(k => k + 1);
+  };
+
+  // Pass data to OnboardingPopup via onImported callback
       if (onImported) {
         onImported({
           ...imported,
@@ -444,7 +451,9 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       )}
 
       <OnboardingPopup
+        key={resetKey}
         onImported={handleImportedImages}
+        onClose={handlePopupClose}
         defaultProperty={defaultProperty}
         defaultImages={defaultImages}
         scrapedProperty={scrapedProperty}
