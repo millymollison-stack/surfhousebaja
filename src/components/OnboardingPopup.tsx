@@ -42,6 +42,14 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   const [scrapedData, setScrapedData] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
 
+  // Initialize form fields from scraped property data passed from Home
+  useEffect(() => {
+    if (scrapedProperty) {
+      if (scrapedProperty.property_title) setWebsiteName(scrapedProperty.property_title);
+      if (scrapedProperty.property_intro) setWebsiteDesc(scrapedProperty.property_intro);
+    }
+  }, [scrapedProperty]);
+
   const handleClose = () => {
     sessionStorage.setItem(POPUP_CLOSED_KEY, '1');
     setIsOpen(false);

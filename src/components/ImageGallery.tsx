@@ -31,11 +31,6 @@ export function ImageGallery({
   const [propertyTitle, setPropertyTitle] = useState(property?.property_title || '@surfhousebaja');
   const [propertyIntro, setPropertyIntro] = useState(property?.property_intro || '');
 
-  // Sync with scraped property data when prop changes
-  useEffect(() => {
-    if (property?.property_title) setPropertyTitle(property.property_title);
-    if (property?.property_intro) setPropertyIntro(property.property_intro);
-  }, [property?.property_title, property?.property_intro]);
   const [editPrice, setEditPrice] = useState(property?.price_per_night || 0);
   const [editBedrooms, setEditBedrooms] = useState(property?.bedrooms || 0);
   const [editBathrooms, setEditBathrooms] = useState(property?.bathrooms || 0);
@@ -50,11 +45,17 @@ export function ImageGallery({
     setPropertyIntro(property?.property_intro || '');
   }, [property?.id]);  // Only reinitialize when property ID changes, not when content changes
 
+  // Sync title/intro from scraped property data arriving from Home (without DB write)
+  useEffect(() => {
+    if (property?.property_title) setPropertyTitle(property.property_title);
+    if (property?.property_intro) setPropertyIntro(property.property_intro);
+  }, [property?.property_title, property?.property_intro]);
+
   useEffect(() => {
     if (registerSaveHandler) {
       registerSaveHandler(handlePropertyTextSave);
     }
-  }, [registerSaveHandler, propertyTitle, propertyIntro]);
+  }, [registerSaveHandler]);
 
   const sortedImages = [...images].sort((a, b) => {
     if (a.is_main) return -1;
