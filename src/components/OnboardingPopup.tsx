@@ -161,7 +161,7 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
         setScrapedData(data);
         if (data.title) setWebsiteName(data.title);
         if (data.description) setWebsiteDesc(data.description.slice(0, 200));
-        if (onImported) onImported(data);
+        if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
         // Save to Supabase immediately after scrape
         await saveToSupabase();
       } else {
@@ -200,8 +200,8 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
   return (
     <>
       {isOpen && (
-        <div className="popup-backdrop">
-          <div className="popup-modal">
+        <div className="popup-backdrop" onClick={handleClose}>
+          <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
             <button onClick={handleClose} className="popup-close">×</button>
 
             {/* Intro */}
@@ -432,7 +432,14 @@ export function OnboardingPopup({ onComplete, onImported }: OnboardingPopupProps
                   <tr key={key}>
                     <td className="debug-key">{key}</td>
                     <td className="debug-val">
-                      {Array.isArray(val) ? (
+                      {key === 'description' && typeof val === 'string' && val.length > 200 ? (
+                        <div>
+                          <div className="debug-array-label">HERO SUBTITLE (first 200 chars):</div>
+                          <div className="debug-string" style={{color:'#22c55e'}}>{val.slice(0, 200)}</div>
+                          <div className="debug-array-label" style={{marginTop:'12px'}}>DESCRIPTION BELOW (chars {200}–{val.length}):</div>
+                          <div className="debug-string" style={{color:'#f97316'}}>{val.slice(200)}</div>
+                        </div>
+                      ) : Array.isArray(val) ? (
                         <div>
                           <div className="debug-array-label">Array ({val.length} items):</div>
                           {(val as string[]).map((item, i) => (

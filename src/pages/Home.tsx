@@ -23,6 +23,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [scrapedImages, setScrapedImages] = useState<PropertyImage[]>([]);
+  const [scrapedProperty, setScrapedProperty] = useState<Partial<Property> | null>(null);
   const [imageGallerySave, setImageGallerySave] = useState<(() => Promise<void>) | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [defaultProperty, setDefaultProperty] = useState<Property | null>(null);
@@ -182,6 +184,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   };
 
   // Called when Airbnb import completes — saves to onboarding_data table + 'onboarding' bucket
+
   const handleImportedImages = async (imported: {
     hero_image: string;
     images: string[];
@@ -256,6 +259,35 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         console.log('[Home] Saved to onboarding_data, id:', onboardingRecord.id);
       }
 
+      // Skip first image (placeholder from Airbnb), use second image onward
+      const allUrls = (imageUrls.length > 0 ? imageUrls : imported.images || []);
+      const realUrls = allUrls.slice(1); // drop first (placeholder)
+      const newImages: PropertyImage[] = realUrls.map((url: string, idx: number) => ({
+        id: `scraped-${Date.now()}-${idx}`,
+        property_id: property?.id || '',
+        url,
+        position: idx + 1,
+        is_featured: idx === 0,
+        is_main: idx === 0,
+        is_background: false,
+        created_at: new Date().toISOString(),
+      }));
+      setScrapedImages(newImages);
+      // Hero subtitle gets first 200 chars (same as popup preview), rest goes to description box
+      const heroText = (imported.description || '').slice(0, 200);
+      const descText = (imported.description || '').slice(200);
+      console.log('[Home] setScrapedProperty:', { description: descText, property_intro: heroText, title: imported.title });
+      setScrapedProperty({
+        id: property?.id || '',
+        title: imported.title || property?.title || '',
+        description: descText,
+        property_title: imported.title || property?.property_title || '',
+        property_intro: heroText,
+        location: imported.location || property?.location || '',
+        price_per_night: imported.price || property?.price_per_night || null,
+        max_guests: imported.guests || property?.max_guests || null,
+      });
+
       // Pass data to OnboardingPopup via onImported callback
       if (onImported) {
         onImported({
@@ -298,7 +330,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     );
   }
 
-  if (error || !property) {
+  const displayProperty = scrapedProperty || property;
+  if (error || !displayProperty) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -314,8 +347,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   return (
     <div className="w-full">
       <ImageGallery
-        images={images}
-        property={property}
+        images={scrapedImages.length > 0 ? scrapedImages : images}
+        property={scrapedProperty || property}
         isEditing={isEditing}
         isAdmin={user?.role === 'admin'}
         onImageUpload={user?.role === 'admin' ? handleImageUpload : undefined}
@@ -327,7 +360,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
 
       <div className="section-mt-neg bg-black section-padding">
         <PropertyDetails
-          property={property}
+          property={scrapedProperty || property}
           isEditing={isEditing}
           onEditingChange={setIsEditing}
           onSave={user?.role === 'admin' ? handlePropertyUpdate : undefined}
@@ -345,7 +378,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           ></div>
           <div className="relative">
             <PropertyAmenities
-              property={property}
+              property={scrapedProperty || property}
               isEditing={isEditing}
               onHasChanges={onHasChanges}
               onUpdate={handlePropertyUpdate}

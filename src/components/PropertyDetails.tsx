@@ -222,7 +222,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             {isEditing ? (
               renderEditableText('description', formData.description, 'textarea')
             ) : (
-              <p className="whitespace-pre-line hero-subtitle py-8">Your luxury Baja surf escape awaits. Wake up to an uncrowded point break, tear through nearby off-road trails, or head out on unforgettable fishing trips. Spend your afternoons in hammocks enjoying the fishermen's fresh daily catch. Experience the raw beauty of Baja with the comforts of Starlink WiFi, hot showers, a full kitchen, a sun-soaked balcony, and a spacious fire-pit gathering area—perfect for sharing with friends.</p>
+              <p className="whitespace-pre-line hero-subtitle py-8">{property.description || formData.description}</p>
             )}
           </div>
         </div>

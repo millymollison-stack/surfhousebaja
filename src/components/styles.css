@@ -577,6 +577,7 @@
   box-shadow: 0 25px 80px rgba(0,0,0,0.6);
   text-align: left;
   max-width: 500px;
+  position: relative;
 }
 
 /* Close button */

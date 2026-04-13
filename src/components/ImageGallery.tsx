@@ -30,6 +30,12 @@ export function ImageGallery({
   const [loading, setLoading] = useState(false);
   const [propertyTitle, setPropertyTitle] = useState(property?.property_title || '@surfhousebaja');
   const [propertyIntro, setPropertyIntro] = useState(property?.property_intro || '');
+
+  // Sync with scraped property data when prop changes
+  useEffect(() => {
+    if (property?.property_title) setPropertyTitle(property.property_title);
+    if (property?.property_intro) setPropertyIntro(property.property_intro);
+  }, [property?.property_title, property?.property_intro]);
   const [editPrice, setEditPrice] = useState(property?.price_per_night || 0);
   const [editBedrooms, setEditBedrooms] = useState(property?.bedrooms || 0);
   const [editBathrooms, setEditBathrooms] = useState(property?.bathrooms || 0);
