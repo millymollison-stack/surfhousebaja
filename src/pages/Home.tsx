@@ -24,6 +24,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [scrapedImages, setScrapedImages] = useState<PropertyImage[]>([]);
+  const [scrapedProperty, setScrapedProperty] = useState<Partial<Property> | null>(null);
   const [resetKey, setResetKey] = useState(0);
   const [imageGallerySave, setImageGallerySave] = useState<(() => Promise<void>) | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -92,6 +93,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         setError('Failed to load property details');
         console.error(err);
       } finally {
+        // Clear popup closed state so popup auto-opens on fresh page load
+        sessionStorage.removeItem('onboarding_popup_closed');
         setLoading(false);
       }
     }
@@ -288,12 +291,6 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         max_guests: imported.guests || property?.max_guests || null,
       });
 
-      const handlePopupClose = () => {
-    // Reset scraped data so popup mounts fresh next time
-    setScrapedProperty(null);
-    setScrapedImages([]);
-    setResetKey(k => k + 1);
-  };
 
   // Pass data to OnboardingPopup via onImported callback
       if (onImported) {
@@ -306,6 +303,13 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     } catch (err) {
       console.error('[Home] handleImportedImages error:', err);
     }
+  };
+
+  const handlePopupClose = () => {
+    // Reset scraped data so popup mounts fresh next time
+    setScrapedProperty(null);
+    setScrapedImages([]);
+    setResetKey(k => k + 1);
   };
 
   const handleBookingSubmit = async (bookingData: {

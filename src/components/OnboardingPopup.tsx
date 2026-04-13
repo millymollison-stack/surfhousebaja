@@ -14,8 +14,13 @@ export interface OnboardingPopupProps {
   scrapedImages?: any[];
 }
 
+// Persisted flag: survives across remounts (key changes) so user-closed state is not lost
+const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
+
 export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages }: OnboardingPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
+  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
+  const isMountedRef = { current: true };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [bookingsEmail, setBookingsEmail] = useState('');
@@ -38,6 +43,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   const [showDebug, setShowDebug] = useState(false);
 
   const handleClose = () => {
+    sessionStorage.setItem(POPUP_CLOSED_KEY, '1');
     setIsOpen(false);
     if (onClose) onClose();
   };
@@ -61,6 +67,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
           reviews: null,
           host_name: null,
         });
+        // Auto-open popup when scraped data arrives — but NOT if user explicitly closed it
+        if (!isOpen && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
+          setIsOpen(true);
+        }
         return;
       }
 
@@ -115,11 +125,21 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     loadSavedData();
   }, [scrapedProperty, scrapedImages]);
 
-  // Auto-open popup after 2s
+  // Auto-open popup on mount (2s delay). Check sessionStorage so that if the user
+  // closed the popup (which sets sessionStorage), we skip the auto-open after remount.
   useEffect(() => {
-    const timer = setTimeout(() => setIsOpen(true), 2000);
-    return () => clearTimeout(timer);
+    isMountedRef.current = true;
+    const timer = setTimeout(() => {
+      if (isMountedRef.current && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
+        setIsOpen(true);
+      }
+    }, 2000);
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timer);
+    };
   }, []);
+
 
   // Save or update onboarding data in Supabase
   const saveToSupabase = async (overrides: any = {}) => {
