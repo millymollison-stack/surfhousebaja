@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './styles.css';
+import './OnboardingPopup.css';
 import { TemplatePreview } from './TemplatePreview';
 import { supabase } from '../lib/supabase';
+import { saveBrandColor } from '../lib/brandColor';
 
 // Hardcoded user ID for this template (replace with auth.user.id when auth is wired)
 const TEMPLATE_USER_ID = 'surfhouse-baja-template';
@@ -11,13 +13,15 @@ export interface OnboardingPopupProps {
   onImported?: (data: any) => void;
   onClose?: () => void;
   scrapedProperty?: any | null;
+  onSiteNameChange?: (name: string) => void;
   scrapedImages?: any[];
+  onSiteNameChange?: (name: string) => void;
 }
 
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
 const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 
-export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages }: OnboardingPopupProps) {
+export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange }: OnboardingPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
   const isMountedRef = { current: true };
@@ -41,12 +45,26 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   const [importError, setImportError] = useState('');
   const [scrapedData, setScrapedData] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [brandColor, setBrandColor] = useState('#C47756');
+  const [manualImages, setManualImages] = useState<string[]>([]);
+  const [manualHeroImage, setManualHeroImage] = useState('');
+  const [manualBase64Images, setManualBase64Images] = useState<string[]>([]);
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
 
   // Initialize form fields from scraped property data passed from Home
   useEffect(() => {
     if (scrapedProperty) {
-      if (scrapedProperty.property_title) setWebsiteName(scrapedProperty.property_title);
-      if (scrapedProperty.property_intro) setWebsiteDesc(scrapedProperty.property_intro);
+      if (scrapedProperty.property_title) setWebsiteName(scrapedProperty.property_title.slice(0, 20));
+      if (scrapedProperty.property_intro) setWebsiteDesc(scrapedProperty.property_intro.slice(0, 200));
     }
   }, [scrapedProperty]);
 
@@ -63,7 +81,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       // If parent has fresh scraped data, use it instead of stale saved data
       if (scrapedProperty) {
         const imgs = scrapedImages?.map((img: any) => img.url) || [];
-        setWebsiteName(scrapedProperty.property_title || scrapedProperty.title || '');
+        setWebsiteName((scrapedProperty.property_title || scrapedProperty.title || '').slice(0, 20));
         setScrapedData({
           title: scrapedProperty.property_title || scrapedProperty.title || '',
           location: scrapedProperty.location || '',
@@ -96,7 +114,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
         if (data) {
           // Populate form fields from saved data
-          if (data.property_name) setWebsiteName(data.property_name);
+          if (data.property_name) setWebsiteName(data.property_name.slice(0, 20));
           if (data.property_desc) setWebsiteDesc(data.property_desc);
           if (data.airbnb_url) setAirbnbUrl(data.airbnb_url);
           if (data.design_choice) setDesignChoice(data.design_choice);
@@ -133,6 +151,31 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     loadSavedData();
   }, [scrapedProperty, scrapedImages]);
 
+  // Sync websiteName to header AND to New Site Template
+  useEffect(() => {
+    if (!onSiteNameChange) return;
+    const trimmed = websiteName.trim();
+    const display = trimmed.length > 0 ? '@' + trimmed.slice(0, 20) : '@surfhousebaja';
+    onSiteNameChange(display);
+  }, [websiteName, onSiteNameChange]);
+
+  // Sync name to header (immediate) and template (on blur — no debounce, no setTimeout)
+  const handleNameBlur = () => {
+    if (onSiteNameChange) {
+      const trimmed = websiteName.trim();
+      onSiteNameChange(trimmed.length > 0 ? '@' + trimmed.slice(0, 20) : '@surfhousebaja');
+    }
+    if (onImported) {
+      onImported({ title: websiteName.trim() || 'surfhousebaja', description: websiteDesc });
+    }
+  };
+  const handleDescBlur = () => {
+    if (onImported) {
+      onImported({ title: websiteName.trim() || 'surfhousebaja', description: websiteDesc });
+    }
+  };
+
+  // Sync description to template (fires independently, no stale name capture)
   // Auto-open popup on mount (2s delay). Check sessionStorage so that if the user
   // closed the popup (which sets sessionStorage), we skip the auto-open after remount.
   useEffect(() => {
@@ -202,7 +245,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       if (result.success) {
         const data = result.data;
         setScrapedData(data);
-        if (data.title) setWebsiteName(data.title);
+        if (data.title) setWebsiteName(data.title.slice(0, 20));
         if (data.description) setWebsiteDesc(data.description.slice(0, 200));
         if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
         // Save to Supabase immediately after scrape
@@ -239,6 +282,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
+
+  
 
   return (
     <>
@@ -314,6 +359,118 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
                 <input type="radio" name="design" id="3-1" checked={designChoice === 'manual'} onChange={() => { setDesignChoice('manual'); setScrapedData(null); }} />
                 <label htmlFor="3-1">Manual photo and text upload - no fee</label>
               </li>
+            </ul>
+            {designChoice === 'manual' && (
+              <div className="popup-airbnb-section">
+                <h4 className="h4">Upload property photos</h4>
+                <p className="popup-note">Add photos from your phone or computer. The first photo becomes the hero image.</p>
+                <label htmlFor="manual-image-upload" className="btn" style={{ display: 'inline-block', cursor: 'pointer' }}>
+                  Choose photos
+                </label>
+                <input
+                  id="manual-image-upload"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length === 0) return;
+                    const newBlobUrls: string[] = [];
+                    const newBase64s: string[] = [];
+                    for (const file of files) {
+                      const blobUrl = URL.createObjectURL(file);
+                      const base64 = await fileToBase64(file);
+                      newBlobUrls.push(blobUrl);
+                      newBase64s.push(base64);
+                    }
+                    const allBase64s = [...manualBase64Images, ...newBase64s];
+                    setManualBase64Images(allBase64s);
+                    setManualImages(prev => [...prev, ...newBlobUrls]);
+                    if (!manualHeroImage && newBlobUrls.length > 0) {
+                      setManualHeroImage(newBlobUrls[0]);
+                    }
+                    if (onImported) {
+                      const prevBase64s = manualBase64Images; // capture before state update
+                      const heroBase64 = newBlobUrls[0] ? allBase64s[manualImages.length] : allBase64s[0] || '';
+                      onImported({
+                        title: (websiteName.trim() || 'surfhousebaja'),
+                        location: '',
+                        description: websiteDesc || '',
+                        hero_image: heroBase64,
+                        images: allBase64s,
+                        guests: null,
+                        bedrooms: null,
+                        beds: null,
+                        baths: null,
+                        rating: null,
+                        reviews: null,
+                        host_name: null,
+                      });
+                    }
+                  }}
+                />
+                {manualImages.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                    {manualImages.map((url, i) => (
+                      <div key={url} style={{ position: 'relative', width: '72px', height: '72px', borderRadius: '8px', overflow: 'hidden', border: manualHeroImage === url ? '2px solid var(--brand)' : '2px solid transparent', cursor: 'pointer' }}
+                           onClick={() => {
+                             setManualHeroImage(url);
+                             if (onImported) {
+                               const heroIdx = manualImages.indexOf(url);
+                               const heroBase64 = heroIdx >= 0 ? manualBase64Images[heroIdx] : '';
+                               onImported({
+                                 title: (websiteName.trim() || 'surfhousebaja'),
+                                 location: '',
+                                 description: websiteDesc || '',
+                                 hero_image: heroBase64,
+                                 images: manualBase64Images,
+                                 guests: null,
+                                 bedrooms: null,
+                                 beds: null,
+                                 baths: null,
+                                 rating: null,
+                                 reviews: null,
+                                 host_name: null,
+                               });
+                             }
+                           }}>
+                        <img src={url} alt={`Photo ${i+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          onClick={(evt) => { evt.stopPropagation(); setManualImages(prev => prev.filter((_, idx) => idx !== manualImages.indexOf(url))); if (manualHeroImage === url) setManualHeroImage(''); }}
+                          style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', cursor: 'pointer', lineHeight: '16px', textAlign: 'center' }}
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {manualImages.length > 0 && (
+                  <p className="popup-note" style={{ marginTop: '6px' }}>Click a photo to make it the hero. {manualImages.length} photo(s) added.</p>
+                )}
+                {manualImages.length > 0 && (
+                  <div className="popup-preview" style={{ marginTop: '16px' }}>
+                    <p className="popup-preview-label">Preview:</p>
+                    <TemplatePreview
+                      title={websiteName || ''}
+                      location=""
+                      price=""
+                      description={websiteDesc || ''}
+                      hero_image={manualHeroImage || manualImages[0] || ''}
+                      images={manualImages}
+                      guests={undefined}
+                      bedrooms={undefined}
+                      beds={undefined}
+                      baths={undefined}
+                      rating={undefined}
+                      reviews={undefined}
+                      host_name={undefined}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <ul>
               <li>
                 <input type="radio" name="design" id="3-2" checked={designChoice === 'airbnb'} onChange={() => setDesignChoice('airbnb')} />
                 <label htmlFor="3-2">Airbnb profile import - $10, one off fee</label>
@@ -367,16 +524,60 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
             )}
 
             <p className="popup-note popup-top">Choose your brand color to highlight buttons and call out text.</p>
-            <button className="btn">Launch color picker</button>
+            <button className="btn" onClick={() => setShowColorPicker(!showColorPicker)} style={{ backgroundColor: showColorPicker ? "var(--brand-hover)" : "var(--brand)" }}>
+    {showColorPicker ? "Close color picker" : "Launch color picker"}
+  </button>
+  {showColorPicker && (
+    <div className="popup-color-picker">
+      <div className="popup-color-grid">
+        {['#C47756','#2563eb','#16a34a','#9333ea','#dc2626','#0891b2','#d97706','#374151','#ffffff','#111111'].map(hex => (
+          <button
+            key={hex}
+            onClick={() => {
+              setBrandColor(hex);
+              document.documentElement.style.setProperty('--brand', hex);
+              const hover = adjustBrightness(hex, -20);
+              const disabled = adjustBrightness(hex, 35);
+              document.documentElement.style.setProperty('--brand-hover', hover);
+              document.documentElement.style.setProperty('--brand-disabled', disabled);
+            }}
+            className="popup-color-swatch"
+            style={{
+              backgroundColor: hex,
+              borderColor: brandColor === hex ? 'white' : 'transparent',
+              boxShadow: brandColor === hex ? '0 0 0 2px var(--brand)' : 'none',
+            }}
+          />
+        ))}
+      </div>
+      <div className="popup-color-custom">
+        <input
+          type="text"
+          value={brandColor}
+          onChange={e => {
+            const val = e.target.value;
+            setBrandColor(val);
+            if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+              saveBrandColor(val);
+            }
+          }}
+          placeholder="#C47756"
+          maxLength={7}
+          className="popup-color-input"
+        />
+        <span className="popup-color-label">Brand color: <span style={{ fontFamily: 'monospace', color: brandColor }}>{brandColor}</span></span>
+      </div>
+    </div>
+  )}
 
             <hr />
 
             {/* Name property */}
             <h1 className="h1">3. Name your property</h1>
             <h4 className="h4">Website name</h4>
-            <input type="text" placeholder="Website name" value={websiteName} onChange={e => setWebsiteName(e.target.value)} />
+            <input type="text" placeholder="Website name (max 20 chars)" value={websiteName} onChange={e => setWebsiteName(e.target.value.slice(0, 20))} onBlur={handleNameBlur} />
             <h4 className="h4">Website description</h4>
-            <textarea rows="2" cols="50" placeholder="Website description" value={websiteDesc} onChange={e => setWebsiteDesc(e.target.value)} />
+            <textarea rows="2" cols="50" placeholder="Website description" className="popup-textarea" value={websiteDesc} onChange={e => setWebsiteDesc(e.target.value)} onBlur={handleDescBlur} />
             <p className="popup-note popup-top">Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
             <button className="btn">Launch Name Cheap</button>
 

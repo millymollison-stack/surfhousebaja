@@ -257,7 +257,7 @@ export function ImageGallery({
                   value={propertyTitle}
                   onChange={(e) => setPropertyTitle(e.target.value)}
                   onBlur={handlePropertyTextSave}
-                  className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[#C47756] px-2 py-1"
+                  className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)] px-2 py-1"
                   placeholder="Enter property title..."
                   style={{
                     background: 'rgba(255, 255, 255, 0.3)',
@@ -310,7 +310,7 @@ export function ImageGallery({
                 value={propertyIntro}
                 onChange={(e) => setPropertyIntro(e.target.value)}
                 onBlur={handlePropertyTextSave}
-                className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[#C47756]"
+                className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 rows={2}
                 placeholder="Enter property introduction..."
                 style={{
@@ -448,7 +448,7 @@ export function ImageGallery({
             <div key={image.id} className="relative group">
               <button
                 onClick={() => setCurrentIndex(index + 1)}
-                className="relative h-48 md:h-[292px] w-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#C47756]"
+                className="relative h-48 md:h-[292px] w-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
               >
                 <img
                   src={image.url}
@@ -486,7 +486,7 @@ export function ImageGallery({
         <div className="mt-8">
           <div className="flex justify-end mb-4" style={{ marginRight: '20px' }}>
             <label 
-              className="inline-flex items-center bg-[#C47756] text-white rounded-lg hover:bg-[#B5684A] cursor-pointer shadow-lg"
+              className="inline-flex items-center bg-[var(--brand)] text-white rounded-lg hover:bg-[var(--brand-hover)] cursor-pointer shadow-lg"
               style={{ padding: '8px 24px' }}
             >
               <input

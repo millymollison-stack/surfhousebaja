@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+  <head><script>
+(function() {
+  var saved = localStorage.getItem('site-brand-color');
+  if (saved) {
+    try {
+      var c = JSON.parse(saved);
+      document.documentElement.style.setProperty('--brand', c.brand);
+      document.documentElement.style.setProperty('--brand-hover', c.brandHover);
+      document.documentElement.style.setProperty('--brand-disabled', c.brandDisabled);
+    } catch(e) {}
+  }
+})();
+</script>
+<style>:root{--brand:#C47756;--brand-hover:#B5684A;--brand-disabled:#D4A393}</style>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

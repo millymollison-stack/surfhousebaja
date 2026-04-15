@@ -48,7 +48,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
             <div className="flex justify-end mb-2">
               <button
                 onClick={() => setIsEditingSection(true)}
-                className="flex items-center space-x-2 text-sm text-[#C47756] hover:text-[#B5684A]"
+                className="flex items-center space-x-2 text-sm text-[var(--brand)] hover:text-[var(--brand-hover)]"
               >
                 <Edit2 className="h-4 w-4" />
                 <span>Edit Section</span>
@@ -61,7 +61,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
               <textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/15 rounded-lg focus:border-[#C47756] focus:ring-[#C47756]"
+                className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/15 rounded-lg focus:border-[var(--brand)] focus:ring-[#C47756]"
                 rows={6}
                 placeholder={`Enter ${title.toLowerCase()} information...`}
                 style={{ fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit' }}
@@ -75,7 +75,7 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-3 py-1 text-sm bg-[#C47756] text-white rounded hover:bg-[#B5684A]"
+                  className="px-3 py-1 text-sm bg-[var(--brand)] text-white rounded hover:bg-[var(--brand-hover)]"
                 >
                   Save Changes
                 </button>
@@ -159,7 +159,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
   };
 
   // Consistent edit input style - apply to all editable fields
-  const editInputClass = "w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#C47756]";
+  const editInputClass = "w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]";
 
   const renderEditableText = (
     name: keyof Property,
@@ -237,7 +237,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
           </div>
           <button 
             onClick={() => document.getElementById('calendar-section')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-6 py-2.5 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] transition-colors"
+            className="px-6 py-2.5 bg-[var(--brand)] text-white rounded-md text-sm font-medium hover:bg-[var(--brand-hover)] transition-colors"
           >
             Book Now
           </button>

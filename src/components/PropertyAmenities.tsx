@@ -108,7 +108,7 @@ function CollapsibleSection({ title, content, isEditing, isAdmin, isOpen, onTogg
                   setEditedContent(e.target.value);
                   onHasChanges?.(true);
                 }}
-                className="w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#C47756]"
+                className="w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 rows={6}
                 placeholder={`Enter ${title.toLowerCase()} information...`}
                 style={{ 
@@ -201,7 +201,7 @@ export function PropertyAmenities({ property, isEditing, onHasChanges, onUpdate 
                         style={{ 
                           backgroundColor: isSelected ? 'rgba(255,255,255,0.5)' : 'transparent',
                           color: '#ffffff',
-                          borderColor: isSelected ? '#C47756' : 'rgba(255,255,255,0.5)',
+                          borderColor: isSelected ? 'var(--brand)' : 'rgba(255,255,255,0.5)',
                           borderWidth: '2px',
                           borderStyle: 'solid',
                           opacity: isMaxReached && !isSelected ? 0.5 : 1

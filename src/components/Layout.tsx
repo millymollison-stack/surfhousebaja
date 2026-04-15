@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import { Home, LogIn, Share, User } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import { UserMenu } from './UserMenu';
+import ColorPicker from './ColorPicker';
 
-export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges }: { 
+export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges, siteName, onSiteNameChange }: { 
   children: React.ReactNode; 
-  isEditing?: boolean; 
+  isEditing?: boolean;
+  siteName?: string;
+  onSiteNameChange?: (name: string) => void; 
   onToggleEdit?: () => void;
   hasChanges?: boolean;
   onSaveChanges?: () => void;
@@ -42,7 +45,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
         <nav className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 text-white hover:text-white">
             <Home className="h-6 w-6 opacity-90" />
-            <span className="text-lg font-medium">@surfhousebaja</span>
+            <span className="text-lg font-medium">{siteName || "@surfhousebaja"}</span>
           </Link>
           
           <div className="flex items-center space-x-3">
@@ -62,7 +65,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
                     onClick={() => {
                       onToggleEdit?.();
                     }}
-                    className="px-3 py-1.5 rounded text-sm font-bold transition-all bg-[#C47756] hover:bg-[#B5684A] text-white"
+                    className="px-3 py-1.5 rounded text-sm font-bold transition-all bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white"
                   >
                     Save & Exit
                   </button>
@@ -101,6 +104,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
         {children}
       </main>
 
+      <ColorPicker isEditing={isEditing} />
       <footer className="bg-gray-50 border-t">
         {isEditing ? null : (
           <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white py-3 px-4 text-center z-40">

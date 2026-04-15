@@ -50,6 +50,7 @@ function AppContent() {
   const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [siteName, setSiteName] = useState('@surfhousebaja');
   const saveAllRef = useRef<(() => Promise<void>) | null>(null);
   
   useEffect(() => {
@@ -81,9 +82,9 @@ function AppContent() {
   };
 
   return (
-    <Layout isEditing={isEditing} onToggleEdit={() => setIsEditing(!isEditing)} hasChanges={hasChanges} onSaveChanges={handleSaveAll}>
+    <Layout isEditing={isEditing} onToggleEdit={() => setIsEditing(!isEditing)} hasChanges={hasChanges} onSaveChanges={handleSaveAll} siteName={siteName} onSiteNameChange={setSiteName}>
       <Routes>
-        <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; }} />} />
+        <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; }} onSiteNameChange={setSiteName} />} />
         <Route path="/auth/confirm" element={<EmailConfirmation />} />
         <Route
           path="/login"

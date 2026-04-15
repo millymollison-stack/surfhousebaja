@@ -167,7 +167,7 @@ h2.text-white {
 
 .progress-bar-fill {
   height: 100%;
-  background-color: #C47756;
+  background-color: var(--brand);
   transition: width 300ms ease;
 }
 

@@ -13,7 +13,7 @@ import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 
 const SURF_HOUSE_BAJA_ID = 'f3d3e867-e0c6-4cc5-a05d-b5e368f8c766';
 
-export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void }) {
+export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void; onSiteNameChange?: (name: string) => void }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [backgroundImages, setBackgroundImages] = useState<PropertyImage[]>([]);
@@ -208,8 +208,9 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     try {
       // Upload images to 'onboarding' bucket in Supabase Storage
       const imageUrls: string[] = [];
-      for (let i = 0; i < imported.images.length; i++) {
-        const imgUrl = imported.images[i];
+      const imageList = imported.images || [];
+      for (let i = 0; i < imageList.length; i++) {
+        const imgUrl = imageList[i];
         try {
           const response = await fetch(imgUrl);
           const buffer = await response.arrayBuffer();
@@ -230,6 +231,11 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           console.log('[Home] Image fetch/upload failed, using original URL');
           imageUrls.push(imgUrl);
         }
+      }
+
+      // Fallback: if no images uploaded, use imported.images as-is (for manual/base64)
+      if (imageUrls.length === 0 && imageList.length > 0) {
+        imageUrls.push(...imageList);
       }
 
       // Use hero_image from images array if no separate hero_image
@@ -262,20 +268,32 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         console.log('[Home] Saved to onboarding_data, id:', onboardingRecord.id);
       }
 
-      // Skip first image (placeholder from Airbnb), use second image onward
-      const allUrls = (imageUrls.length > 0 ? imageUrls : imported.images || []);
-      const realUrls = allUrls.slice(1); // drop first (placeholder)
-      const newImages: PropertyImage[] = realUrls.map((url: string, idx: number) => ({
-        id: `scraped-${Date.now()}-${idx}`,
-        property_id: property?.id || '',
-        url,
-        position: idx + 1,
-        is_featured: idx === 0,
-        is_main: idx === 0,
-        is_background: false,
-        created_at: new Date().toISOString(),
-      }));
-      setScrapedImages(newImages);
+      // Build final image list: upload blob/base64 images to Supabase, keep existing URLs as-is
+      const isDataUrl = (s: string) => s.startsWith('data:');
+      const finalUrls: string[] = imageUrls.length > 0
+        ? imageUrls
+        : (imageList || []).map((img: string) => img);
+
+      // Airbnb placeholder skip: only drop first if it's a muscache.com URL (real Airbnb scrape)
+      const isAirbnbPlaceholder = (url: string) => url.includes('muscache.com');
+      const realUrls = finalUrls.length > 0 && isAirbnbPlaceholder(finalUrls[0])
+        ? finalUrls.slice(1)
+        : finalUrls;
+
+      // Only wipe images if we actually have new realUrls; otherwise keep existing scrapedImages
+      if (realUrls.length > 0 || (scrapedImages && scrapedImages.length === 0)) {
+        const newImages: PropertyImage[] = realUrls.map((url: string, idx: number) => ({
+          id: `scraped-${Date.now()}-${idx}`,
+          property_id: property?.id || '',
+          url,
+          position: idx + 1,
+          is_featured: idx === 0,
+          is_main: idx === 0,
+          is_background: false,
+          created_at: new Date().toISOString(),
+        }));
+        setScrapedImages(newImages);
+      }
       // Hero subtitle gets first 200 chars (same as popup preview), rest goes to description box
       const heroText = (imported.description || '').slice(0, 200);
       const descText = (imported.description || '').slice(200);
@@ -292,14 +310,6 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       });
 
 
-  // Pass data to OnboardingPopup via onImported callback
-      if (onImported) {
-        onImported({
-          ...imported,
-          hero_image: primaryImage,
-          images: imageUrls,
-        });
-      }
     } catch (err) {
       console.error('[Home] handleImportedImages error:', err);
     }
@@ -336,7 +346,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#C47756]" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--brand)]" />
       </div>
     );
   }
@@ -462,6 +472,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         defaultImages={defaultImages}
         scrapedProperty={scrapedProperty}
         scrapedImages={scrapedImages}
+        onSiteNameChange={onSiteNameChange}
       />
     </div>
   );
