@@ -238,6 +238,7 @@ textarea.popup-textarea {
   resize: vertical;
   outline: none;
 }
+::placeholder { color: rgba(255, 255, 255, 0.3) !important; }
 
 textarea.popup-textarea:focus {
   border-color: var(--brand);

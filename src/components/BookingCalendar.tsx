@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './Editmode.css';
 import { DayPicker, DateRange } from 'react-day-picker';
 import { format, isWithinInterval, parseISO, addDays } from 'date-fns';
 import { Calendar, Lock, AlertCircle, Ban, Check } from 'lucide-react';
@@ -135,7 +136,7 @@ export function BookingCalendar({
     approved: { backgroundColor: '#FEE2E2', color: '#991B1B' },
     pending: { backgroundColor: '#FEF3C7', color: '#92400E' },
     blocked: { backgroundColor: '#E5E7EB', color: '#374151' },
-    selected: { backgroundColor: '#FDF2F8', color: '#C47756' }
+    selected: { backgroundColor: '#FDF2F8', color: 'var(--brand)' }
   };
 
   const calculateTotalPrice = () => {
@@ -313,9 +314,9 @@ export function BookingCalendar({
     <div className="space-y-6">
       <div className="p-2 sm:p-4 bg-white rounded-lg shadow">
         <div className="flex justify-between items-center mb-4 pt-2 pl-1">
-          <h2 className="text-[1.65rem] hero-title" style={{ color: '#000000' }}>
+          <h1 className="text-[1.65rem] hero-title-edit">
             {isAdmin && !isBookingMode ? 'Block Dates' : 'Select your dates'}
-          </h2>
+          </h1>
           {isAdmin && (
             <button
               onClick={() => {
@@ -467,7 +468,7 @@ export function BookingCalendar({
                   id="guestCount"
                   value={guestCount}
                   onChange={(e) => setGuestCount(parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] booking-select-white bg-transparent"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] booking-select-white bg-transparent"
                 >
                   {Array.from({ length: maxGuests }, (_, i) => i + 1).map(num => (
                     <option key={num} value={num} className="booking-option-black">
@@ -486,7 +487,7 @@ export function BookingCalendar({
                   value={specialRequests}
                   onChange={(e) => setSpecialRequests(e.target.value)}
                   rows={3}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                   placeholder="Any special requirements or requests?"
                 />
               </div>
@@ -516,7 +517,7 @@ export function BookingCalendar({
                 <button
                   onClick={handleBookingSubmit}
                   disabled={loading}
-                  className="w-full flex justify-center items-center space-x-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#C47756] hover:bg-[#B5684A] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] disabled:bg-[#D4A393]"
+                  className="w-full flex justify-center items-center space-x-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] disabled:bg-[var(--brand-disabled)]"
                 >
                   <Calendar className="h-5 w-5" />
                   <span>{loading ? 'Processing...' : 'Book Now'}</span>
@@ -534,7 +535,7 @@ export function BookingCalendar({
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   rows={3}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                   placeholder="Enter reason for blocking these dates"
                 />
               </div>
@@ -575,7 +576,7 @@ export function BookingCalendar({
                   setGuestCount(1);
                   setSpecialRequests('');
                 }}
-                className="mt-4 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] sm:text-sm"
+                className="mt-4 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand)] sm:text-sm"
               >
                 Cancel
               </button>
@@ -666,7 +667,7 @@ export function BookingCalendar({
                 <button
                   type="button"
                   onClick={() => setShowConfirmation(false)}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#C47756] text-base font-medium text-white hover:bg-[#B5684A] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] sm:text-sm"
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[var(--brand)] text-base font-medium text-white hover:bg-[var(--brand-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] sm:text-sm"
                 >
                   Got it, thanks!
                 </button>

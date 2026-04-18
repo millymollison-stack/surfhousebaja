@@ -2,15 +2,19 @@
 
 export const FONT_OPTIONS = [
   'Playfair Display',
-  'Cormorant Garamond',
+  'Libre Baskerville',
+  'Oswald',
+  'Sintony',
+  'Raleway',
+  'Nixie One',
+  'Oleo Script',
+  'Unbounded',
+  'Urbanist',
+  'Barrio',
+  'Advent Pro',
   'DM Serif Display',
   'Fraunces',
-  'Space Grotesk',
-  'Josefin Sans',
   'Archivo Black',
-  'Abril Fatface',
-  'Righteous',
-  'Pacifico',
 ];
 
 export function saveFontAccent(font: string) {

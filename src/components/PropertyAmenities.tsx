@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './Editmode.css';
 import { Wifi, Car, Coffee, Tv, Waves, Scale, Fish, Truck, ChevronDown, ChevronUp, MapPin, Utensils, Wind, Flame, Shirt, Timer, UtensilsCrossed, Flower2, Sun, Mountain, Sunset, Anchor, Footprints, Dumbbell, Bike, Gamepad2, BookOpen, Monitor, Printer, Shield, KeyRound, Siren, Heart, Zap, BedDouble, Sparkles, Scissors, DoorOpen, PawPrint, Accessibility, Palmtree } from 'lucide-react';
 import type { Property } from '../types';
 import { useAuth } from '../store/auth';
@@ -108,17 +109,9 @@ function CollapsibleSection({ title, content, isEditing, isAdmin, isOpen, onTogg
                   setEditedContent(e.target.value);
                   onHasChanges?.(true);
                 }}
-                className="w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                className="w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] edit-section-textarea"
                 rows={6}
                 placeholder={`Enter ${title.toLowerCase()} information...`}
-                style={{ 
-                  fontFamily: 'inherit', 
-                  fontSize: 'inherit',
-                  backdropFilter: 'blur(10px)',
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                }}
               />
             </div>
           ) : (
@@ -182,12 +175,12 @@ export function PropertyAmenities({ property, isEditing, onHasChanges, onUpdate 
       <div className="mt-5 relative amenities-content space-y-8 pb-8">
         {/* Amenities */}
         <div className="glass-card">
-          <h2 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h2>
+          <h1 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h1>
           
           {/* Edit mode: always show selector */}
           {isEditing && (
             <div className="glass-card p-4">
-              <div className="w-full" style={{ maxHeight: '160px', overflowY: 'auto', overflowX: 'hidden' }}>
+              <div className="w-full amenity-scroll-container">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   {ALL_AMENITIES.map(({ name, icon: Icon }) => {
                     const isSelected = selectedAmenities.includes(name);
@@ -197,18 +190,10 @@ export function PropertyAmenities({ property, isEditing, onHasChanges, onUpdate 
                         key={name}
                         onClick={() => toggleAmenity(name)}
                         disabled={isMaxReached && !isSelected}
-                        className="flex items-center space-x-2 px-3 py-2 rounded text-left text-sm transition-all"
-                        style={{ 
-                          backgroundColor: isSelected ? 'rgba(255,255,255,0.5)' : 'transparent',
-                          color: '#ffffff',
-                          borderColor: isSelected ? 'var(--brand)' : 'rgba(255,255,255,0.5)',
-                          borderWidth: '2px',
-                          borderStyle: 'solid',
-                          opacity: isMaxReached && !isSelected ? 0.5 : 1
-                        }}
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-[8px] text-left text-sm transition-all amenity-btn ${isSelected ? 'selected' : ''} ${isMaxReached && !isSelected ? 'max-reached' : ''}`}
                       >
-                        <Icon className="h-4 w-4 flex-shrink-0" style={{ color: '#ffffff' }} />
-                        <span className="truncate" style={{ color: '#ffffff' }}>{name}</span>
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{name}</span>
                       </button>
                     );
                   })}

@@ -136,7 +136,7 @@ const UserBookings = memo(function UserBookings({ bookings, onUpdateStatus, onRe
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-48 text-base border-gray-300 rounded-md shadow-sm focus:ring-[#C47756] focus:border-[#C47756]"
+          className="w-48 text-base border-gray-300 rounded-md shadow-sm focus:ring-[var(--brand)] focus:border-[#C47756]"
         >
           <option value="all">All Statuses</option>
           <option value="pending">Pending</option>
@@ -290,7 +290,7 @@ const UserBookings = memo(function UserBookings({ bookings, onUpdateStatus, onRe
                   <div className="mt-2">
                     <textarea
                       rows={4}
-                      className="shadow-sm focus:ring-[#C47756] focus:border-[#C47756] block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-[var(--brand)] focus:border-[#C47756] block w-full sm:text-sm border-gray-300 rounded-md"
                       placeholder="Enter reason for denying the booking..."
                       value={denialReason}
                       onChange={(e) => setDenialReason(e.target.value)}
@@ -316,7 +316,7 @@ const UserBookings = memo(function UserBookings({ bookings, onUpdateStatus, onRe
                 <button
                   type="button"
                   disabled={isUpdating}
-                  className="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] sm:col-start-1 sm:text-sm"
+                  className="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand)] sm:col-start-1 sm:text-sm"
                   onClick={() => {
                     setShowDenialModal(null);
                     setDenialReason('');

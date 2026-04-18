@@ -196,14 +196,14 @@ export function EmailConfirmation() {
               <div className="mt-6">
                 <button
                   onClick={() => setStatus('manual')}
-                  className="text-[#C47756] hover:text-[#B5684A] text-sm font-medium"
+                  className="text-[var(--brand)] hover:text-[var(--brand-hover)] text-sm font-medium"
                 >
                   Try again
                 </button>
                 <span className="mx-2 text-gray-400">|</span>
                 <button
                   onClick={() => setShowNewEmailForm(true)}
-                  className="text-[#C47756] hover:text-[#B5684A] text-sm font-medium"
+                  className="text-[var(--brand)] hover:text-[var(--brand-hover)] text-sm font-medium"
                 >
                   Request new confirmation email
                 </button>

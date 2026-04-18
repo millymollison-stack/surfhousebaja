@@ -2,7 +2,7 @@ import ReactDOM from 'react-dom';
 import { useState, useRef, useEffect } from 'react';
 import { Palette, X, Check } from 'lucide-react';
 import { saveBrandColor } from '../lib/brandColor';
-import { FONT_OPTIONS, saveFontAccent, loadFontAccent } from '../lib/fontAccent';
+import { FONT_OPTIONS, saveFontAccent, loadFontAccent, applyFontAccent } from '../lib/fontAccent';
 import { FontDropdown } from './FontDropdown';
 
 const PRESET_COLORS = [
@@ -34,6 +34,11 @@ export default function ColorPicker({ isEditing }: { isEditing?: boolean }) {
     console.log('[ColorPicker useEffect] firing');
     loadFontAccent();
   }, []);
+
+  // Apply font to title/price inputs whenever fontAccent changes
+  useEffect(() => {
+    applyFontAccent(fontAccent);
+  }, [fontAccent]);
 
   // Close on outside click
   useEffect(() => {

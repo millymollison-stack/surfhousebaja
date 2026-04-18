@@ -5,6 +5,7 @@ import './styles.css';
 import './OnboardingPopup.css';
 import { TemplatePreview } from './TemplatePreview';
 import { FontDropdown } from './FontDropdown';
+import { FONT_OPTIONS, applyFontAccent } from '../lib/fontAccent';
 import { supabase } from '../lib/supabase';
 import { saveBrandColor } from '../lib/brandColor';
 
@@ -76,7 +77,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup 
         className="btn"
         style={{ width: '100%', fontSize: '1rem' }}
       >
-        {processing ? (isSetup ? 'Saving card...' : 'Processing...') : (isSetup ? 'Save card for subscription' : `Pay $${displayedTotal}`)}
+        {processing ? (isSetup ? 'Saving card...' : 'Processing...') : (isSetup ? 'Save card for subscription' : `Pay ${monthlyTotal}`)}
       </button>
     </form>
   );
@@ -100,10 +101,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   const [agreed, setAgreed] = useState(false);
   const [stripeError, setStripeError] = useState('');
   const openStripeGateway = async () => {
-    if (!email || !email.includes('@')) {
-      setStripeError('Please enter your email address first.');
-      return;
-    }
     if (!planChoice) {
       setStripeError('Please select a subscription plan first.');
       return;
@@ -115,7 +112,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     try {
       const endpoint = isSetup ? '/create-setup-intent' : '/create-payment-intent';
       const reqBody = isSetup
-        ? { customerEmail: email }
+        ? { customerEmail: email ||'pending@placeholder.com' }
         : {
             amount: Math.round(displayedTotal * 100),
             currency: 'usd',
@@ -159,20 +156,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   };
   const scrapeFee = designChoice === 'airbnb' ? pricing.scrape : 0;
 
-  const fontOptions = [
-    'Playfair Display',
-    'Cormorant Garamond',
-    'DM Serif Display',
-    'Fraunces',
-    'Space Grotesk',
-    'Josefin Sans',
-    'Archivo Black',
-    'Abril Fatface',
-    'Righteous',
-    'Pacifico',
-  ];
+  const fontOptions = FONT_OPTIONS;
   // First month free for Starter plan
   const TRIAL_CREDIT = planChoice === 'starter' ? (pricing.plans.starter || 0) : 0;
+
+  // Load saved font accent on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('site-font-accent');
+    if (saved) {
+      setFontAccent(saved);
+      applyFontAccent(saved);
+    }
+  }, []);
 
   const monthlyTotal = (pricing.plans[planChoice as keyof typeof pricing.plans] || 0)
     + (pricing.hosting[hostingChoice as keyof typeof pricing.hosting] || 0)
@@ -435,16 +430,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       setCountdown(0);
     }
   };
-
   const handlePublish = async (_e?: React.MouseEvent) => {
-    if (!email || !email.includes('@')) {
-      setStripeError('Please enter your email address first.');
-      return;
-    }
-    if (!planChoice) {
-      setStripeError('Please select a subscription plan first.');
-      return;
-    }
     setStripeError('');
     
     // Create payment intent on your backend and get clientSecret
@@ -798,8 +784,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
             {/* Font accent selector */}
             <div className="popup-font-section">
-              <h3 className="h3 popup-mt">Font accent</h3>
-              <p className="popup-note">Select your font choice for headings.</p>
+              <h3 className="h3 popup-mt">Heading Font</h3>
+              <p className="popup-note">Choose your font for headings.</p>
               <FontDropdown
                 value={fontAccent}
                 options={fontOptions}

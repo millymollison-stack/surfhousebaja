@@ -118,7 +118,7 @@ function PaymentForm() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C47756]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--brand)]"></div>
       </div>
     );
   }
@@ -136,7 +136,7 @@ function PaymentForm() {
           <p className="text-gray-600 mb-6">Your booking has been confirmed. You will receive a confirmation email shortly.</p>
           <button
             onClick={() => navigate('/')}
-            className="bg-[#C47756] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#B5684A] transition-colors"
+            className="bg-[var(--brand)] text-white px-6 py-3 rounded-lg font-medium hover:bg-[var(--brand-hover)] transition-colors"
           >
             Return to Home
           </button>
@@ -153,7 +153,7 @@ function PaymentForm() {
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="bg-[#C47756] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#B5684A] transition-colors"
+            className="bg-[var(--brand)] text-white px-6 py-3 rounded-lg font-medium hover:bg-[var(--brand-hover)] transition-colors"
           >
             Return to Home
           </button>
@@ -167,7 +167,7 @@ function PaymentForm() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-[#C47756] px-8 py-6">
+          <div className="bg-[var(--brand)] px-8 py-6">
             <h1 className="text-2xl font-bold text-white">Complete Your Payment</h1>
             <p className="text-white/80 mt-1">Secure your booking at {property?.title || 'the property'}</p>
           </div>
@@ -191,7 +191,7 @@ function PaymentForm() {
                 </div>
                 <div>
                   <p className="text-gray-500">Total Amount</p>
-                  <p className="font-bold text-xl text-[#C47756]">${booking?.total_price}</p>
+                  <p className="font-bold text-xl text-[var(--brand)]">${booking?.total_price}</p>
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ function PaymentForm() {
               <button
                 type="submit"
                 disabled={!stripe || processing}
-                className="w-full bg-[#C47756] text-white py-4 px-6 rounded-lg font-medium text-lg hover:bg-[#B5684A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[var(--brand)] text-white py-4 px-6 rounded-lg font-medium text-lg hover:bg-[var(--brand-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processing ? (
                   <span className="flex items-center justify-center">

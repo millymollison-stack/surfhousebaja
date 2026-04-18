@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './Editmode.css';
 import { Bed, Bath, Users, Wifi, Car, Coffee, Tv, Check, X, MapPin, ChevronDown, ChevronUp, Edit2, Waves, Scale, Fish, Truck } from 'lucide-react';
 import type { Property } from '../types';
 import { useAuth } from '../store/auth';
@@ -61,10 +62,9 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
               <textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/15 rounded-lg focus:border-[var(--brand)] focus:ring-[#C47756]"
+                className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/15 rounded-lg focus:border-[var(--brand)] focus:ring-[#C47756] edit-section-textarea"
                 rows={6}
                 placeholder={`Enter ${title.toLowerCase()} information...`}
-                style={{ fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit' }}
               />
               <div className="flex justify-end space-x-2">
                 <button
@@ -178,16 +178,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
           name={name}
           value={value}
           onChange={handleInputChange}
-          className={editInputClass}
-          style={{ 
-            fontFamily: 'inherit', 
-            fontSize: 'inherit', 
-            color: '#ffffff',
-            background: 'rgba(255, 255, 255, 0.3)',
-            borderRadius: '0.5rem',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            marginTop: '30px',
-          }}
+          className={`${editInputClass} edit-textarea`}
           rows={4}
         />
       );
@@ -199,16 +190,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
         name={name}
         value={value}
         onChange={type === 'number' ? handleNumberChange : handleInputChange}
-        className={editInputClass}
-        style={{ 
-          fontFamily: 'inherit', 
-          fontSize: 'inherit', 
-          color: 'inherit',
-          backdropFilter: 'blur(10px)',
-          background: 'rgba(255, 255, 255, 0.2)',
-          borderRadius: '0.5rem',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-        }}
+        className={`${editInputClass} edit-input`}
       />
     );
   };

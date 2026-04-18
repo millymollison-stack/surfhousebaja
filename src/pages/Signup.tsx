@@ -34,7 +34,7 @@ export function Signup() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-[#C47756] hover:text-[#B5684A]">
+            <Link to="/login" className="font-medium text-[var(--brand)] hover:text-[var(--brand-hover)]">
               Sign in
             </Link>
           </p>
@@ -62,7 +62,7 @@ export function Signup() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#C47756] sm:text-sm sm:leading-6"
+                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[var(--brand)] sm:text-sm sm:leading-6"
                 placeholder="Full name"
               />
             </div>
@@ -78,7 +78,7 @@ export function Signup() {
                 required
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#C47756] sm:text-sm sm:leading-6"
+                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[var(--brand)] sm:text-sm sm:leading-6"
                 placeholder="Phone number"
               />
             </div>
@@ -95,7 +95,7 @@ export function Signup() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#C47756] sm:text-sm sm:leading-6"
+                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[var(--brand)] sm:text-sm sm:leading-6"
                 placeholder="Email address"
               />
             </div>
@@ -112,7 +112,7 @@ export function Signup() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#C47756] sm:text-sm sm:leading-6"
+                className="relative block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[var(--brand)] sm:text-sm sm:leading-6"
                 placeholder="Password"
               />
             </div>
@@ -122,7 +122,7 @@ export function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full justify-center rounded-md bg-[#C47756] px-3 py-2 text-sm font-semibold text-white hover:bg-[#B5684A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C47756] disabled:bg-[#D4A393]"
+              className="group relative flex w-full justify-center rounded-md bg-[var(--brand)] px-3 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C47756] disabled:bg-[var(--brand-disabled)]"
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>
@@ -131,7 +131,7 @@ export function Signup() {
               <button
                 type="button"
                 onClick={() => setIsAdmin(true)}
-                className="text-sm text-gray-500 hover:text-[#C47756] focus:outline-none"
+                className="text-sm text-gray-500 hover:text-[var(--brand)] focus:outline-none"
               >
                 Request an admin account
               </button>

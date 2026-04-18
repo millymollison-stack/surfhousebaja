@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users, Layers } from 'lucide-react';
-import { applyFontAccent } from '../lib/fontAccent';
 import type { PropertyImage, Property } from '../types';
 import { useAuth } from '../store/auth';
 
@@ -32,6 +31,11 @@ export function ImageGallery({
   const [propertyTitle, setPropertyTitle] = useState(property?.property_title || '@surfhousebaja');
   const [propertyIntro, setPropertyIntro] = useState(property?.property_intro || '');
 
+  // Sync with scraped property data when prop changes
+  useEffect(() => {
+    if (property?.property_title) setPropertyTitle(property.property_title);
+    if (property?.property_intro) setPropertyIntro(property.property_intro);
+  }, [property?.property_title, property?.property_intro]);
   const [editPrice, setEditPrice] = useState(property?.price_per_night || 0);
   const [editBedrooms, setEditBedrooms] = useState(property?.bedrooms || 0);
   const [editBathrooms, setEditBathrooms] = useState(property?.bathrooms || 0);
@@ -46,18 +50,11 @@ export function ImageGallery({
     setPropertyIntro(property?.property_intro || '');
   }, [property?.id]);  // Only reinitialize when property ID changes, not when content changes
 
-  // Sync title/intro from scraped property data arriving from Home (without DB write)
-  useEffect(() => {
-    if (property?.property_title) setPropertyTitle(property.property_title);
-    if (property?.property_intro) setPropertyIntro(property.property_intro);
-    if (property?.price_per_night) setEditPrice(property.price_per_night);
-  }, [property?.property_title, property?.property_intro, property?.price_per_night]);
-
   useEffect(() => {
     if (registerSaveHandler) {
       registerSaveHandler(handlePropertyTextSave);
     }
-  }, [registerSaveHandler]);
+  }, [registerSaveHandler, propertyTitle, propertyIntro]);
 
   const sortedImages = [...images].sort((a, b) => {
     if (a.is_main) return -1;
@@ -66,12 +63,6 @@ export function ImageGallery({
     if (!a.is_featured && b.is_featured) return 1;
     return a.position - b.position;
   });
-
-  // Apply current font accent to title/price inputs on mount
-  useEffect(() => {
-    const savedFont = localStorage.getItem('site-font-accent');
-    if (savedFont) applyFontAccent(savedFont);
-  }, [isEditing]);
 
   // Auto-advance images every 4 seconds
   useEffect(() => {
@@ -265,18 +256,35 @@ export function ImageGallery({
                   value={propertyTitle}
                   onChange={(e) => setPropertyTitle(e.target.value)}
                   onBlur={handlePropertyTextSave}
-                  className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)] px-2 py-1 edit-title-input"
+                  className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[#C47756] px-2 py-1"
+                  placeholder="Enter property title..."
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '0.5rem',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    fontFamily: "'Inter', sans-serif",
+                    width: '70%',
+                  }}
                 />
-                <div className="flex items-baseline justify-start">
+                <div className="flex items-baseline">
                   <span className="text-2xl md:text-3xl font-bold text-white">$</span>
                   <input
                     type="number"
                     value={editPrice}
                     onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
                     onBlur={handlePropertyStatsSave}
-                    className="w-24 text-2xl md:text-3xl font-bold text-white focus:outline-none edit-price-input"
+                    className="w-24 text-2xl md:text-3xl font-bold text-white focus:outline-none"
+                    style={{ 
+                      background: 'rgba(255, 255, 255, 0.3)',
+                      borderRadius: '0.5rem',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      padding: '4px 8px',
+                    }}
                     onFocus={(e) => {
-                      e.target.style.border = '1px solid var(--brand)';
+                      e.target.style.border = '3px solid #8B4513';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '1px solid rgba(255, 255, 255, 0.3)';
                     }}
                     min="0"
                   />
@@ -287,9 +295,9 @@ export function ImageGallery({
               <div className="flex items-baseline justify-between w-full">
                 <h1 className="hero-title text-white">{propertyTitle}</h1>
                 <div className="flex items-baseline">
-                  <h1 className="hero-title-price text-2xl md:text-3xl font-semibold text-white">
-                    ${editPrice}
-                  </h1>
+                  <span className="text-2xl md:text-3xl font-semibold text-white">
+                    ${property.price_per_night}
+                  </span>
                   <span className="text-white/80 text-base font-normal">/night</span>
                 </div>
               </div>
@@ -301,9 +309,15 @@ export function ImageGallery({
                 value={propertyIntro}
                 onChange={(e) => setPropertyIntro(e.target.value)}
                 onBlur={handlePropertyTextSave}
-                className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] edit-intro-textarea"
+                className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[#C47756]"
                 rows={2}
-                placeholder="Enter property introduction..." 
+                placeholder="Enter property introduction..."
+                style={{
+                  background: 'rgba(255, 255, 255, 0.3)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
               />
             ) : (
               <p className="whitespace-pre-line hero-subtitle">{propertyIntro}</p>
@@ -320,9 +334,18 @@ export function ImageGallery({
                       value={editBedrooms}
                       onChange={(e) => setEditBedrooms(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm edit-stat-input"
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
+                      style={{ 
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '1px 4px'
+                      }}
                       onFocus={(e) => {
-                        e.target.style.border = '2px solid var(--brand)';
+                        e.target.style.border = '2px solid #8B4513';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
                       }}
                       min="0"
                     />
@@ -335,9 +358,18 @@ export function ImageGallery({
                       value={editBathrooms}
                       onChange={(e) => setEditBathrooms(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm edit-stat-input"
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
+                      style={{ 
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '1px 4px'
+                      }}
                       onFocus={(e) => {
-                        e.target.style.border = '2px solid var(--brand)';
+                        e.target.style.border = '2px solid #8B4513';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
                       }}
                       min="0"
                     />
@@ -350,9 +382,18 @@ export function ImageGallery({
                       value={editMaxGuests}
                       onChange={(e) => setEditMaxGuests(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm edit-stat-input"
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
+                      style={{ 
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '1px 4px'
+                      }}
                       onFocus={(e) => {
-                        e.target.style.border = '2px solid var(--brand)';
+                        e.target.style.border = '2px solid #8B4513';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
                       }}
                       min="0"
                     />
@@ -406,7 +447,7 @@ export function ImageGallery({
             <div key={image.id} className="relative group">
               <button
                 onClick={() => setCurrentIndex(index + 1)}
-                className="relative h-48 md:h-[292px] w-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                className="relative h-48 md:h-[292px] w-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#C47756]"
               >
                 <img
                   src={image.url}
@@ -442,9 +483,10 @@ export function ImageGallery({
       {/* Image management grid for admins */}
       {isAdmin && isEditing && (
         <div className="mt-8">
-          <div className="flex justify-end mb-4 gallery-upload-wrap">
+          <div className="flex justify-end mb-4" style={{ marginRight: '20px' }}>
             <label 
-              className="inline-flex items-center bg-[var(--brand)] text-white rounded-lg hover:bg-[var(--brand-hover)] cursor-pointer shadow-lg gallery-upload-btn"
+              className="inline-flex items-center bg-[#C47756] text-white rounded-lg hover:bg-[#B5684A] cursor-pointer shadow-lg"
+              style={{ padding: '8px 24px' }}
             >
               <input
                 type="file"

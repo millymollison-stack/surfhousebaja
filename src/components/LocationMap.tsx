@@ -145,7 +145,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         value="address"
                         checked={locationType === 'address'}
                         onChange={(e) => setLocationType(e.target.value as 'address' | 'coordinates')}
-                        className="form-radio h-4 w-4 text-[#C47756]"
+                        className="form-radio h-4 w-4 text-[var(--brand)]"
                       />
                       <span className="ml-2">Street Address</span>
                     </label>
@@ -155,7 +155,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         value="coordinates"
                         checked={locationType === 'coordinates'}
                         onChange={(e) => setLocationType(e.target.value as 'address' | 'coordinates')}
-                        className="form-radio h-4 w-4 text-[#C47756]"
+                        className="form-radio h-4 w-4 text-[var(--brand)]"
                       />
                       <span className="ml-2">Coordinates</span>
                     </label>
@@ -172,7 +172,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] sm:text-sm"
+                        className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] sm:text-sm"
                         placeholder="Enter street address"
                       />
                       <button
@@ -194,7 +194,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         step="any"
                         value={coordinates[0]}
                         onChange={(e) => setCoordinates([parseFloat(e.target.value), coordinates[1]])}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] sm:text-sm"
                       />
                     </div>
                     <div>
@@ -206,7 +206,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         step="any"
                         value={coordinates[1]}
                         onChange={(e) => setCoordinates([coordinates[0], parseFloat(e.target.value)])}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] sm:text-sm"
                       />
                     </div>
                   </div>
@@ -228,7 +228,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                   <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="px-4 py-2 bg-[#C47756] text-white rounded-md text-sm font-medium hover:bg-[#B5684A] disabled:bg-[#D4A393]"
+                    className="px-4 py-2 bg-[var(--brand)] text-white rounded-md text-sm font-medium hover:bg-[var(--brand-hover)] disabled:bg-[var(--brand-disabled)]"
                   >
                     {loading ? 'Saving...' : 'Save Location'}
                   </button>

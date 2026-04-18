@@ -221,7 +221,7 @@ export function AdminDashboard() {
     console.log('⏳ Admin Dashboard is in loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#C47756]" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--brand)]" />
       </div>
     );
   }
@@ -282,7 +282,7 @@ export function AdminDashboard() {
               <p className="text-sm text-gray-500">Total Bookings</p>
               <p className="text-2xl font-semibold">{stats.total}</p>
             </div>
-            <Calendar className="h-8 w-8 text-[#C47756]" />
+            <Calendar className="h-8 w-8 text-[var(--brand)]" />
           </div>
           <div className="mt-4">
             <div className="flex items-center text-sm">
@@ -407,7 +407,7 @@ export function AdminDashboard() {
                         setSelectedBookings([]);
                       }
                     }}
-                    className="h-4 w-4 text-[#C47756] focus:ring-[#C47756] border-gray-300 rounded"
+                    className="h-4 w-4 text-[var(--brand)] focus:ring-[#C47756] border-gray-300 rounded"
                   />
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -441,7 +441,7 @@ export function AdminDashboard() {
                           setSelectedBookings(selectedBookings.filter(id => id !== booking.id));
                         }
                       }}
-                      className="h-4 w-4 text-[#C47756] focus:ring-[#C47756] border-gray-300 rounded"
+                      className="h-4 w-4 text-[var(--brand)] focus:ring-[#C47756] border-gray-300 rounded"
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -501,7 +501,7 @@ export function AdminDashboard() {
             <textarea
               value={denialReason}
               onChange={(e) => setDenialReason(e.target.value)}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-[#C47756]"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-[var(--brand)]"
               rows={4}
               placeholder="Enter reason for denying the booking..."
             />

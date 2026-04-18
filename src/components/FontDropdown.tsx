@@ -29,7 +29,7 @@ export function FontDropdown({ value, options, onChange, triggerClassName }: Fon
     document.querySelectorAll('h1').forEach(el => {
       (el as HTMLElement).style.fontFamily = `'${font}', serif`;
     });
-    document.querySelectorAll('.edit-title-input').forEach(el => {
+    document.querySelectorAll('.edit-title-input, .edit-price-input').forEach(el => {
       (el as HTMLElement).style.fontFamily = `'${font}', serif`;
     });
   };
@@ -46,13 +46,13 @@ export function FontDropdown({ value, options, onChange, triggerClassName }: Fon
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" style={{width:'400px',boxSizing:'border-box'}}>
       <button
         type="button"
         ref={triggerRef}
         onClick={(e) => { e.stopPropagation(); handleOpen(); }}
         className={triggerClassName || "w-full flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border border-gray-200 shadow-sm bg-white hover:bg-gray-50 transition-colors"}
-        style={{ fontFamily: `'${hovered}', serif` }}
+        style={{ fontFamily: `'${hovered}', serif`, fontSize: '16px' }}
       >
         <span>{hovered}</span>
         <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
