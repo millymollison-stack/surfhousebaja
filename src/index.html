@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head><script>
+  <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&family=DM+Serif+Display&family=Fraunces:wght@400;700&family=Space+Grotesk:wght@400;700&family=Josefin+Sans:wght@400;600;700&family=Archivo+Black&family=Abril+Fatface&family=Righteous&family=Pacifico&display=swap" rel="stylesheet"><script>
 (function() {
   var saved = localStorage.getItem('site-brand-color');
   if (saved) {
@@ -11,9 +14,13 @@
       document.documentElement.style.setProperty('--brand-disabled', c.brandDisabled);
     } catch(e) {}
   }
+  var savedFont = localStorage.getItem('site-font-accent');
+  if (savedFont) {
+    document.documentElement.style.setProperty('--font-accent', "'" + savedFont + "', serif");
+  }
 })();
 </script>
-<style>:root{--brand:#C47756;--brand-hover:#B5684A;--brand-disabled:#D4A393}</style>
+<style>:root{--brand:#C47756;--brand-hover:#B5684A;--brand-disabled:#D4A393;--font-accent:'Playfair Display',serif}</style>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

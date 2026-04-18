@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './Editmode.css';
 import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Shield, Building, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/auth';
@@ -420,7 +421,7 @@ export function UserMenu() {
         >
         <div className="px-6">
           <div className="flex items-center justify-between h-16">
-            <h2 className="hero-title" style={{ color: '#000000' }}>PROFILE</h2>
+            <h2 className="hero-title hero-title-edit">PROFILE</h2>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -431,7 +432,7 @@ export function UserMenu() {
             </button>
           </div>
 
-          <hr className="border-t border-gray-200 px-5" style={{ position: 'absolute', top: '53px', left: '20px', right: '20px' }} />
+          <hr className="border-t border-gray-200 px-5 profile-sidebar-divider" />
 
           <div className="py-4 space-y-4">
             {profileError && (
@@ -453,7 +454,7 @@ export function UserMenu() {
               {!isEditingProfile ? (
                 <button
                   onClick={() => setIsEditingProfile(true)}
-                  className="flex items-center space-x-2 text-base font-normal text-[#C47756] hover:text-[#B5684A] z-50 relative pointer-events-auto"
+                  className="flex items-center space-x-2 text-base font-normal text-[var(--brand)] hover:text-[var(--brand-hover)] z-50 relative pointer-events-auto"
                 >
                   <Edit2 className="h-5 w-5" />
                   <span>Edit</span>
@@ -503,7 +504,7 @@ export function UserMenu() {
                         type="text"
                         value={userProperty?.custom_domain || ''}
                         onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                         disabled={loading}
                         placeholder="your-domain.com"
                       />
@@ -525,7 +526,7 @@ export function UserMenu() {
                     type="text"
                     value={profileData.full_name}
                     onChange={(e) => handleProfileInputChange('full_name', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                     disabled={loading}
                   />
                 ) : (
@@ -542,7 +543,7 @@ export function UserMenu() {
                     type="email"
                     value={profileData.email}
                     onChange={(e) => handleProfileInputChange('email', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                     disabled={loading}
                   />
                 ) : (
@@ -559,7 +560,7 @@ export function UserMenu() {
                     type="tel"
                     value={profileData.phone_number}
                     onChange={(e) => handleProfileInputChange('phone_number', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                     placeholder="Enter phone number"
                     disabled={loading}
                   />
@@ -585,7 +586,7 @@ export function UserMenu() {
                         type="text"
                         value={profileData.stripe_account_id}
                         onChange={(e) => handleProfileInputChange('stripe_account_id', e.target.value)}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                         placeholder="Stripe Account ID"
                         disabled={loading}
                       />
@@ -593,7 +594,7 @@ export function UserMenu() {
                         type="text"
                         value={profileData.stripe_account_status}
                         onChange={(e) => handleProfileInputChange('stripe_account_status', e.target.value)}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756]"
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
                         placeholder="Status (e.g., pending, active)"
                         disabled={loading}
                       />
@@ -661,7 +662,7 @@ export function UserMenu() {
           </div>
 
           <div className="mt-6 pt-6">
-            <h2 className="hero-title" style={{ color: '#000000' }}>
+            <h2 className="hero-title hero-title-edit">
               BOOKINGS
             </h2>
             
@@ -683,7 +684,7 @@ export function UserMenu() {
             {bookingsLoading ? (
               <div className="flex justify-center py-12">
                 <div className="space-y-2 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#C47756] mx-auto" />
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--brand)] mx-auto" />
                   <p className="text-sm text-gray-500">Loading bookings...</p>
                 </div>
               </div>

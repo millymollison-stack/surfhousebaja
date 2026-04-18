@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import './styles.css';
 import './OnboardingPopup.css';
 import { TemplatePreview } from './TemplatePreview';
+import { FontDropdown } from './FontDropdown';
 import { supabase } from '../lib/supabase';
 import { saveBrandColor } from '../lib/brandColor';
 
@@ -21,6 +24,64 @@ export interface OnboardingPopupProps {
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
 const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 
+
+// ── Stripe CheckoutForm (must be inside <Elements> context) ─────────────────
+function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup }: {
+  clientSecret: string;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+  monthlyTotal: number;
+  isSetup?: boolean;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setProcessing(true);
+    let error;
+    if (isSetup) {
+      const result = await stripe.confirmCardSetup(clientSecret, { elements });
+      error = result.error;
+    } else {
+      const result = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        redirect: 'if_required',
+        confirmParams: { return_url: window.location.origin + '?paid=true' },
+      });
+      error = result.error;
+    }
+    setProcessing(false);
+    if (error) {
+      onError(error.message || 'Payment failed.');
+    } else {
+      onSuccess();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ marginBottom: 16, color: '#fff', fontSize: '0.95rem' }}>
+        <div style={{ marginBottom: 6 }}>Card details</div>
+        <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 6, padding: '12px 8px' }}>
+          <PaymentElement options={{ layout: 'tabs' }} />
+        </div>
+      </div>
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        className="btn"
+        style={{ width: '100%', fontSize: '1rem' }}
+      >
+        {processing ? (isSetup ? 'Saving card...' : 'Processing...') : (isSetup ? 'Save card for subscription' : `Pay $${displayedTotal}`)}
+      </button>
+    </form>
+  );
+}
+
 export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange }: OnboardingPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
@@ -37,6 +98,93 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   const [planChoice, setPlanChoice] = useState('');
   const [extras, setExtras] = useState({ seo: false, ads: false, analytics: false, social: false });
   const [agreed, setAgreed] = useState(false);
+  const [stripeError, setStripeError] = useState('');
+  const openStripeGateway = async () => {
+    if (!email || !email.includes('@')) {
+      setStripeError('Please enter your email address first.');
+      return;
+    }
+    if (!planChoice) {
+      setStripeError('Please select a subscription plan first.');
+      return;
+    }
+    setStripeError('');
+    const isSetup = displayedTotal === 0;
+    setStripeIsSetup(isSetup);
+    setShowStripeModal(true);
+    try {
+      const endpoint = isSetup ? '/create-setup-intent' : '/create-payment-intent';
+      const reqBody = isSetup
+        ? { customerEmail: email }
+        : {
+            amount: Math.round(displayedTotal * 100),
+            currency: 'usd',
+            customerEmail: email,
+            hasTrial: TRIAL_CREDIT > 0,
+            planKey: planChoice,
+            priceId: planChoice === 'starter' ? 'price_1TNJxlK5ECFjIqP3js6qeCyf' : planChoice === 'pro' ? 'price_1TNJxlK5ECFjIqP3bhOTGvL5' : planChoice === 'agency' ? 'price_1TNJxmK5ECFjIqP32ZWgrKde' : null,
+          };
+      const res = await fetch('http://localhost:3099' + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody),
+      });
+      const data = await res.json();
+      if (data.clientSecret) {
+        setStripeClientSecret(data.clientSecret);
+      } else {
+        setStripeError(data.error || 'Could not initialise payment.');
+        setShowStripeModal(false);
+      }
+    } catch (e) {
+      setStripeError('Could not connect to payment server.');
+      setShowStripeModal(false);
+    }
+  };
+
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState('');
+  const [stripePayMethod, setStripePayMethod] = useState<'card' | 'paypal' | 'venmo'>('card');
+  const [stripeIsSetup, setStripeIsSetup] = useState(false);
+
+  // Stripe payment element ref
+  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+
+  // Payment calculator
+  const pricing = {
+    scrape: 10, // one-time Airbnb scrape fee
+    plans: { starter: 10, pro: 30, agency: 150 },
+    hosting: { own: 0, our: 5 },
+    extras: { seo: 10, ads: 30, analytics: 20, social: 50 },
+  };
+  const scrapeFee = designChoice === 'airbnb' ? pricing.scrape : 0;
+
+  const fontOptions = [
+    'Playfair Display',
+    'Cormorant Garamond',
+    'DM Serif Display',
+    'Fraunces',
+    'Space Grotesk',
+    'Josefin Sans',
+    'Archivo Black',
+    'Abril Fatface',
+    'Righteous',
+    'Pacifico',
+  ];
+  // First month free for Starter plan
+  const TRIAL_CREDIT = planChoice === 'starter' ? (pricing.plans.starter || 0) : 0;
+
+  const monthlyTotal = (pricing.plans[planChoice as keyof typeof pricing.plans] || 0)
+    + (pricing.hosting[hostingChoice as keyof typeof pricing.hosting] || 0)
+    + (extras.seo ? pricing.extras.seo : 0)
+    + (extras.ads ? pricing.extras.ads : 0)
+    + (extras.analytics ? pricing.extras.analytics : 0)
+    + (extras.social ? pricing.extras.social : 0);
+
+  // Amount shown in banner (after trial credit for Starter)
+  const displayedTotal = scrapeFee + Math.max(0, monthlyTotal - TRIAL_CREDIT);
+  const hasPlan = !!planChoice;
+  const hasScrape = designChoice === 'airbnb';
 
   // Airbnb scrape state
   const [airbnbUrl, setAirbnbUrl] = useState('');
@@ -47,9 +195,19 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   const [showDebug, setShowDebug] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [brandColor, setBrandColor] = useState('#C47756');
+  const [fontAccent, setFontAccent] = useState(
+    typeof window !== 'undefined' ? localStorage.getItem('site-font-accent') || 'Playfair Display' : 'Playfair Display'
+  );
   const [manualImages, setManualImages] = useState<string[]>([]);
   const [manualHeroImage, setManualHeroImage] = useState('');
   const [manualBase64Images, setManualBase64Images] = useState<string[]>([]);
+
+  // Apply saved font accent on mount
+  useEffect(() => {
+    document.querySelectorAll('h1').forEach(el => {
+      (el as HTMLElement).style.fontFamily = `'${fontAccent}', serif`;
+    });
+  }, []);
 
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -159,7 +317,23 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     onSiteNameChange(display);
   }, [websiteName, onSiteNameChange]);
 
-  // Sync name to header (immediate) and template (on blur — no debounce, no setTimeout)
+  // Sync name to header (immediate) and template (on change — real-time)
+  const handleNameChange = (val: string) => {
+    setWebsiteName(val.slice(0, 20));
+    if (onSiteNameChange) {
+      const trimmed = val.trim();
+      onSiteNameChange(trimmed.length > 0 ? '@' + trimmed.slice(0, 20) : '@surfhousebaja');
+    }
+    if (onImported) {
+      onImported({ title: val.trim() || 'surfhousebaja', description: websiteDesc });
+    }
+  };
+  const handleDescChange = (val: string) => {
+    setWebsiteDesc(val);
+    if (onImported) {
+      onImported({ title: websiteName.trim() || 'surfhousebaja', description: val });
+    }
+  };
   const handleNameBlur = () => {
     if (onSiteNameChange) {
       const trimmed = websiteName.trim();
@@ -225,7 +399,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     }
   };
 
-  const handleAirbnbScrape = async () => {
+  const handleAirbnbScrape = async (_e?: React.MouseEvent) => {
     if (!airbnbUrl) { setImportError('Please enter an Airbnb URL'); return; }
     setIsImporting(true);
     setImportError('');
@@ -262,16 +436,67 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     }
   };
 
-  const handlePublish = async () => {
-    await saveToSupabase();
-    if (onComplete) {
-      onComplete({
-        email, bookingsEmail, adminRequest, bankChoice, designChoice,
-        websiteName, websiteDesc, hostingChoice, planChoice, extras,
-        scrapedData
-      });
+  const handlePublish = async (_e?: React.MouseEvent) => {
+    if (!email || !email.includes('@')) {
+      setStripeError('Please enter your email address first.');
+      return;
     }
-    handleClose();
+    if (!planChoice) {
+      setStripeError('Please select a subscription plan first.');
+      return;
+    }
+    setStripeError('');
+    
+    // Create payment intent on your backend and get clientSecret
+    // Replace with your actual endpoint that calls Stripe API
+    let clientSecret = '';
+    try {
+      const res = await fetch('http://localhost:3099/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Math.round(monthlyTotal * 100),
+          currency: 'usd',
+        }),
+      });
+      const data = await res.json();
+      clientSecret = data.clientSecret;
+    } catch (e) {
+      console.error('Payment intent error:', e);
+      setStripeError('Could not connect to payment system. Please try again.');
+      return;
+    }
+
+    if (!clientSecret) {
+      setStripeError('Payment setup failed. Please try again.');
+      return;
+    }
+
+    // Confirm payment client-side
+    const stripeInst = await stripePromise;
+    if (!stripeInst) {
+      setStripeError('Stripe failed to load. Please refresh and try again.');
+      return;
+    }
+    const { error } = await stripeInst.confirmPayment({
+      clientSecret,
+      confirmParams: { return_url: window.location.origin + '?published=true' },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      setStripeError(error.message || 'Payment failed. Please try again.');
+    } else {
+      await saveToSupabase();
+      if (onComplete) {
+        onComplete({
+          email, bookingsEmail, adminRequest, bankChoice, designChoice,
+          websiteName, websiteDesc, hostingChoice, planChoice, extras,
+          scrapedData
+        });
+      }
+      handleClose();
+    }
   };
 
   // Debug toggle - press D on keyboard
@@ -302,9 +527,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
             <h1 className="h1 popup-mt">Sign Up</h1>
             <h3 className="h3">Create your new sites admin account.</h3>
             <h4 className="h4">Email</h4>
-            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+            <input type="email" placeholder="Email" className="editmode" value={email} onChange={e => setEmail(e.target.value)} />
             <h4 className="h4">Password</h4>
-            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+            <input type="password" placeholder="Password" className="editmode" value={password} onChange={e => setPassword(e.target.value)} />
             <ul className="popup-checkbox-list">
               <li>
                 <input type="checkbox" id="1-1" checked={adminRequest} onChange={e => setAdminRequest(e.target.checked)} />
@@ -313,7 +538,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
             </ul>
             <p className="popup-note">Enter the email address you would like your booking notifications to be sent.</p>
             <h4 className="h4">Bookings email</h4>
-            <input type="email" placeholder="Bookings email" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
+            <input type="email" placeholder="Bookings email" className="editmode" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
             <br />
             <button className="btn">Create Admin Account</button>
             <br />
@@ -323,9 +548,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
             {/* Sign In */}
             <h1 className="h1 popup-mt">Sign In</h1>
             <h4 className="h4">Email</h4>
-            <input type="email" placeholder="Email" />
+            <input type="email" placeholder="Email" className="editmode" />
             <h4 className="h4">Password</h4>
-            <input type="password" placeholder="Password" />
+            <input type="password" placeholder="Password" className="editmode" />
             <br />
             <button className="btn">Sign In</button>
             <br /><br /><hr />
@@ -415,7 +640,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
                     {manualImages.map((url, i) => (
                       <div key={url} style={{ position: 'relative', width: '72px', height: '72px', borderRadius: '8px', overflow: 'hidden', border: manualHeroImage === url ? '2px solid var(--brand)' : '2px solid transparent', cursor: 'pointer' }}
-                           onClick={() => {
+                           onClick={(e) => { e.stopPropagation();
                              setManualHeroImage(url);
                              if (onImported) {
                                const heroIdx = manualImages.indexOf(url);
@@ -484,12 +709,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
                 <input
                   type="text"
                   placeholder="https://www.airbnb.com/rooms/123456789"
+                  className="editmode"
                   value={airbnbUrl}
                   onChange={e => setAirbnbUrl(e.target.value)}
                 />
                 <button
                   className="btn"
-                  onClick={handleAirbnbScrape}
+                  onClick={(e) => { e.stopPropagation(); handleAirbnbScrape(e); }}
                   disabled={isImporting}
                 >
                   {isImporting ? `Importing... (${countdown}s)` : 'Get data'}
@@ -523,8 +749,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
               </div>
             )}
 
-            <p className="popup-note popup-top">Choose your brand color to highlight buttons and call out text.</p>
-            <button className="btn" onClick={() => setShowColorPicker(!showColorPicker)} style={{ backgroundColor: showColorPicker ? "var(--brand-hover)" : "var(--brand)" }}>
+            <p className="popup-note popup-top">Accent/Brand color for buttons and highlights.</p>
+            <button className="btn" onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker); }} style={{ backgroundColor: showColorPicker ? "var(--brand-hover)" : "var(--brand)" }}>
     {showColorPicker ? "Close color picker" : "Launch color picker"}
   </button>
   {showColorPicker && (
@@ -533,7 +759,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         {['#C47756','#2563eb','#16a34a','#9333ea','#dc2626','#0891b2','#d97706','#374151','#ffffff','#111111'].map(hex => (
           <button
             key={hex}
-            onClick={() => {
+            onClick={(e) => { e.stopPropagation();
               setBrandColor(hex);
               document.documentElement.style.setProperty('--brand', hex);
               const hover = adjustBrightness(hex, -20);
@@ -570,14 +796,40 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     </div>
   )}
 
+            {/* Font accent selector */}
+            <div className="popup-font-section">
+              <h3 className="h3 popup-mt">Font accent</h3>
+              <p className="popup-note">Select your font choice for headings.</p>
+              <FontDropdown
+                value={fontAccent}
+                options={fontOptions}
+                onChange={font => {
+                  setFontAccent(font);
+                  localStorage.setItem('site-font-accent', font);
+                  document.documentElement.style.setProperty('--font-accent', `'${font}', serif`);
+                  document.querySelectorAll('h1').forEach(el => {
+                    (el as HTMLElement).style.fontFamily = `'${font}', serif`;
+                  });
+                }}
+                previewText="The quick brown fox"
+                triggerClassName="popup-font-dropdown-trigger"
+              />
+            </div>
+
             <hr />
 
             {/* Name property */}
             <h1 className="h1">3. Name your property</h1>
             <h4 className="h4">Website name</h4>
-            <input type="text" placeholder="Website name (max 20 chars)" value={websiteName} onChange={e => setWebsiteName(e.target.value.slice(0, 20))} onBlur={handleNameBlur} />
+            <input type="text" placeholder="Website name (max 20 chars)" className="editmode" value={websiteName} onChange={e => handleNameChange(e.target.value)} onBlur={handleNameBlur} />
             <h4 className="h4">Website description</h4>
-            <textarea rows="2" cols="50" placeholder="Website description" className="popup-textarea" value={websiteDesc} onChange={e => setWebsiteDesc(e.target.value)} onBlur={handleDescBlur} />
+            <textarea
+              placeholder="Website description"
+              className="popup-textarea editmode"
+              value={websiteDesc}
+              onChange={e => handleDescChange(e.target.value)}
+              onBlur={handleDescBlur}
+            />
             <p className="popup-note popup-top">Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
             <button className="btn">Launch Name Cheap</button>
 
@@ -641,7 +893,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
             {/* Payment */}
             <h1 className="h1">Payment Calculated</h1>
             <p className="popup-note">Input your card details with our 3rd‑party, secure payment partner.</p>
-            <button className="btn">Open payment gateway</button>
+            <button className="btn" onClick={openStripeGateway}>Open payment gateway</button>
             <br /><br /><hr />
 
             {/* Publish */}
@@ -656,11 +908,100 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
             <br />
             <button
               className="h2 publish-btn"
-              onClick={handlePublish}
+              onClick={(e) => { e.stopPropagation(); handlePublish(e); }}
               disabled={!agreed}
             >
               PUBLISH MY SITE
             </button>
+          </div>
+          
+          {/* Fixed bottom total banner */}
+          
+      {/* Stripe Payment Modal */}
+      {showStripeModal && (
+        <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); }}>
+          <div className="stripe-modal-box" onClick={e => e.stopPropagation()}>
+            <div className="stripe-modal-header">
+              <h2 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h2>
+              <button onClick={() => { setShowStripeModal(false); setStripeError(''); }} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+            </div>
+
+            {/* Payment method icons */}
+            <div className="stripe-pay-icons">
+              {(['card', 'paypal', 'venmo'] as const).map(method => (
+                <button
+                  key={method}
+                  className={"stripe-pay-btn" + (stripePayMethod === method ? ' active' : '')}
+                  onClick={() => setStripePayMethod(method)}
+                >
+                  {method === 'card' && (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <rect x="2" y="5" width="20" height="14" rx="2"/>
+                      <path d="M2 10h20"/>
+                    </svg>
+                  )}
+                  {method === 'paypal' && (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M7.4 4.5C9 4.5 10.3 5.2 10.7 7h1.5c-.5-2.4-2.7-4-5.2-4-3.4 0-5.6 2.2-5.6 5.4 0 3.2 2.5 4.3 5.9 5.2 2.8.7 4.3 1.4 4.3 3.3 0 2.1-1.9 3.1-4.6 3.1-3.1 0-5.2-1.5-5.3-4.5H1.8c.1 3.7 2.6 6.2 5.9 6.2 3.6 0 5.9-2.3 5.9-5.7 0-3-1.9-4.3-5.9-5.2-2.6-.6-4.1-1.3-4.1-3.1 0-1.2 1.2-2.2 3.4-2.2z"/>
+                    </svg>
+                  )}
+                  {method === 'venmo' && (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.18 6.54c-.7-1.27-2.02-1.91-3.6-1.91-2.2 0-3.8 1.37-4.08 3.2-.32 1.96.82 3.68 2.5 4.78l1.26.82c1.24.81 1.96 1.84 1.96 3.16 0 2.1-1.7 3.67-4.18 3.67-1.74 0-3.14-.67-3.88-1.82l-1.18 1.36c1.04 1.42 2.48 2.18 4.5 2.18 2.84 0 4.98-1.86 5.14-4.48.1-1.3-.46-2.5-1.54-3.4l-1.28-.84c-.98-.64-1.7-1.44-1.7-2.58 0-.92.66-1.58 1.58-1.58.72 0 1.24.32 1.24.92 0 .48-.34.86-.92.86-.24 0-.44-.12-.44-.42 0-.34.26-.66.74-1.16.7-.7 1.34-1.7 1.7-2.84.38.76.58 1.6.58 2.5 0 .8-.2 1.58-.6 2.3.06.26.1.54.1.84 0 .82-.26 1.62-.74 2.34.26.14.56.22.88.22.92 0 1.64-.7 1.64-1.58 0-.44-.18-.84-.46-1.12z"/>
+                    </svg>
+                  )}
+                  <span>{method === 'card' ? 'Card' : method.charAt(0).toUpperCase() + method.slice(1)}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Compact total */}
+            <div className="stripe-total-compact">
+              <span>{stripeIsSetup ? 'Card saved for future billing' : 'Total due today'}</span>
+              <span>${displayedTotal === 0 ? 'Free today' : '$' + displayedTotal}</span>
+            </div>
+
+            {stripeClientSecret ? (
+              <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#c47756' } } }}>
+                <CheckoutForm
+                  clientSecret={stripeClientSecret}
+                  onSuccess={async () => {
+                    setShowStripeModal(false);
+                    setStripeClientSecret('');
+                    await saveToSupabase();
+                    if (onComplete) {
+                      onComplete({ email, bookingsEmail, adminRequest, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
+                    }
+                    handleClose();
+                  }}
+                  onError={msg => setStripeError(msg)}
+                  monthlyTotal={monthlyTotal}
+                />
+              </Elements>
+            ) : (
+              <div style={{ textAlign: 'center', color: '#fff', padding: '24px 0', fontSize: '0.9rem' }}>Loading...</div>
+            )}
+            {stripeError && <div className="popup-stripe-error" style={{ textAlign: 'center', marginTop: 8 }}>{stripeError}</div>}
+          </div>
+        </div>
+      )}
+<div className="popup-total-banner">
+            <div className="popup-total-left">
+              <div className="popup-total-label">Total due today</div>
+              <div className="popup-total-subline">
+                {hasScrape && <span className="popup-total-tag">+${scrapeFee} Airbnb scrape</span>}
+                {hasScrape && hasPlan && <span className="popup-total-sep"> · </span>}
+                {!hasPlan && <span className="popup-total-sep"> · Select a plan</span>}
+                {hasPlan && `+$${monthlyTotal}/mo subscription`}
+              </div>
+            </div>
+            <div className="popup-total-right">
+              <div className="popup-total-amount">${displayedTotal}</div>
+              <div className="popup-total-period">
+                {monthlyTotal > 0 && TRIAL_CREDIT > 0 ? `+$${monthlyTotal}/mo after free month` : (monthlyTotal > 0 ? `+$${monthlyTotal}/mo` : (hasScrape ? 'due today' : ''))}
+              </div>
+            </div>
+            {stripeError && <div className="popup-stripe-error">{stripeError}</div>}
           </div>
         </div>
       )}
@@ -706,6 +1047,26 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
                 ))}
               </tbody>
             </table>
+          </div>
+          
+          {/* Fixed bottom total banner */}
+          <div className="popup-total-banner">
+            <div className="popup-total-left">
+              <div className="popup-total-label">Total due today</div>
+              <div className="popup-total-subline">
+                {hasScrape && <span className="popup-total-tag">+${scrapeFee} Airbnb scrape</span>}
+                {hasScrape && hasPlan && <span className="popup-total-sep"> · </span>}
+                {!hasPlan && <span className="popup-total-sep"> · Select a plan</span>}
+                {hasPlan && `+$${monthlyTotal}/mo subscription`}
+              </div>
+            </div>
+            <div className="popup-total-right">
+              <div className="popup-total-amount">${displayedTotal}</div>
+              <div className="popup-total-period">
+                {monthlyTotal > 0 && TRIAL_CREDIT > 0 ? `+$${monthlyTotal}/mo after free month` : (monthlyTotal > 0 ? `+$${monthlyTotal}/mo` : (hasScrape ? 'due today' : ''))}
+              </div>
+            </div>
+            {stripeError && <div className="popup-stripe-error">{stripeError}</div>}
           </div>
         </div>
       )}

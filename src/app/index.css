@@ -83,12 +83,23 @@ h2.text-white {
 
 /* ========== Hero & Title Styles ========== */
 .hero-title {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-accent, 'Playfair Display'), serif;
   font-size: clamp(1.5rem, 2.8vw, 1.875rem);
   font-weight: 400;
   text-transform: uppercase;
   margin-bottom: 10px;
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* Booking calendar title on white bg */
+.hero-title-edit {
+  color: #000;
+  text-transform: uppercase;
+}
+
+/* Price display in hero */
+.hero-title-price {
+  font-family: var(--font-accent, 'Playfair Display'), serif;
 }
 
 .hero-subtitle {
@@ -525,3 +536,8 @@ h2.text-white {
   padding-left: 0 !important;
 }
 
+
+/* Font accent — applied to all h1 site-wide */
+h1 {
+  font-family: var(--font-accent, 'Playfair Display', serif);
+}

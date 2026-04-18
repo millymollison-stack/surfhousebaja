@@ -49,7 +49,8 @@ export function ImageGallery({
   useEffect(() => {
     if (property?.property_title) setPropertyTitle(property.property_title);
     if (property?.property_intro) setPropertyIntro(property.property_intro);
-  }, [property?.property_title, property?.property_intro]);
+    if (property?.price_per_night) setEditPrice(property.price_per_night);
+  }, [property?.property_title, property?.property_intro, property?.price_per_night]);
 
   useEffect(() => {
     if (registerSaveHandler) {
@@ -257,35 +258,18 @@ export function ImageGallery({
                   value={propertyTitle}
                   onChange={(e) => setPropertyTitle(e.target.value)}
                   onBlur={handlePropertyTextSave}
-                  className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)] px-2 py-1"
-                  placeholder="Enter property title..."
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.3)',
-                    borderRadius: '0.5rem',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    fontFamily: "'Inter', sans-serif",
-                    width: '70%',
-                  }}
+                  className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)] px-2 py-1 edit-title-input"
                 />
-                <div className="flex items-baseline">
+                <div className="flex items-baseline justify-start">
                   <span className="text-2xl md:text-3xl font-bold text-white">$</span>
                   <input
                     type="number"
                     value={editPrice}
                     onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
                     onBlur={handlePropertyStatsSave}
-                    className="w-24 text-2xl md:text-3xl font-bold text-white focus:outline-none"
-                    style={{ 
-                      background: 'rgba(255, 255, 255, 0.3)',
-                      borderRadius: '0.5rem',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      padding: '4px 8px',
-                    }}
+                    className="w-24 text-2xl md:text-3xl font-bold text-white focus:outline-none edit-price-input"
                     onFocus={(e) => {
-                      e.target.style.border = '3px solid #8B4513';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.border = '1px solid var(--brand)';
                     }}
                     min="0"
                   />
@@ -296,9 +280,9 @@ export function ImageGallery({
               <div className="flex items-baseline justify-between w-full">
                 <h1 className="hero-title text-white">{propertyTitle}</h1>
                 <div className="flex items-baseline">
-                  <span className="text-2xl md:text-3xl font-semibold text-white">
-                    ${property.price_per_night}
-                  </span>
+                  <h1 className="hero-title-price text-2xl md:text-3xl font-semibold text-white">
+                    ${editPrice}
+                  </h1>
                   <span className="text-white/80 text-base font-normal">/night</span>
                 </div>
               </div>
@@ -310,15 +294,9 @@ export function ImageGallery({
                 value={propertyIntro}
                 onChange={(e) => setPropertyIntro(e.target.value)}
                 onBlur={handlePropertyTextSave}
-                className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] edit-intro-textarea"
                 rows={2}
-                placeholder="Enter property introduction..."
-                style={{
-                  background: 'rgba(255, 255, 255, 0.3)',
-                  borderRadius: '0.5rem',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  fontFamily: "'Inter', sans-serif",
-                }}
+                placeholder="Enter property introduction..." 
               />
             ) : (
               <p className="whitespace-pre-line hero-subtitle">{propertyIntro}</p>
@@ -335,18 +313,9 @@ export function ImageGallery({
                       value={editBedrooms}
                       onChange={(e) => setEditBedrooms(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
-                      style={{ 
-                        borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        background: 'rgba(255,255,255,0.2)',
-                        padding: '1px 4px'
-                      }}
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm edit-stat-input"
                       onFocus={(e) => {
-                        e.target.style.border = '2px solid #8B4513';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
+                        e.target.style.border = '2px solid var(--brand)';
                       }}
                       min="0"
                     />
@@ -359,18 +328,9 @@ export function ImageGallery({
                       value={editBathrooms}
                       onChange={(e) => setEditBathrooms(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
-                      style={{ 
-                        borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        background: 'rgba(255,255,255,0.2)',
-                        padding: '1px 4px'
-                      }}
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm edit-stat-input"
                       onFocus={(e) => {
-                        e.target.style.border = '2px solid #8B4513';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
+                        e.target.style.border = '2px solid var(--brand)';
                       }}
                       min="0"
                     />
@@ -383,18 +343,9 @@ export function ImageGallery({
                       value={editMaxGuests}
                       onChange={(e) => setEditMaxGuests(parseInt(e.target.value) || 0)}
                       onBlur={handlePropertyStatsSave}
-                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm"
-                      style={{ 
-                        borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        background: 'rgba(255,255,255,0.2)',
-                        padding: '1px 4px'
-                      }}
+                      className="w-8 sm:w-10 bg-transparent text-white focus:outline-none text-xs sm:text-sm edit-stat-input"
                       onFocus={(e) => {
-                        e.target.style.border = '2px solid #8B4513';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.border = '1px solid rgba(255,255,255,0.3)';
+                        e.target.style.border = '2px solid var(--brand)';
                       }}
                       min="0"
                     />
@@ -484,10 +435,9 @@ export function ImageGallery({
       {/* Image management grid for admins */}
       {isAdmin && isEditing && (
         <div className="mt-8">
-          <div className="flex justify-end mb-4" style={{ marginRight: '20px' }}>
+          <div className="flex justify-end mb-4 gallery-upload-wrap">
             <label 
-              className="inline-flex items-center bg-[var(--brand)] text-white rounded-lg hover:bg-[var(--brand-hover)] cursor-pointer shadow-lg"
-              style={{ padding: '8px 24px' }}
+              className="inline-flex items-center bg-[var(--brand)] text-white rounded-lg hover:bg-[var(--brand-hover)] cursor-pointer shadow-lg gallery-upload-btn"
             >
               <input
                 type="file"

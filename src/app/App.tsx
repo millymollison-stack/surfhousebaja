@@ -8,6 +8,7 @@ import { Signup } from '../pages/Signup';
 import { AdminDashboard } from '../pages/AdminDashboard';
 import { PropertyAdmin } from '../pages/PropertyAdmin';
 import { EmailConfirmation } from '../pages/EmailConfirmation';
+import { loadFontAccent } from '../lib/fontAccent';
 import { Onboarding } from '../pages/Onboarding';
 import PaymentPage from '../pages/PaymentPage';
 
@@ -55,6 +56,7 @@ function AppContent() {
   
   useEffect(() => {
     initialize();
+    loadFontAccent();
   }, [initialize]);
 
   // Handle auth redirects from email links

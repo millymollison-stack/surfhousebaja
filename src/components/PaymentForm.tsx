@@ -359,7 +359,7 @@ export function PaymentForm({
         <button
           onClick={createPaymentIntent}
           disabled={loading || !!error}
-          className="w-full flex justify-center items-center space-x-2 px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#C47756] hover:bg-[#B5684A] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] disabled:bg-[#D4A393] disabled:cursor-not-allowed"
+          className="w-full flex justify-center items-center space-x-2 px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] disabled:bg-[var(--brand-disabled)] disabled:cursor-not-allowed"
         >
           {loading ? (
             <>
@@ -407,7 +407,7 @@ export function PaymentForm({
           {!elementReady && !error && (
             <div className="flex items-center justify-center min-h-[200px] -mt-[200px]">
               <div className="flex flex-col items-center space-y-2">
-                <Loader className="h-8 w-8 animate-spin text-[#C47756]" />
+                <Loader className="h-8 w-8 animate-spin text-[var(--brand)]" />
                 <p className="text-sm text-gray-600">Loading payment form...</p>
               </div>
             </div>
@@ -424,7 +424,7 @@ export function PaymentForm({
               <button
                 type="button"
                 onClick={retryLoadingPaymentForm}
-                className="mt-3 text-sm text-[#C47756] hover:text-[#B5684A] underline self-start ml-8"
+                className="mt-3 text-sm text-[var(--brand)] hover:text-[var(--brand-hover)] underline self-start ml-8"
               >
                 Try again
               </button>
@@ -446,7 +446,7 @@ export function PaymentForm({
         <button
           type="submit"
           disabled={!stripe || !elements || !elementReady || paymentStatus === 'processing' || !!error}
-          className="w-full flex justify-center items-center space-x-2 px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#C47756] hover:bg-[#B5684A] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] disabled:bg-[#D4A393] disabled:cursor-not-allowed"
+          className="w-full flex justify-center items-center space-x-2 px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] disabled:bg-[var(--brand-disabled)] disabled:cursor-not-allowed"
         >
           {paymentStatus === 'processing' ? (
             <>

@@ -4,6 +4,7 @@ import { Home, LogIn, Share, User } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import { UserMenu } from './UserMenu';
 import ColorPicker from './ColorPicker';
+import { applyFontAccent, loadFontAccent } from '../lib/fontAccent';
 
 export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges, siteName, onSiteNameChange }: { 
   children: React.ReactNode; 
@@ -113,8 +114,8 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
             </p>
           </div>
         )}
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 footer-content ${isEditing ?? false ? '' : 'pt-3'}`} style={{ height: isEditing ?? false ? '40px' : '60px' }}>
-          <p className="text-center text-gray-500 text-sm" style={{ paddingTop: '10px' }}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 footer-content ${isEditing ?? false ? '' : 'pt-3'} footer-edit-container`}>
+          <p className="text-center text-gray-500 text-sm footer-edit-text">
             © {new Date().getFullYear()} @surfhousebaja. All rights reserved.
           </p>
         </div>

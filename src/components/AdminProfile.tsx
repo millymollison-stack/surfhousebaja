@@ -80,7 +80,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
           <h2 className="text-[1.65rem] text-gray-900">Property Management</h2>
           <button
             onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center space-x-2 px-4 py-2 rounded-md bg-[#FDF2F8] text-[#C47756] hover:bg-[#FCE7F3]"
+            className="flex items-center space-x-2 px-4 py-2 rounded-md bg-[#FDF2F8] text-[var(--brand)] hover:bg-[#FCE7F3]"
           >
             {isEditing ? (
               <>
@@ -106,7 +106,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                 value={formData.title}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
               />
             </div>
 
@@ -118,7 +118,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
               />
             </div>
 
@@ -131,7 +131,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                   value={formData.price_per_night}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
                 />
               </div>
 
@@ -143,7 +143,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                   value={formData.bedrooms}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
                 />
               </div>
 
@@ -155,7 +155,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                   value={formData.bathrooms}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
                 />
               </div>
             </div>
@@ -168,7 +168,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#C47756] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
               />
             </div>
           </div>
@@ -185,7 +185,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-[#C47756] text-white rounded-md hover:bg-[#B5684A] disabled:bg-[#D4A393]"
+                className="px-4 py-2 bg-[var(--brand)] text-white rounded-md hover:bg-[var(--brand-hover)] disabled:bg-[var(--brand-disabled)]"
                 disabled={loading}
               >
                 {loading ? 'Saving...' : 'Save Changes'}
@@ -215,7 +215,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
               </div>
             ))}
             {isEditing && (
-              <label className="relative block w-full h-48 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#C47756] transition-colors cursor-pointer">
+              <label className="relative block w-full h-48 border-2 border-dashed border-gray-300 rounded-lg hover:border-[var(--brand)] transition-colors cursor-pointer">
                 <input
                   type="file"
                   accept="image/*"
