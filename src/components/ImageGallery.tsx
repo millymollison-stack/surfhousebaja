@@ -361,15 +361,15 @@ export function ImageGallery({
                 </>
               ) : (
                 <>
-                  <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                  <span className="lozenge">
                     <Bed className="w-4 h-4 mr-2" />
                     {property.bedrooms} Beds
                   </span>
-                  <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                  <span className="lozenge">
                     <Bath className="w-4 h-4 mr-2" />
                     {property.bathrooms} Bath
                   </span>
-                  <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+                  <span className="lozenge">
                     <Users className="w-4 h-4 mr-2" />
                     {property.max_guests} Persons
                   </span>

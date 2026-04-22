@@ -103,7 +103,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full">
           <div className="bg-white px-3 pt-4 pb-3 sm:px-6 sm:pt-5 sm:pb-4">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-[1.375rem] sm:text-[1.65rem] text-gray-900">Location</h2>
+              <h1 style={{ color: "black" }}>Location</h1>
               <div className="flex items-center space-x-1 sm:space-x-2">
                 {isAdmin && (
                   <button

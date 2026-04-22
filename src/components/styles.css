@@ -266,7 +266,8 @@
  input[type="checkbox"],
  input[type="radio"] {
  position: relative;
- top: 3px;
+ top: -3px;
+border-radius: 4px;
  }
 
  .input-group {
@@ -356,7 +357,7 @@
 
  hr {
  color: #fff;
- opacity: 20%;
+ opacity: 60%;
  margin: 0px 0px 30px 0px;
  width: 100%;
  }

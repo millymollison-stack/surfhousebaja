@@ -24,6 +24,7 @@ export function FontDropdown({ value, options, onChange, triggerClassName }: Fon
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  // Apply font to h1 elements in the document (for popup preview)
   const applyFont = (font: string) => {
     document.documentElement.style.setProperty('--font-accent', `'${font}', serif`);
     document.querySelectorAll('h1').forEach(el => {
@@ -33,6 +34,16 @@ export function FontDropdown({ value, options, onChange, triggerClassName }: Fon
       (el as HTMLElement).style.fontFamily = `'${font}', serif`;
     });
   };
+
+  // Apply font to h1s on mount and whenever hovered font changes
+  useEffect(() => {
+    applyFont(hovered);
+  }, [hovered]);
+
+  // Also apply font immediately when popup first renders (value loaded from localStorage)
+  useEffect(() => {
+    applyFont(value);
+  }, [value]);
 
   const handleOpen = () => {
     if (triggerRef.current) setTriggerRect(triggerRef.current.getBoundingClientRect());
@@ -46,16 +57,16 @@ export function FontDropdown({ value, options, onChange, triggerClassName }: Fon
   };
 
   return (
-    <div ref={ref} className="relative" style={{width:'400px',boxSizing:'border-box'}}>
+    <div ref={ref} style={{ width: '100%', maxWidth: 400, boxSizing: 'border-box' }}>
       <button
         type="button"
         ref={triggerRef}
         onClick={(e) => { e.stopPropagation(); handleOpen(); }}
-        className={triggerClassName || "w-full flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border border-gray-200 shadow-sm bg-white hover:bg-gray-50 transition-colors"}
-        style={{ fontFamily: `'${hovered}', serif`, fontSize: '16px' }}
+        className={triggerClassName || "popup-font-dropdown-trigger"}
+        style={{ fontFamily: `'${hovered}', serif` }}
       >
         <span>{hovered}</span>
-        <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ marginLeft: "auto" }} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
       </button>
 
       {open && triggerRect && (

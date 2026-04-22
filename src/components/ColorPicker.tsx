@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom';
 import { useState, useRef, useEffect } from 'react';
 import { Palette, X, Check } from 'lucide-react';
-import { saveBrandColor } from '../lib/brandColor';
+import { saveBrandColor, loadBrandColor } from '../lib/brandColor';
 import { FONT_OPTIONS, saveFontAccent, loadFontAccent, applyFontAccent } from '../lib/fontAccent';
 import { FontDropdown } from './FontDropdown';
 
@@ -23,15 +23,29 @@ export default function ColorPicker({ isEditing }: { isEditing?: boolean }) {
   const [fontDropdownOpen, setFontDropdownOpen] = useState(false);
   const [fontDropdownRect, setFontDropdownRect] = useState<DOMRect | null>(null);
   const triggerRef = useRef(false);
-  const [customHex, setCustomHex] = useState('#C47756');
+  const [customHex, setCustomHex] = useState(() => {
+    try {
+      const raw = localStorage.getItem('site-brand-color');
+      if (raw) return JSON.parse(raw).brand || '#C47756';
+    } catch(e) {}
+    return '#C47756';
+  });
   const [fontAccent, setFontAccent] = useState(
     (typeof window !== 'undefined' && localStorage.getItem('site-font-accent')) || 'Playfair Display'
   );
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Load saved font accent on mount
+  // Load saved brand color on mount
   useEffect(() => {
-    console.log('[ColorPicker useEffect] firing');
+    loadBrandColor();
+    // Sync customHex state with the brand color that was loaded
+    try {
+      const raw = localStorage.getItem('site-brand-color');
+      if (raw) {
+        const { brand } = JSON.parse(raw);
+        if (brand) setCustomHex(brand);
+      }
+    } catch(e) {}
     loadFontAccent();
   }, []);
 

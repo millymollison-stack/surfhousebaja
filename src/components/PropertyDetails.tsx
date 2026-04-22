@@ -204,10 +204,21 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             {isEditing ? (
               renderEditableText('description', formData.description, 'textarea')
             ) : (
-              <p className="whitespace-pre-line hero-subtitle py-8">{property.description || formData.description}</p>
+              <p className="hero-subtitle">{property.description || formData.description}</p>
             )}
           </div>
         </div>
+      </div>
+
+      {/* Location Map trigger button */}
+      <div className="flex justify-end px-4 mt-2">
+        <button
+          onClick={() => setIsMapOpen(true)}
+          className="btn btn-row"
+        >
+          <MapPin className="h-4 w-4" />
+          View Location
+        </button>
       </div>
 
       {!isEditing && (
