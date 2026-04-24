@@ -32,7 +32,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'sans-serif', color: '#333' }}>
-          <h2>Something went wrong</h2>
+          <h1>Something went wrong</h1>
           <p style={{ color: '#666' }}>{this.state.error}</p>
           <button
             onClick={() => window.location.reload()}

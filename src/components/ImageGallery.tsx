@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './ImageGallery.css';
 import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users, Layers } from 'lucide-react';
 import { applyFontAccent } from '../lib/fontAccent';
 import type { PropertyImage, Property } from '../types';
@@ -259,7 +260,7 @@ export function ImageGallery({
           <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
             {/* Title - always show */}
             {isEditing && isAdmin ? (
-              <div className="flex items-baseline justify-between w-full">
+              <div className="titleandpricebox">
                 <input
                   type="text"
                   value={propertyTitle}
@@ -284,7 +285,7 @@ export function ImageGallery({
                 </div>
               </div>
             ) : (
-              <div className="flex items-baseline justify-between w-full">
+              <div className="titleandpricebox">
                 <h1 className="hero-title text-white">{propertyTitle}</h1>
                 <div className="flex items-baseline">
                   <h1 className="hero-title-price text-2xl md:text-3xl font-semibold text-white">
@@ -442,7 +443,7 @@ export function ImageGallery({
       {/* Image management grid for admins */}
       {isAdmin && isEditing && (
         <div className="mt-8">
-          <div className="flex justify-end mb-4 gallery-upload-wrap">
+          <div className="flex justify-center gallery-upload-wrap">
             <label 
               className="inline-flex items-center bg-[var(--brand)] text-white rounded-lg hover:bg-[var(--brand-hover)] cursor-pointer shadow-lg gallery-upload-btn"
             >
@@ -458,7 +459,7 @@ export function ImageGallery({
               Upload New Photo
             </label>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Manage Images</h3>
+          <h3 className="manage-images-heading">Manage Images</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {sortedImages.map((image) => (
               <div key={image.id} className="relative group">
@@ -467,7 +468,7 @@ export function ImageGallery({
                   alt="Property"
                   className="w-full h-32 object-cover"
                 />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
+                <div className="image-overlay-btns">
                   <button
                     onClick={() => setMainPhoto(image)}
                     className={`p-2 rounded-full ${

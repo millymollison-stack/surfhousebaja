@@ -1,4 +1,5 @@
 import React from 'react';
+import './Layout.css';
 import { Link } from 'react-router-dom';
 import { Home, LogIn, Share, User } from 'lucide-react';
 import { useAuth } from '../store/auth';
@@ -73,9 +74,9 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
                 ) : (
                   <button
                     onClick={() => onToggleEdit?.()}
-                    className="px-3 py-1.5 rounded text-sm font-medium transition-all bg-red-600 hover:bg-red-700 text-white"
+                    className="edit-btn"
                   >
-                    Edit Mode
+                    Edit
                   </button>
                 )}
               </>
@@ -108,14 +109,14 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
       <ColorPicker isEditing={isEditing} />
       <footer className="bg-gray-50 border-t">
         {isEditing ? null : (
-          <div className="fixed bottom-0 left-0 right-0 bg-red-600 text-white py-3 px-4 text-center z-40">
+          <div className="redbanner">
             <p className="text-base sm:text-lg font-medium">
               Book Direct, No Airbnb Fees, Chat with Host.
             </p>
           </div>
         )}
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 footer-content ${isEditing ?? false ? '' : 'pt-3'} footer-edit-container`}>
-          <p className="text-center text-gray-500 text-sm footer-edit-text">
+        <div className={`copyright-footer${isEditing ?? false ? '' : ' footer-pad-top'}`}>
+          <p className="copyright-text">
             © {new Date().getFullYear()} @surfhousebaja. All rights reserved.
           </p>
         </div>

@@ -4,6 +4,7 @@ import { Edit2, Save, X, MapPin } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import type { Property } from '../types';
 import 'leaflet/dist/leaflet.css';
+import './LocationMap.css';
 import L from 'leaflet';
 
 // Fix for default marker icon in Leaflet
@@ -108,7 +109,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                 {isAdmin && (
                   <button
                     onClick={() => setIsEditing(!isEditing)}
-                    className="flex items-center space-x-1 sm:space-x-2 px-2 py-2 sm:px-4 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="location-edit-btn"
                   >
                     {isEditing ? (
                       <>
@@ -252,11 +253,15 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
               </MapContainer>
             </div>
 
-            {!isEditing && property.address && (
-              <p className="flex items-center text-gray-600 mt-4">
-                <MapPin className="h-5 w-5 mr-2" />
-                {property.address}
-              </p>
+            {!isEditing && (property.local_area || property.address) && (
+              <div className="location-address-block">
+                {property.local_area && (
+                  <p className="location-area">{property.local_area}</p>
+                )}
+                {property.address && (
+                  <h3 className="location-address">{property.address}</h3>
+                )}
+              </div>
             )}
           </div>
         </div>

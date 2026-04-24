@@ -95,7 +95,7 @@ function CollapsibleSection({ title, content, isEditing, isAdmin, isOpen, onTogg
         onClick={onToggle}
         className="dropdown-header"
       >
-        <h1 className="text-lg font-medium text-white hero-title">{title}</h1>
+        <h1 className="hero-title text-white">{title}</h1>
         {isOpen ? <ChevronUp className="h-5 w-5 text-white" /> : <ChevronDown className="h-5 w-5 text-white" />}
       </button>
       
@@ -175,7 +175,7 @@ export function PropertyAmenities({ property, isEditing, onHasChanges, onUpdate 
       <div className="mt-5 relative amenities-content space-y-8 pb-8">
         {/* Amenities */}
         <div className="glass-card">
-          <h1 className="text-[1.65rem] text-white mb-6 hero-title">Amenities</h1>
+          <h1 className="hero-title text-white">Amenities</h1>
           
           {/* Edit mode: always show selector */}
           {isEditing && (

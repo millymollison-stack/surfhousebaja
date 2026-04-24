@@ -25,9 +25,9 @@ export function Login() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div>
-          <h2 className="text-center text-[2rem] md:text-[3.3rem] tracking-tight text-gray-900">
+          <h1 className="signin-heading">
             Sign in to your account
-          </h2>
+          </h1>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
             <Link to="/signup" className="font-medium text-[var(--brand)] hover:text-[var(--brand-hover)]">

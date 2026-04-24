@@ -34,17 +34,17 @@ function CollapsibleSection({ title, content, isEditing, onEdit, isAdmin, isOpen
   };
 
   return (
-    <div className="bg-white/20 backdrop-blur-sm border border-white/15 rounded overflow-hidden">
+    <div className="property-drop-down">
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between bg-white/10 hover:bg-white/20 transition-colors"
+        className="property-drop-down-btn"
       >
-        <h1 className="text-lg font-medium text-white hero-title">{title}</h1>
+        <h1 className="hero-title text-white">{title}</h1>
         {isOpen ? <ChevronUp className="h-5 w-5 text-white" /> : <ChevronDown className="h-5 w-5 text-white" />}
       </button>
       
       {isOpen && (
-        <div className="p-4">
+        <div className="property-drop-down-content">
           {isAdmin && !isEditingSection ? (
             <div className="flex justify-end mb-2">
               <button
@@ -211,26 +211,26 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
       </div>
 
       {/* Location Map trigger button */}
-      <div className="flex justify-end px-4 mt-2">
+      <div className="location-button-container">
         <button
           onClick={() => setIsMapOpen(true)}
-          className="btn btn-row"
+          className="view-location-btn"
         >
-          <MapPin className="h-4 w-4" />
+          <MapPin />
           View Location
         </button>
       </div>
 
       {!isEditing && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black p-4 flex items-center justify-between z-50">
-          <div className="flex items-center gap-2">
-            <span className="text-white font-medium text-sm">★★★★★</span>
-            <span className="text-white/70 text-xs">4.97</span>
-            <span className="text-white/70 text-xs">(128 reviews)</span>
+        <div className="book-now-banner">
+          <div className="book-now-rating">
+            <span>★★★★★</span>
+            <span>4.97</span>
+            <span>(128 reviews)</span>
           </div>
-          <button 
+          <button
             onClick={() => document.getElementById('calendar-section')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-6 py-2.5 bg-[var(--brand)] text-white rounded-md text-sm font-medium hover:bg-[var(--brand-hover)] transition-colors"
+            className="book-now-btn"
           >
             Book Now
           </button>

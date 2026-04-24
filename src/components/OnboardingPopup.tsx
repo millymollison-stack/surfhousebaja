@@ -64,10 +64,10 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup 
  };
 
  return (
- <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
- <div style={{ marginBottom: 16, color: '#fff', fontSize: '0.95rem' }}>
- <div style={{ marginBottom: 6 }}>Card details</div>
- <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 6, padding: '12px 8px' }}>
+ <form onSubmit={handleSubmit} className="stripe-checkout-form">
+ <div className="stripe-card-label">
+ <div className="stripe-card-title">Card details</div>
+ <div className="stripe-card-field">
  <PaymentElement options={{ layout: 'tabs' }} />
  </div>
  </div>
@@ -525,7 +525,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <p>Enter the email address you would like your booking notifications to be sent.</p>
  <h4>Bookings email</h4>
  <input type="email" placeholder="Bookings email" className="editmode" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
- <br />
  <button className="btn">Create Admin Account</button>
  <h3>Respond to the verification email now to get verified. Then sign into your website as the Admin.</h3>
  <br /><hr />
@@ -536,13 +535,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <input type="email" placeholder="Email" className="editmode" />
  <h4>Password</h4>
  <input type="password" placeholder="Password" className="editmode" />
- <br />
  <button className="btn">Sign In</button>
  <br /><hr />
 
  {/* Banking Details */}
  <h1>1. Banking Details</h1>
- <p>Now you are signed in, lets set up the important stuff. How do you want to get paid?</p>
+ <p>How do you want to get paid?</p>
  <ul>
  <li>
  <input type="radio" name="bank" id="2-1" checked={bankChoice === 'bank'} onChange={() => setBankChoice('bank')} />
@@ -572,7 +570,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </ul>
  {designChoice === 'manual' && (
  <div className="popup-airbnb-section">
- <h4>Upload property photos</h4>
+ <p>Upload property photos</p>
  <h3>Add photos from your phone or computer. The first photo becomes the hero image.</h3>
  <label htmlFor="manual-image-upload" className="btn" style={{ display: 'inline-block', cursor: 'pointer' }}>
  Choose photos
@@ -734,14 +732,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  )}
 
- <h3>Add your Brand color to your buttons.</h3>
+<br />
+ <p>Add your Brand color to your buttons.</p>
  <button className="btn" onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker); }} style={{ backgroundColor: showColorPicker ? "var(--brand-hover)" : "var(--brand)" }}>
  {showColorPicker ? "Close color picker" : "Launch color picker"}
  </button>
  {showColorPicker && (
  <div className="popup-color-picker">
  <div className="popup-color-grid">
- {['#C47756','#2563eb','#16a34a','#9333ea','#dc2626','#0891b2','#d97706','#374151','#ffffff','#111111'].map(hex => (
+ {['#E63946','#F77F00','#FFC300','#0096C7','#7B2D8E','#00B4D8','#FF6B35','#FF4757','#E84393','#1DD1A1','#00CEC9','#CCFF00'].map(hex => (
  <button
  key={hex}
  onClick={(e) => { e.stopPropagation();
@@ -783,7 +782,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Font accent selector */}
  <div className="popup-font-section">
- <h3>Choose your font for headings.</h3>
+ <p>Choose your font for headings.</p>
  <FontDropdown
  value={fontAccent}
  options={fontOptions}
@@ -816,6 +815,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  />
  <p>Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
  <button className="btn">Launch Name Cheap</button>
+<br />
 
  <hr />
 
@@ -842,43 +842,43 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </li>
  <li>
  <input type="radio" name="plan" id="5-2" checked={planChoice === 'pro'} onChange={() => setPlanChoice('pro')} />
- <label htmlFor="5-2">Super Host - $40 per month</label>
+ <label htmlFor="5-2">Super Host - $40 p/m</label>
  </li>
  <li>
  <input type="radio" name="plan" id="5-3" checked={planChoice === 'agency'} onChange={() => setPlanChoice('agency')} />
- <label htmlFor="5-3">Manager - $150 per month</label>
+ <label htmlFor="5-3">Manager - $150 p/m</label>
  </li>
  </ul>
  <br /><hr />
 
  {/* Extras */}
  <h1>6. Optional extras</h1>
- <p>Select these options now and get a 25% discount. You will not have another chance to sign up for these services.</p>
+ <p>Select which services you are interested in getting.</p>
  <ul>
  <li>
  <input type="checkbox" id="6-1" checked={extras.seo} onChange={e => setExtras({...extras, seo: e.target.checked})} />
- <label htmlFor="6-1">AI SEO - $10 per month</label>
+ <label htmlFor="6-1">AI SEO - $10 p/m</label>
  </li>
  <li>
  <input type="checkbox" id="6-2" checked={extras.ads} onChange={e => setExtras({...extras, ads: e.target.checked})} />
- <label htmlFor="6-2">Ads &amp; Marketing - $30 per month</label>
+ <label htmlFor="6-2">Ads &amp; Marketing - $30 p/m</label>
  </li>
  <li>
  <input type="checkbox" id="6-3" checked={extras.analytics} onChange={e => setExtras({...extras, analytics: e.target.checked})} />
- <label htmlFor="6-3">Analytics - $20 per month</label>
+ <label htmlFor="6-3">Analytics - $20 p/m</label>
  </li>
  <li>
  <input type="checkbox" id="6-4" checked={extras.social} onChange={e => setExtras({...extras, social: e.target.checked})} />
- <label htmlFor="6-4">Social Media Marketing - $50 per month</label>
+ <label htmlFor="6-4">Social Media Marketing - $50 p/m</label>
  </li>
  </ul>
  <br /><hr />
 
  {/* Payment */}
  <h1>Payment Calculated</h1>
- <h3>Input your card details with our 3rd‑party, secure payment partner.</h3>
+ <p>Input your card details with our 3rd‑party, secure payment partner.</p>
  <button className="btn" onClick={openStripeGateway}>Setup payment</button>
- <br /><br /><hr />
+ <br /><hr />
 
  {/* Publish */}
  <h1>7. Publish your site</h1>
@@ -906,8 +906,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); }}>
  <div className="stripe-modal-box" onClick={e => e.stopPropagation()}>
  <div className="stripe-modal-header">
- <h2 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h2>
- <button onClick={() => { setShowStripeModal(false); setStripeError(''); }} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', padding: '0 4px' }}>×</button>
+ <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h1>
+ <button onClick={() => { setShowStripeModal(false); setStripeError(''); }} className="stripe-modal-close">×</button>
  </div>
 
  {/* Payment method icons */}
@@ -963,9 +963,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  />
  </Elements>
  ) : (
- <div style={{ textAlign: 'center', color: '#fff', padding: '24px 0', fontSize: '0.9rem' }}>Loading...</div>
+ <div className="stripe-loading">Loading...</div>
  )}
- {stripeError && <div className="popup-stripe-error" style={{ textAlign: 'center', marginTop: 8 }}>{stripeError}</div>}
+ {stripeError && <div className="stripe-error">{stripeError}</div>}
  </div>
  </div>
  )}

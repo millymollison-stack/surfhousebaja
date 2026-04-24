@@ -430,14 +430,14 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         ></div>
         <div className="relative">
           <div className="pl-2.5 pt-2">
-            <h1 className="hero-title text-black text-center pt-3" style={{ color: '#000000', paddingTop: '20px', paddingBottom: '20px' }}>What our guests say</h1>
+            <h1 className="reviews-section-heading">What our guests say</h1>
           </div>
           <ReviewsList showStars={isEditing} isEditing={isEditing} />
           {!isEditing && (
-            <div className="flex justify-center mt-6">
+            <div className="review-btn-wrap">
               <button
                 onClick={() => setShowReviewModal(true)}
-                className="px-5 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                className="review-btn"
               >
                 Leave a review
               </button>

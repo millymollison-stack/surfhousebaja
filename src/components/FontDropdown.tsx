@@ -57,18 +57,17 @@ export function FontDropdown({ value, options, onChange, triggerClassName }: Fon
   };
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: 400, boxSizing: 'border-box' }}>
+    <div ref={ref} >
       <button
         type="button"
         ref={triggerRef}
         onClick={(e) => { e.stopPropagation(); handleOpen(); }}
         className={triggerClassName || "popup-font-dropdown-trigger"}
-        style={{ fontFamily: `'${hovered}', serif` }}
+        
       >
         <span>{hovered}</span>
-        <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ marginLeft: "auto" }} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-      </button>
-
+        <ChevronDown className="w-4 h-4 flex-shrink-0"  />
+      </button><br />
       {open && triggerRect && (
         <div
           className="fixed bg-white border border-gray-200 rounded-lg shadow-lg z-[2147483647] max-h-56 overflow-y-auto"
@@ -86,7 +85,7 @@ export function FontDropdown({ value, options, onChange, triggerClassName }: Fon
               onMouseLeave={() => { setHovered(value); applyFont(value); }}
               onClick={() => handleSelect(font)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-gray-100 transition-colors ${hovered === font ? 'bg-gray-50' : ''}`}
-              style={{ fontFamily: `'${font}', serif` }}
+
             >
               <span>{font}</span>
               {value === font && <Check className="w-3.5 h-3.5 text-[var(--brand)] flex-shrink-0" />}

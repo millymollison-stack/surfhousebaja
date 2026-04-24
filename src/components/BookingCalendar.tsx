@@ -314,7 +314,7 @@ export function BookingCalendar({
     <div className="space-y-6">
       <div className="p-2 sm:p-4 bg-white rounded-lg shadow">
         <div className="flex justify-between items-center mb-4 pt-2 pl-1">
-          <h1 className="text-[1.65rem] hero-title-edit">
+          <h1 className="hero-title-edit">
             {isAdmin && !isBookingMode ? 'Block Dates' : 'Select your dates'}
           </h1>
           {isAdmin && (
@@ -439,47 +439,36 @@ export function BookingCalendar({
       </div>
 
       {selected?.from && selected?.to && (
-        <div className="p-2 sm:p-4 bg-white rounded-lg shadow space-y-4 transition-all duration-300 ease-in-out transform translate-y-0 opacity-100">
-          <div className="space-y-2">
-            <p>Check-in: {format(selected.from, 'PPP')} at 3:00 PM</p>
-            <p>Check-out: {format(addDays(selected.to, 1), 'PPP')} at 11:00 AM</p>
-            {isBookingMode && (
-              <div className="space-y-1">
-                <p className="text-sm text-gray-600">
-                  Base price: ${Math.ceil((selected.to.getTime() - selected.from.getTime()) / (1000 * 60 * 60 * 24)) + 1} nights × ${pricePerNight}
-                </p>
-                {guestCount > 2 && (
-                  <p className="text-sm text-gray-600">
-                    Additional guest fee: {guestCount - 2} × $10 = ${(guestCount - 2) * 10}
-                  </p>
-                )}
-                <p className="text-lg font-semibold">Total: ${calculateTotalPrice()}</p>
-              </div>
-            )}
-          </div>
-
-          {isBookingMode ? (
-            <>
-              <div>
-                <label htmlFor="guestCount" className="block booking-label headline booking-label-white">
-                  Number of Guests
-                </label>
-                <select
-                  id="guestCount"
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] booking-select-white bg-transparent"
-                >
+        <div className="booking-modal-body">
+          <div className="booking-modal-grid">
+            <div className="booking-modal-col-left">
+              <p className="booking-modal-checkin">Check-in: {format(selected.from, 'PPP')} at 3:00 PM</p>
+              <p className="booking-modal-checkout">Check-out: {format(addDays(selected.to, 1), 'PPP')} at 11:00 AM</p>
+              <div className="booking-modal-guest-row">
+                <label className="booking-modal-label">Guests</label>
+                <select id="guestCount" value={guestCount} onChange={(e) => setGuestCount(parseInt(e.target.value))} className="booking-modal-select">
                   {Array.from({ length: maxGuests }, (_, i) => i + 1).map(num => (
-                    <option key={num} value={num} className="booking-option-black">
-                      {num} {num === 1 ? 'Guest' : 'Guests'}
-                    </option>
+                    <option key={num} value={num}>{num}</option>
                   ))}
                 </select>
               </div>
-
-              <div>
-                <label htmlFor="specialRequests" className="block booking-label headline booking-label-white">
+              {isBookingMode && (
+                <div className="booking-modal-pricing">
+                  <p className="booking-modal-detail">
+                    Base price: ${Math.ceil((selected.to.getTime() - selected.from.getTime()) / (1000 * 60 * 60 * 24)) + 1} nights × ${pricePerNight}
+                  </p>
+                  {guestCount > 2 && (
+                    <p className="booking-modal-detail">
+                      Additional guest fee: {guestCount - 2} × $10 = ${(guestCount - 2) * 10}
+                    </p>
+                  )}
+                  <p className="booking-modal-total">Total: ${calculateTotalPrice()}</p>
+                </div>
+              )}
+            </div>
+            <div className="booking-modal-col-right">
+              <div className="booking-modal-special-requests">
+                <label className="booking-modal-label">
                   Special Requests (Optional)
                 </label>
                 <textarea
@@ -487,11 +476,10 @@ export function BookingCalendar({
                   value={specialRequests}
                   onChange={(e) => setSpecialRequests(e.target.value)}
                   rows={3}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
+                  className="booking-modal-textarea"
                   placeholder="Any special requirements or requests?"
                 />
               </div>
-
               {error && (
                 <div className="rounded-md bg-red-50 p-4">
                   <div className="flex">
@@ -500,7 +488,6 @@ export function BookingCalendar({
                   </div>
                 </div>
               )}
-
               {!user ? (
                 <div className="rounded-md bg-yellow-50 p-4">
                   <div className="flex">
@@ -517,15 +504,16 @@ export function BookingCalendar({
                 <button
                   onClick={handleBookingSubmit}
                   disabled={loading}
-                  className="w-full flex justify-center items-center space-x-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#C47756] disabled:bg-[var(--brand-disabled)]"
+                  className="booking-modal-submit-btn"
                 >
                   <Calendar className="h-5 w-5" />
                   <span>{loading ? 'Processing...' : 'Book Now'}</span>
                 </button>
               )}
-            </>
-          ) : (
-            <>
+            </div>
+          </div>
+          {!isBookingMode && (
+            <div className="booking-modal-block-section">
               <div>
                 <label htmlFor="blockReason" className="block text-sm font-medium text-gray-700">
                   Reason (Optional)
@@ -539,17 +527,16 @@ export function BookingCalendar({
                   placeholder="Enter reason for blocking these dates"
                 />
               </div>
-
               <button
                 type="button"
                 onClick={handleBlockDates}
                 disabled={loading}
-                className="w-full flex justify-center items-center space-x-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:bg-gray-400"
+                className="booking-modal-submit-btn booking-modal-block-btn"
               >
                 <Ban className="h-5 w-5" />
                 <span>{loading ? 'Blocking...' : 'Block Dates'}</span>
               </button>
-            </>
+            </div>
           )}
         </div>
       )}

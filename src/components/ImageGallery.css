@@ -1,0 +1,11 @@
+.titleandpricebox {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0px;
+}
+
+.titleandpricebox h1 {  padding: 0px;}
+
+.hero-subtitle {padding: 0px;}
