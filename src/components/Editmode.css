@@ -1,6 +1,8 @@
-/* ================================================
-   Editmode.css — 02-surfhousebaja-template
-   ================================================ */
+/* Editmode.css — in-edit-mode input styles */
+
+/* ============================================
+   GLOBAL INPUTS
+   ============================================ */
 
 /* ---- Global input base ---- */
 input[type="text"],
@@ -22,6 +24,7 @@ input[type="password"] {
 }
 
 /* ---- Shared base — most edit inputs ---- */
+/* ---- .edit-input, .edit-textarea, .edit-section-textarea ---- */
 .edit-input,
 .edit-textarea,
 .edit-section-textarea,
@@ -38,7 +41,7 @@ input[type="password"] {
   font-size: 0.9rem;
 }
 
-/* ---- .edit-stat-input — bedrooms/bathrooms/guests ---- */
+/* ---- .edit-stat-input ---- */
 .edit-stat-input {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 6px;
@@ -49,7 +52,7 @@ input[type="password"] {
   width: auto;
 }
 
-/* ---- .edit-textarea — description textarea ---- */
+/* ---- .edit-textarea ---- */
 .edit-textarea {
   color: #ffffff;
   width: 100% !important;
@@ -57,7 +60,7 @@ input[type="password"] {
   border-radius: 6px;
 }
 
-/* ---- .edit-title-input — property title ---- */
+/* ---- .edit-title-input ---- */
 .edit-title-input {
   width: 60% !important;
   font-size: 1.7rem !important;
@@ -65,7 +68,7 @@ input[type="password"] {
   border-radius: 6px;
 }
 
-/* ---- .edit-price-input — price $ input ---- */
+/* ---- .edit-price-input ---- */
 .edit-price-input {
   width: 30% !important;
   font-size: 1.7rem !important;
@@ -86,7 +89,7 @@ input[type="password"] {
   border-radius: 6px !important;
 }
 
-/* ---- .edit-intro-textarea — property intro ---- */
+/* ---- .edit-intro-textarea ---- */
 .edit-intro-textarea {
   width: 90% !important;
   max-width: 100% !important;
@@ -94,7 +97,7 @@ input[type="password"] {
   height: 70px;
 }
 
-/* ---- .edit-section-textarea — section edit textarea ---- */
+/* ---- .edit-section-textarea ---- */
 .edit-section-textarea {
   background: rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -241,12 +244,12 @@ input[type="password"] {
   border-color: transparent;
 }
 
-/* Override max-width constraint from OnboardingPopup.css on popup textareas */
+/* ---- Override OnboardingPopup max-width on popup textareas ---- */
 .popup-textarea.editmode {
   max-width: 100% !important;
 }
 
-/* Shrink number input spinners */
+/* ---- Number input spinners ---- */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   width: 1px !important;
@@ -259,7 +262,7 @@ input[type="number"]::-moz-outer-spin-button {
   -webkit-appearance: none;
 }
 
-/* ---- Price group in edit mode: $ and input both pushed right ---- */
+/* ---- Price group in edit mode ---- */
 .gallery-content-overlay .flex.items-baseline .flex.items-baseline:has(.edit-price-input) {
   justify-content: flex-end !important;
 }

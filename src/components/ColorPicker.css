@@ -1,4 +1,9 @@
-/* ColorPicker panel container */
+/* ColorPicker.css — color picker panel styles */
+
+/* ============================================
+   PANEL & TRIGGER
+   ============================================ */
+
 .color-picker-panel {
   top: 60px;
   font-family: Inter, sans-serif;
@@ -17,12 +22,16 @@
   cursor: pointer;
   transition: transform 0.2s, background 0.2s;
 }
+
 .color-picker-trigger:hover {
   background: var(--brand-hover);
   transform: scale(1.05);
 }
 
-/* Modal panel */
+/* ============================================
+   MODAL PANEL
+   ============================================ */
+
 .color-picker-modal {
   position: fixed;
   top: 50%;
@@ -42,7 +51,10 @@
   to   { opacity: 1; transform: translate(-50%, -50%); }
 }
 
-/* Header */
+/* ============================================
+   HEADER
+   ============================================ */
+
 .color-picker-header {
   display: flex;
   align-items: center;
@@ -50,6 +62,7 @@
   padding: 12px 16px;
   border-bottom: 1px solid #e5e7eb;
 }
+
 .color-picker-header-label {
   display: flex;
   align-items: center;
@@ -58,6 +71,7 @@
   font-weight: 600;
   color: #1f2937;
 }
+
 .color-picker-close-btn {
   padding: 4px;
   border-radius: 4px;
@@ -66,12 +80,15 @@
   cursor: pointer;
   transition: background 0.15s;
 }
+
 .color-picker-close-btn:hover { background: #f3f4f6; }
 
-/* Presets section */
-.color-picker-presets {
-  padding: 12px 16px;
-}
+/* ============================================
+   PRESET SWATCHES
+   ============================================ */
+
+.color-picker-presets { padding: 12px 16px; }
+
 .color-picker-presets-label {
   font-size: 0.75rem;
   font-weight: 500;
@@ -80,11 +97,13 @@
   letter-spacing: 0.05em;
   margin-bottom: 8px;
 }
+
 .color-picker-swatches {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
 }
+
 .color-picker-swatch {
   width: 36px;
   height: 36px;
@@ -98,13 +117,16 @@
   align-items: center;
   justify-content: center;
 }
+
 .color-picker-swatch:hover { transform: scale(1.1); }
 .color-picker-swatch.active { border-color: var(--brand); }
 
-/* Custom section */
-.color-picker-custom {
-  padding: 0 16px 16px;
-}
+/* ============================================
+   CUSTOM COLOR INPUT
+   ============================================ */
+
+.color-picker-custom { padding: 0 16px 16px; }
+
 .color-picker-custom-label {
   font-size: 0.75rem;
   font-weight: 500;
@@ -113,11 +135,13 @@
   letter-spacing: 0.05em;
   margin-bottom: 8px;
 }
+
 .color-picker-custom-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .color-picker-swatch-preview {
   width: 36px;
   height: 36px;
@@ -125,6 +149,7 @@
   border: 1px solid #e5e7eb;
   flex-shrink: 0;
 }
+
 .color-picker-hex-input {
   flex: 1;
   padding: 8px 12px;
@@ -136,27 +161,34 @@
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
 }
+
 .color-picker-hex-input:focus {
   border-color: var(--brand);
   box-shadow: 0 0 0 1px var(--brand);
 }
+
 .color-picker-error {
   font-size: 0.75rem;
   color: #f87171;
   margin-top: 4px;
 }
 
-/* Font section */
+/* ============================================
+   FONT SECTION
+   ============================================ */
+
 .color-picker-font-section {
   padding: 12px 16px;
   border-top: 1px solid #e5e7eb;
 }
+
 .color-picker-font-label {
   font-size: 0.875rem;
   font-weight: 600;
   color: #374151;
   margin-bottom: 8px;
 }
+
 .color-picker-font-trigger {
   width: 100%;
   display: flex;
@@ -172,9 +204,13 @@
   transition: background 0.15s;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
+
 .color-picker-font-trigger:hover { background: #f9fafb; }
 
-/* Font dropdown */
+/* ============================================
+   FONT DROPDOWN
+   ============================================ */
+
 .font-dropdown-portal {
   position: fixed;
   background: white;
@@ -185,6 +221,7 @@
   max-height: 224px;
   overflow-y: auto;
 }
+
 .font-dropdown-option {
   width: 100%;
   display: flex;
@@ -198,4 +235,5 @@
   cursor: pointer;
   transition: background 0.15s;
 }
+
 .font-dropdown-option:hover { background: #f3f4f6; }

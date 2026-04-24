@@ -1,4 +1,9 @@
-/* Template Preview - matches example.html styling exactly */
+/* TemplatePreview.css — preview card (matches example.html) */
+
+/* ============================================
+   PREVIEW CARD
+   ============================================ */
+
 .preview-container {
   position: relative;
   width: 100%;
@@ -10,7 +15,10 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Hero background */
+/* ============================================
+   HERO BACKGROUND
+   ============================================ */
+
 .preview-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -23,11 +31,14 @@
 .preview-bg::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.15);
 }
 
-/* Nav bar */
+/* ============================================
+   NAV BAR
+   ============================================ */
+
 .preview-nav {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -76,7 +87,10 @@
   font-weight: 400;
 }
 
-/* Bottom info card */
+/* ============================================
+   BOTTOM INFO CARD
+   ============================================ */
+
 .preview-bottom {
   position: absolute;
   bottom: 52px;
@@ -137,7 +151,10 @@
   border-radius: 4px;
 }
 
-/* Bottom banner */
+/* ============================================
+   BOTTOM BANNER
+   ============================================ */
+
 .preview-banner {
   position: absolute;
   bottom: 0; left: 0; right: 0;
