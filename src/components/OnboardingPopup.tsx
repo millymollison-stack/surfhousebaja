@@ -504,13 +504,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <button onClick={handleClose} className="popup-close">×</button>
 
  {/* Intro */}
- <h1>Create your site</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Create your site</h1>
  <p>After you complete this sign up process, you&apos;ll receive a link to your hosted website template. You can then open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience. Let&apos;s create your account.</p>
  <h3>You will be able to edit these details later from your site&apos;s dashboard.</h3>
  <br /><hr />
 
  {/* Sign Up */}
- <h1>Sign Up</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign Up</h1>
  <p>Create your new sites admin account.</p>
  <h4>Email</h4>
  <input type="email" placeholder="Email" className="editmode" value={email} onChange={e => setEmail(e.target.value)} />
@@ -530,7 +530,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <br /><hr />
 
  {/* Sign In */}
- <h1>Sign In</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign In</h1>
  <h4>Email</h4>
  <input type="email" placeholder="Email" className="editmode" />
  <h4>Password</h4>
@@ -539,7 +539,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <br /><hr />
 
  {/* Banking Details */}
- <h1>1. Banking Details</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>1. Banking Details</h1>
  <p>How do you want to get paid?</p>
  <ul>
  <li>
@@ -561,7 +561,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <br /><hr />
 
  {/* Design */}
- <h1>2. Design your website</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>2. Design your website</h1>
  <ul>
  <li>
  <input type="radio" name="design" id="3-1" checked={designChoice === 'manual'} onChange={() => { setDesignChoice('manual'); setScrapedData(null); }} />
@@ -802,7 +802,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <hr />
 
  {/* Name property */}
- <h1>3. Name your property</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>3. Name your property</h1>
  <h4>Website name</h4>
  <input type="text" placeholder="Website name (max 20 chars)" className="editmode" value={websiteName} onChange={e => handleNameChange(e.target.value)} onBlur={handleNameBlur} />
  <h4>Website description</h4>
@@ -820,7 +820,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <hr />
 
  {/* Hosting */}
- <h1>4. Hosting options</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>4. Hosting options</h1>
  <ul>
  <li>
  <input type="radio" name="hosting" id="4-1" checked={hostingChoice === 'own'} onChange={() => setHostingChoice('own')} />
@@ -834,7 +834,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <br /><hr />
 
  {/* Subscription */}
- <h1>5. Subscription</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>5. Subscription</h1>
  <ul>
  <li>
  <input type="radio" name="plan" id="5-1" checked={planChoice === 'starter'} onChange={() => setPlanChoice('starter')} />
@@ -852,7 +852,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <br /><hr />
 
  {/* Extras */}
- <h1>6. Optional extras</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>6. Optional extras</h1>
  <p>Select which services you are interested in getting.</p>
  <ul>
  <li>
@@ -875,18 +875,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <br /><hr />
 
  {/* Payment */}
- <h1>Payment Calculated</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Payment Calculated</h1>
  <p>Input your card details with our 3rd‑party, secure payment partner.</p>
  <button className="btn" onClick={openStripeGateway}>Setup payment</button>
  <br /><hr />
 
  {/* Publish */}
- <h1>7. Publish your site</h1>
+ <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>7. Publish your site</h1>
  <p>Now you are ready to launch your very own short‑term rental booking site. Congratulations!</p>
  <ul>
  <li>
  <input type="checkbox" id="7-1" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
- <label htmlFor="7-1">Click to agree to our Terms &amp; Conditions</label>
+ <h4>Click to agree to our Terms &amp; Conditions</h4>
  </li>
  </ul>
  <br />
@@ -963,7 +963,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  />
  </Elements>
  ) : (
- <div className="stripe-loading">Loading...</div>
+ <div className="stripe-loading"><div className="spinner-ring" /></div>
  )}
  {stripeError && <div className="stripe-error">{stripeError}</div>}
  </div>

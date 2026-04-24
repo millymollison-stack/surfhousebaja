@@ -161,6 +161,9 @@ input[type="password"] {
 /* ---- BookingCalendar / UserMenu h1/h2 in edit mode ---- */
 .hero-title-edit {
   color: #000000;
+  font-size: clamp(1.5rem, 2.8vw, 1.875rem);
+  font-weight: 400;
+  text-transform: uppercase;
 }
 
 /* ---- ColorPicker panel fixed positioning ---- */

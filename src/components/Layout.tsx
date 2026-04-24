@@ -92,7 +92,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
               <UserMenu />
             ) : (
               <Link
-                to="/login"
+                to="/?auth=login"
                 className="px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/15 rounded text-white/90 hover:bg-white/30 hover:text-white text-sm transition-all"
               >
                 Sign In
