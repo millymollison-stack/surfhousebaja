@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Editmode.css';
+import './sidebar.css';
 import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Shield, Building, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/auth';
@@ -413,295 +414,162 @@ export function UserMenu() {
         <span>{user.full_name?.split(' ')[0] || 'Profile'}</span>
       </button>
 
-      {/* Slide-out menu with large drop shadow */}
+      {/* Slide-out menu */}
       {isOpen && (
-        <div
-          data-user-menu-panel
-          className="fixed right-0 top-0 h-full min-h-screen w-[calc(100%-72px)] max-w-[380px] bg-white shadow-[-20px_0_40px_rgba(0,0,0,0.4)] z-[99999] overflow-y-auto animate-slide-in cursor-default"
-        >
-        <div className="px-6">
-          <div className="flex items-center justify-between h-16">
-            <h2 className="hero-title hero-title-edit">PROFILE</h2>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close menu"
-              className="p-2 rounded-full hover:bg-gray-100 z-50 relative -mt-3"
-            >
-              <X className="h-6 w-6 text-gray-500" />
-            </button>
-          </div>
-
-          <hr className="border-t border-gray-200 px-5 profile-sidebar-divider" />
-
-          <div className="py-4 space-y-4">
-            {profileError && (
-              <div className="rounded-md bg-red-50 p-4">
-                <div className="flex">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                  <p className="ml-3 text-sm text-red-700">{profileError}</p>
-                </div>
-              </div>
-            )}
-
-            {profileSuccess && (
-              <div className="rounded-md bg-green-50 p-4">
-                <p className="text-sm text-green-700">{profileSuccess}</p>
-              </div>
-            )}
-
-            <div className="flex justify-end -mt-6">
+        <div data-user-menu-panel className="sidebar-panel">
+          {/* Header */}
+          <div className="sidebar-header">
+            <span className="sidebar-header-label">Profile</span>
+            <div className="sidebar-header-actions">
               {!isEditingProfile ? (
-                <button
-                  onClick={() => setIsEditingProfile(true)}
-                  className="flex items-center space-x-2 text-base font-normal text-[var(--brand)] hover:text-[var(--brand-hover)] z-50 relative pointer-events-auto"
-                >
-                  <Edit2 className="h-5 w-5" />
-                  <span>Edit</span>
+                <button onClick={() => setIsEditingProfile(true)} className="sidebar-btn-edit">
+                  <Edit2 /><span>Edit</span>
                 </button>
               ) : (
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => {
-                      setIsEditingProfile(false);
-                      setProfileData({
-                        full_name: user.full_name || '',
-                        email: user.email || '',
-                        phone_number: user.phone_number || ''
-                      });
-                      setProfileError(null);
-                      setProfileSuccess(null);
-                    }}
-                    className="text-gray-600 hover:text-gray-900 z-10 pointer-events-auto"
-                    disabled={loading}
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={handleProfileUpdate}
-                    className="text-green-600 hover:text-green-700 z-10 pointer-events-auto"
-                    disabled={loading}
-                  >
-                    <Save className="h-5 w-5" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-6 pb-6 space-y-3 leading-relaxed -mt-6">
-              {user.role === 'admin' && (
                 <>
-                  {/* Page URL - for custom domain or subdomain */}
-                  <div>
-                    <label className="block text-sm font-normal text-gray-500 mb-0.5">
-                      <span className="flex items-center gap-1">
-                        Page URL
-                        <Info className="h-3 w-3 text-gray-400" />
-                      </span>
-                    </label>
-                    {isEditingProfile ? (
-                      <input
-                        type="text"
-                        value={userProperty?.custom_domain || ''}
-                        onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
-                        disabled={loading}
-                        placeholder="your-domain.com"
-                      />
-                    ) : (
-                      <p className="text-base font-normal text-gray-900">
-                        {userProperty?.custom_domain || 'surfhousebaja.com'}
-                      </p>
-                    )}
-                  </div>
+                  <button onClick={() => { setIsEditingProfile(false); setProfileData({ full_name: user.full_name || '', email: user.email || '', phone_number: user.phone_number || '', stripe_account_id: (user as any).stripe_account_id || '', stripe_account_status: (user as any).stripe_account_status || '' }); setProfileError(null); setProfileSuccess(null); }} className="sidebar-btn-cancel" disabled={loading}>Cancel</button>
+                  <button onClick={handleProfileUpdate} className="sidebar-btn-save" disabled={loading}>Save</button>
                 </>
               )}
-
-              <div>
-                <label className="block text-sm font-normal text-gray-500 mb-0.5">
-                  Full Name
-                </label>
-                {isEditingProfile ? (
-                  <input
-                    type="text"
-                    value={profileData.full_name}
-                    onChange={(e) => handleProfileInputChange('full_name', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
-                    disabled={loading}
-                  />
-                ) : (
-                  <p className="text-base font-normal text-gray-900">{user.full_name}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-normal text-gray-500 mb-0.5">
-                  Email Address
-                </label>
-                {isEditingProfile ? (
-                  <input
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => handleProfileInputChange('email', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
-                    disabled={loading}
-                  />
-                ) : (
-                  <p className="text-base font-normal text-gray-900">{user.email}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-normal text-gray-500 mb-0.5">
-                  Phone Number
-                </label>
-                {isEditingProfile ? (
-                  <input
-                    type="tel"
-                    value={profileData.phone_number}
-                    onChange={(e) => handleProfileInputChange('phone_number', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
-                    placeholder="Enter phone number"
-                    disabled={loading}
-                  />
-                ) : (
-                  <p className="text-base font-normal text-gray-900">
-                    {user.phone_number || 'Not provided'}
-                  </p>
-                )}
-              </div>
-
-              {/* Payout Bank Account - for admin users */}
-              {user.role === 'admin' && (
-                <div>
-                  <label className="block text-sm font-normal text-gray-500 mb-0.5">
-                    <span className="flex items-center gap-1">
-                      Payout Bank Account
-                      <Info className="h-3 w-3 text-gray-400" />
-                    </span>
-                  </label>
-                  {isEditingProfile ? (
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={profileData.stripe_account_id}
-                        onChange={(e) => handleProfileInputChange('stripe_account_id', e.target.value)}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
-                        placeholder="Stripe Account ID"
-                        disabled={loading}
-                      />
-                      <input
-                        type="text"
-                        value={profileData.stripe_account_status}
-                        onChange={(e) => handleProfileInputChange('stripe_account_status', e.target.value)}
-                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
-                        placeholder="Status (e.g., pending, active)"
-                        disabled={loading}
-                      />
-                    </div>
-                  ) : (
-                    <button className="text-base font-normal text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                      <Building className="h-4 w-4" />
-                      {profileData.stripe_account_id ? 'Connected' : 'Set up payouts'}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {user.role === 'admin' && (
-                <div className="pt-1">
-                  <p className="text-sm font-normal text-gray-500 mb-0.5">Role</p>
-                  <p className="text-base font-normal text-gray-900 capitalize">{user.role}</p>
-                </div>
-              )}
-            </div>
-
-            {user.role === 'admin' && (
-              <div className="pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    navigate('/admin');
-                  }}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors z-10"
-                >
-                  <Shield className="h-5 w-5" />
-                  <span className="font-medium">Admin Dashboard</span>
-                </button>
-              </div>
-            )}
-
-            {user.role === 'admin' && (
-              <div className="pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    navigate('/property-admin');
-                  }}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors z-10"
-                >
-                  <Building className="h-5 w-5" />
-                  <span className="font-medium">My Property</span>
-                </button>
-              </div>
-            )}
-
-            <div className="flex justify-center pt-4">
-              <button
-                onClick={async () => {
-                  await signOut();
-                  setIsOpen(false);
-                }}
-                className="flex items-center space-x-2 text-red-600 hover:text-red-700 z-10"
-                disabled={loading}
-              >
-                <LogOut className="h-5 w-5" />
-                <span>Sign Out</span>
+              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close menu" className="sidebar-btn-close">
+                <X />
               </button>
             </div>
           </div>
 
-          <div className="mt-6 pt-6">
-            <h2 className="hero-title hero-title-edit">
-              BOOKINGS
-            </h2>
-            
-            {bookingError && (
-              <div className="rounded-md bg-red-50 p-4 mt-4">
-                <div className="flex">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                  <p className="ml-3 text-sm text-red-700">{bookingError}</p>
+          {/* Content */}
+          <div className="sidebar-content">
+            {profileError && (
+              <div className="sidebar-alert sidebar-alert-error">
+                <AlertCircle /><p>{profileError}</p>
+              </div>
+            )}
+            {profileSuccess && (
+              <div className="sidebar-alert sidebar-alert-success">
+                <p>{profileSuccess}</p>
+              </div>
+            )}
+
+            {/* Field list */}
+            <div className="sidebar-fields">
+              {user.role === 'admin' && (
+                <div className="sidebar-field">
+                  <span className="sidebar-label">Page URL</span>
+                  <div className="sidebar-input-wrap">
+                    {isEditingProfile ? (
+                      <input type="text" className="sidebar-input" value={userProperty?.custom_domain || ''} onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)} placeholder="your-domain.com" disabled={loading} />
+                    ) : (
+                      <span className="sidebar-value">{userProperty?.custom_domain || 'surfhousebaja.com'}</span>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={loadBookings}
-                  className="mt-2 text-sm text-red-600 hover:text-red-500"
-                >
-                  Try again
+              )}
+
+              <div className="sidebar-field">
+                <span className="sidebar-label">Full Name</span>
+                <div className="sidebar-input-wrap">
+                  {isEditingProfile ? (
+                    <input type="text" className="sidebar-input" value={profileData.full_name} onChange={(e) => handleProfileInputChange('full_name', e.target.value)} disabled={loading} />
+                  ) : (
+                    <span className="sidebar-value">{user.full_name}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="sidebar-field">
+                <span className="sidebar-label">Email</span>
+                <div className="sidebar-input-wrap">
+                  {isEditingProfile ? (
+                    <input type="email" className="sidebar-input" value={profileData.email} onChange={(e) => handleProfileInputChange('email', e.target.value)} disabled={loading} />
+                  ) : (
+                    <span className="sidebar-value">{user.email}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="sidebar-field">
+                <span className="sidebar-label">Phone</span>
+                <div className="sidebar-input-wrap">
+                  {isEditingProfile ? (
+                    <input type="tel" className="sidebar-input" value={profileData.phone_number} onChange={(e) => handleProfileInputChange('phone_number', e.target.value)} placeholder="Enter phone number" disabled={loading} />
+                  ) : (
+                    <span className="sidebar-value">{user.phone_number || 'Not provided'}</span>
+                  )}
+                </div>
+              </div>
+
+              {user.role === 'admin' && (
+                <div className="sidebar-field">
+                  <span className="sidebar-label">Payouts</span>
+                  <div className="sidebar-input-wrap">
+                    {isEditingProfile ? (
+                      <>
+                        <input type="text" className="sidebar-input" value={profileData.stripe_account_id} onChange={(e) => handleProfileInputChange('stripe_account_id', e.target.value)} placeholder="Stripe Account ID" disabled={loading} />
+                        <input type="text" className="sidebar-input" value={profileData.stripe_account_status} onChange={(e) => handleProfileInputChange('stripe_account_status', e.target.value)} placeholder="Status" disabled={loading} />
+                      </>
+                    ) : (
+                      <button className="sidebar-value-link">
+                        <Building /><span>{profileData.stripe_account_id ? 'Connected' : 'Set up payouts'}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {user.role === 'admin' && (
+                <div className="sidebar-field">
+                  <span className="sidebar-label">Role</span>
+                  <div className="sidebar-input-wrap">
+                    <span className="sidebar-value capitalize">{user.role}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            {user.role === 'admin' && (
+              <div className="sidebar-actions">
+                <hr className="sidebar-divider" />
+                <button onClick={() => { setIsOpen(false); navigate('/admin'); }} className="sidebar-action-btn sidebar-action-btn-blue">
+                  <Shield /><span>Admin Dashboard</span>
+                </button>
+                <button onClick={() => { setIsOpen(false); navigate('/property-admin'); }} className="sidebar-action-btn sidebar-action-btn-green">
+                  <Building /><span>My Property</span>
                 </button>
               </div>
             )}
-            
-            {bookingsLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="space-y-2 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--brand)] mx-auto" />
-                  <p className="text-sm text-gray-500">Loading bookings...</p>
+
+            {/* Sign out */}
+            <button onClick={async () => { await signOut(); setIsOpen(false); }} className="sidebar-signout" disabled={loading}>
+              <LogOut /><span>Sign Out</span>
+            </button>
+          </div>
+
+          {/* Bookings */}
+          <div className="sidebar-bookings">
+            <div className="sidebar-bookings-inner">
+              <div className="sidebar-section-header">Bookings</div>
+
+              {bookingError && (
+                <div className="sidebar-alert sidebar-alert-error">
+                  <AlertCircle /><p>{bookingError}</p>
+                  <button onClick={loadBookings} style={{ marginTop: '6px', fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Try again</button>
                 </div>
-              </div>
-            ) : !bookingError && bookings.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No bookings found.</p>
-              </div>
-            ) : !bookingError ? (
-              <UserBookings
-                bookings={bookings}
-                onUpdateStatus={user.role === 'admin' ? handleUpdateBookingStatus : undefined}
-                onRefund={user.role === 'admin' ? handleRefund : undefined}
-              />
-            ) : null}
+              )}
+
+              {bookingsLoading ? (
+                <div className="sidebar-spinner-wrap">
+                  <div className="sidebar-spinner" />
+                  <span className="sidebar-spinner-label">Loading bookings...</span>
+                </div>
+              ) : !bookingError && bookings.length === 0 ? (
+                <div className="sidebar-empty">No bookings found.</div>
+              ) : !bookingError ? (
+                <UserBookings bookings={bookings} onUpdateStatus={user.role === 'admin' ? handleUpdateBookingStatus : undefined} onRefund={user.role === 'admin' ? handleRefund : undefined} />
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
       )}
     </>
   );
