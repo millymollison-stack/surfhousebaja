@@ -419,7 +419,7 @@ export function UserMenu() {
         <div data-user-menu-panel className="sidebar-panel">
           {/* Header */}
           <div className="sidebar-header">
-            <span className="sidebar-header-label">Profile</span>
+            <h1 className="sidebar-header-label">Profile</h1>
             <div className="sidebar-header-actions">
               {!isEditingProfile ? (
                 <button onClick={() => setIsEditingProfile(true)} className="sidebar-btn-edit">
@@ -427,7 +427,7 @@ export function UserMenu() {
                 </button>
               ) : (
                 <>
-                  <button onClick={() => { setIsEditingProfile(false); setProfileData({ full_name: user.full_name || '', email: user.email || '', phone_number: user.phone_number || '', stripe_account_id: (user as any).stripe_account_id || '', stripe_account_status: (user as any).stripe_account_status || '' }); setProfileError(null); setProfileSuccess(null); }} className="sidebar-btn-cancel" disabled={loading}>Cancel</button>
+
                   <button onClick={handleProfileUpdate} className="sidebar-btn-save" disabled={loading}>Save</button>
                 </>
               )}
@@ -548,7 +548,7 @@ export function UserMenu() {
           {/* Bookings */}
           <div className="sidebar-bookings">
             <div className="sidebar-bookings-inner">
-              <div className="sidebar-section-header">Bookings</div>
+              <h1 className="sidebar-section-header">Bookings</h1>
 
               {bookingError && (
                 <div className="sidebar-alert sidebar-alert-error">

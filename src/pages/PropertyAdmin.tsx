@@ -133,7 +133,7 @@ export function PropertyAdmin() {
     }
   }
 
-  if (loading) return <div className="p-8">Loading...</div>;
+  if (loading) return <div className="p-8"><div className="spinner-ring" /></div>;
 
   if (!user) {
     return <div className="p-8 text-center">Please log in to access property management.</div>;

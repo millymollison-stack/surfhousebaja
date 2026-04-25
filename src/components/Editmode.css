@@ -249,7 +249,9 @@ input[type="password"] {
 
 /* ---- Override OnboardingPopup max-width on popup textareas ---- */
 .popup-textarea.editmode {
-  max-width: 100% !important;
+  max-width: 80% !important;
+  width: 80% !important;
+  border-radius: 6px;
 }
 
 /* ---- Number input spinners ---- */

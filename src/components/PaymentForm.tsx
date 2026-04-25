@@ -407,7 +407,7 @@ export function PaymentForm({
           {!elementReady && !error && (
             <div className="flex items-center justify-center min-h-[200px] -mt-[200px]">
               <div className="flex flex-col items-center space-y-2">
-                <Loader className="h-8 w-8 animate-spin text-[var(--brand)]" />
+                <div className="spinner-ring" />
                 <p className="text-sm text-gray-600">Loading payment form...</p>
               </div>
             </div>

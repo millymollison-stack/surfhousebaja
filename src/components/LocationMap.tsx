@@ -105,11 +105,11 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
           <div className="bg-white px-3 pt-4 pb-3 sm:px-6 sm:pt-5 sm:pb-4">
             <div className="flex justify-between items-center mb-4">
               <h1 style={{ color: "black" }}>Location</h1>
-              <div className="flex items-center space-x-1 sm:space-x-2">
+              <div className="location-edit-container">
                 {isAdmin && (
                   <button
                     onClick={() => setIsEditing(!isEditing)}
-                    className="location-edit-btn"
+                    className="edit-location-btn"
                   >
                     {isEditing ? (
                       <>
@@ -134,9 +134,9 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
             </div>
 
             {isEditing && (
-              <div className="space-y-3 sm:space-y-4 bg-gray-50 p-3 sm:p-4 rounded-lg mb-4">
+              <div className="location-edit-form">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="location-edit-label">
                     Location Type
                   </label>
                   <div className="mt-2 space-x-4">
@@ -148,7 +148,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         onChange={(e) => setLocationType(e.target.value as 'address' | 'coordinates')}
                         className="form-radio h-4 w-4 text-[var(--brand)]"
                       />
-                      <span className="ml-2">Street Address</span>
+                      <span className="location-edit-text">Street Address</span>
                     </label>
                     <label className="inline-flex items-center">
                       <input
@@ -158,14 +158,14 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         onChange={(e) => setLocationType(e.target.value as 'address' | 'coordinates')}
                         className="form-radio h-4 w-4 text-[var(--brand)]"
                       />
-                      <span className="ml-2">Coordinates</span>
+                      <span className="location-edit-text">Coordinates</span>
                     </label>
                   </div>
                 </div>
 
                 {locationType === 'address' ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="location-edit-label">
                       Street Address
                     </label>
                     <div className="mt-1 flex space-x-2">
@@ -178,7 +178,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                       />
                       <button
                         onClick={handleAddressSearch}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        className="location-edit-cancel-btn"
                       >
                         Search
                       </button>
@@ -187,7 +187,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="location-edit-label">
                         Latitude
                       </label>
                       <input
@@ -199,7 +199,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="location-edit-label">
                         Longitude
                       </label>
                       <input
@@ -222,7 +222,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                 <div className="flex justify-end space-x-2">
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="location-edit-cancel-btn"
                   >
                     Cancel
                   </button>

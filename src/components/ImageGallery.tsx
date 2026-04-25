@@ -268,7 +268,7 @@ export function ImageGallery({
                   onBlur={handlePropertyTextSave}
                   className="text-2xl md:text-3xl font-normal uppercase text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)] px-2 py-1 edit-title-input"
                 />
-                <div className="flex items-baseline justify-start">
+                <div className="flex items-baseline justify-end">
                   <span className="text-2xl md:text-3xl font-bold text-white">$</span>
                   <input
                     type="number"
@@ -288,7 +288,7 @@ export function ImageGallery({
               <div className="titleandpricebox">
                 <h1 className="hero-title text-white">{propertyTitle}</h1>
                 <div className="flex items-baseline">
-                  <h1 className="hero-title-price text-2xl md:text-3xl font-semibold text-white">
+                  <h1 className="hero-title-price text-white">
                     ${editPrice}
                   </h1>
                   <span className="text-white/80 text-base font-normal">/night</span>
