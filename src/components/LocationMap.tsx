@@ -253,14 +253,9 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
               </MapContainer>
             </div>
 
-            {!isEditing && (property.local_area || property.address) && (
+            {!isEditing && (property.address || property.local_area) && (
               <div className="location-address-block">
-                {property.local_area && (
-                  <p className="location-area">{property.local_area}</p>
-                )}
-                {property.address && (
-                  <h3 className="location-address">{property.address}</h3>
-                )}
+                <h3 className="location-address">{property.address || property.local_area || ''}</h3>
               </div>
             )}
           </div>

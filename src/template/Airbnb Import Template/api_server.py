@@ -234,7 +234,7 @@ def test():
     <body>
         <h1>Airbnb Preview Test</h1>
         <p>Paste an Airbnb room URL:</p>
-        <input type="text" id="url" placeholder="https://www.airbnb.com/rooms/123456789" value="https://www.airbnb.com/rooms/770977353146978466">
+        <input type="text" id="url" placeholder="https://www.airbnb.com/rooms/1569039869816457609" value="https://www.airbnb.com/rooms/770977353146978466">
         <button onclick="preview()">Preview</button>
         <div id="result"></div>
         

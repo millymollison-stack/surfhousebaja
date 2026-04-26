@@ -200,3 +200,12 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
+/* ============================================
+   RESPONSIVE — 400px
+   ============================================ */
+@media (max-width: 400px) {
+  .preview-container {
+    height: 400px;
+  }
+}

@@ -27,7 +27,7 @@ export function Login() {
       <div className="auth-modal">
         <button className="popup-close" onClick={() => navigate('/')} aria-label="Close">&times;</button>
         <h1>Sign in to your account</h1>
-        <p className="popup-note">Or <Link to="/signup" className="popup-link">create a new account</Link></p>
+        <p>Or create a <Link to="/?auth=signup" className="popup-link">new account</Link></p>
         <form onSubmit={handleSubmit}>
           {error && <p className="popup-error">{error}</p>}
           <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" />

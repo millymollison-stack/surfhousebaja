@@ -69,7 +69,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
                     }}
                     className="px-3 py-1.5 rounded text-sm font-bold transition-all bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white"
                   >
-                    Save & Exit
+                    Save
                   </button>
                 ) : (
                   <button

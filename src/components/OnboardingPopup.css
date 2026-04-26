@@ -22,20 +22,21 @@
   font-weight: 400;
   text-transform: uppercase;
   margin-bottom: 20px;
+  font-family: var(--font-accent), serif;
 }
 
 .auth-modal {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
   pointer-events: auto;
   background: rgba(10,10,10,0.90);
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.1);
   padding: 40px;
-  width: 80%;
+  
   max-width: 400px;
   max-height: 80vh;
   overflow-y: auto;
@@ -73,7 +74,7 @@
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.1);
   padding: 40px;
-  width: 80%;
+  
   max-width: 400px;
   max-height: 80vh;
   overflow-y: auto;
@@ -147,7 +148,7 @@ p {
 
 .btn {
   display: block;
-  width: 80%;
+  
   max-width: 400px;
   padding: 12px 24px;
   background: var(--brand) !important;
@@ -167,7 +168,7 @@ p {
 .btn:active { opacity: 0.7; }
 
 .publish-btn {
-  width: 80%;
+  
   max-width: 400px;
   background: var(--brand) !important;
   color: white !important;
@@ -192,7 +193,7 @@ input[type="text"],
 input[type="email"],
 input[type="password"] {
   display: block;
-  width: 80%;
+  
   max-width: 400px;
   padding: 12px 16px;
   border: 1px solid rgba(255,255,255,0.3);
@@ -217,7 +218,7 @@ input[type="password"]:focus {
 
 textarea {
   display: block;
-  width: 80%;
+  
   max-width: 400px;
   min-height: 80px;
   padding: 12px 16px;
@@ -242,6 +243,14 @@ textarea.popup-textarea {
 }
 
 textarea.popup-textarea.editmode {
+  color: white !important;
+}
+
+textarea.popup-textarea.editmode:focus,
+textarea.popup-textarea.editmode:focus-within {
+  color: white !important;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(196,119,86,0.25);
   max-width: 80% !important;
   width: 80% !important;
   border-radius: 6px;
@@ -330,7 +339,7 @@ hr {
 .popup-font-dropdown-trigger:active { opacity: 0.7; }
 
 .popup-font-section .relative {
-  width: 80%;
+  
   max-width: 400px;
   display: block;
 }
@@ -340,6 +349,8 @@ hr {
    ============================================ */
 
 .popup-airbnb-section {
+  max-width: 600px;
+  width: 100%;
   margin-top: 16px !important;
   padding: 16px 16px 30px !important;
   margin-bottom: 30px !important;
@@ -772,14 +783,58 @@ hr {
 
 @media only screen and (max-width: 400px) {
   .popup-modal {
-    padding: 16px;
-    max-height: 80vh;
-    max-width: 95vw;
-    width: 100%;
+        padding: 16px;
+        max-height: 70vh;
+        max-width: 95vw;
+        width: 100%;
+        position: relative;
+        top: 50px;
   }
-
+   .preview-container { height: 400px; }
   .popup-modal h1 { font-size: clamp(1.5rem, 2.8vw, 1.875rem) !important; text-transform: uppercase; color: #fff; padding: 0 0 15px; }
   .popup-modal h3 { font-size: 1rem !important; }
   .popup-modal p  { font-size: 1.1rem !important; }
   .popup-modal label { font-size: 1.1rem; }
+}
+
+/* ============================================
+   AUTH MODAL — form inputs
+   ============================================ */
+.auth-modal input {
+  width: 100%;
+  margin: 6px auto;
+  display: block;
+  box-sizing: border-box;
+}
+.auth-modal form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.auth-modal h1 {
+  text-align: center;
+  width: 100%;
+}
+.auth-modal p {
+  text-align: center;
+  width: 100%;
+}
+.auth-modal .btn {
+  width: 100%;
+  margin: 6px auto;
+  display: block;
+  box-sizing: border-box;
+}
+.auth-modal .popup-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+}
+.popup-link {
+  color: var(--brand) !important;
+  text-decoration: underline;
+}
+.popup-link:hover {
+  opacity: 0.8;
 }

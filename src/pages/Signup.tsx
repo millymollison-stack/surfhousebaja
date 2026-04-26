@@ -31,7 +31,7 @@ export function Signup() {
       <div className="auth-modal">
         <button className="popup-close" onClick={handleClose} aria-label="Close">&times;</button>
         <h1>Create your account</h1>
-        <p className="popup-note">Already have an account? <Link to="/login" className="popup-link">Sign in</Link></p>
+        <p>Already have an account? <Link to="/?auth=login" className="popup-link">Sign in</Link></p>
         <form onSubmit={handleSubmit}>
           {error && <p className="popup-error">{error}</p>}
           <input id="fullName" type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />

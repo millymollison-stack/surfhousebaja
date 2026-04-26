@@ -95,6 +95,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [designChoice, setDesignChoice] = useState('');
  const [websiteName, setWebsiteName] = useState('');
  const [websiteDesc, setWebsiteDesc] = useState('');
+ const [descInitialized, setDescInitialized] = useState(false);
  const [hostingChoice, setHostingChoice] = useState('');
  const [planChoice, setPlanChoice] = useState('');
  const [extras, setExtras] = useState({ seo: false, ads: false, analytics: false, social: false });
@@ -214,10 +215,14 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
 
  // Initialize form fields from scraped property data passed from Home
+ // descInitialized guard: only pre-fill from scraped data on first mount.
+ // After user starts typing, scrapedProperty changes should NOT wipe the field.
  useEffect(() => {
- if (scrapedProperty) {
+ if (!scrapedProperty) return;
+ if (!descInitialized) {
  if (scrapedProperty.property_title) setWebsiteName(scrapedProperty.property_title.slice(0, 20));
  if (scrapedProperty.property_intro) setWebsiteDesc(scrapedProperty.property_intro.slice(0, 200));
+ setDescInitialized(true);
  }
  }, [scrapedProperty]);
 
@@ -691,7 +696,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <h4>Paste your Airbnb listing URL</h4>
  <input
  type="text"
- placeholder="https://www.airbnb.com/rooms/123456789"
+ placeholder="https://www.airbnb.com/rooms/1569039869816457609"
  className="editmode"
  value={airbnbUrl}
  onChange={e => setAirbnbUrl(e.target.value)}
