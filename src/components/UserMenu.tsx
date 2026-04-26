@@ -428,7 +428,7 @@ export function UserMenu() {
               ) : (
                 <>
 
-                  <button onClick={handleProfileUpdate} className="sidebar-btn-save" disabled={loading}>Save</button>
+                  <button type="button" onClick={async () => { try { await handleProfileUpdate(); } catch(e) { console.error(e); } }} className="sidebar-btn-save" disabled={loading}>Save</button>
                 </>
               )}
               <button type="button" onClick={() => setIsOpen(false)} aria-label="Close menu" className="sidebar-btn-close">
@@ -454,53 +454,53 @@ export function UserMenu() {
             <div className="sidebar-fields">
               {user.role === 'admin' && (
                 <div className="sidebar-field">
-                  <span className="sidebar-label">Page URL</span>
+                  <h3 className="sidebar-label">Page URL</h3>
                   <div className="sidebar-input-wrap">
                     {isEditingProfile ? (
                       <input type="text" className="sidebar-input" value={userProperty?.custom_domain || ''} onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)} placeholder="your-domain.com" disabled={loading} />
                     ) : (
-                      <span className="sidebar-value">{userProperty?.custom_domain || 'surfhousebaja.com'}</span>
+                      <p className="sidebar-value">{userProperty?.custom_domain || 'surfhousebaja.com'}</p>
                     )}
                   </div>
                 </div>
               )}
 
               <div className="sidebar-field">
-                <span className="sidebar-label">Full Name</span>
+                <h3 className="sidebar-label">Full Name</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
                     <input type="text" className="sidebar-input" value={profileData.full_name} onChange={(e) => handleProfileInputChange('full_name', e.target.value)} disabled={loading} />
                   ) : (
-                    <span className="sidebar-value">{user.full_name}</span>
+                    <p className="sidebar-value">{user.full_name}</p>
                   )}
                 </div>
               </div>
 
               <div className="sidebar-field">
-                <span className="sidebar-label">Email</span>
+                <h3 className="sidebar-label">Email</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
                     <input type="email" className="sidebar-input" value={profileData.email} onChange={(e) => handleProfileInputChange('email', e.target.value)} disabled={loading} />
                   ) : (
-                    <span className="sidebar-value">{user.email}</span>
+                    <p className="sidebar-value">{user.email}</p>
                   )}
                 </div>
               </div>
 
               <div className="sidebar-field">
-                <span className="sidebar-label">Phone</span>
+                <h3 className="sidebar-label">Phone</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
                     <input type="tel" className="sidebar-input" value={profileData.phone_number} onChange={(e) => handleProfileInputChange('phone_number', e.target.value)} placeholder="Enter phone number" disabled={loading} />
                   ) : (
-                    <span className="sidebar-value">{user.phone_number || 'Not provided'}</span>
+                    <p className="sidebar-value">{user.phone_number || 'Not provided'}</p>
                   )}
                 </div>
               </div>
 
               {user.role === 'admin' && (
                 <div className="sidebar-field">
-                  <span className="sidebar-label">Payouts</span>
+                  <h3 className="sidebar-label">Payouts</h3>
                   <div className="sidebar-input-wrap">
                     {isEditingProfile ? (
                       <>
@@ -518,9 +518,9 @@ export function UserMenu() {
 
               {user.role === 'admin' && (
                 <div className="sidebar-field">
-                  <span className="sidebar-label">Role</span>
+                  <h3 className="sidebar-label">Role</h3>
                   <div className="sidebar-input-wrap">
-                    <span className="sidebar-value capitalize">{user.role}</span>
+                    <p className="sidebar-value capitalize">{user.role}</p>
                   </div>
                 </div>
               )}

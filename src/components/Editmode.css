@@ -13,7 +13,7 @@ input[type="password"] {
   background: rgba(255, 255, 255, 0.3) !important;
   color: white;
   font-size: 0.9rem;
-  width: 80%;
+  width: 100% !important;
   max-width: 400px;
   margin: 8px 0;
   -webkit-appearance: none;
@@ -36,7 +36,7 @@ input[type="password"] {
   border: 1px solid rgba(255, 255, 255, 0.3);
   font-family: 'Inter', sans-serif;
   color: inherit;
-  width: 80%;
+  width: 100% !important;
   max-width: 100%;
   font-size: 0.9rem;
 }
@@ -91,7 +91,7 @@ input[type="password"] {
 
 /* ---- .edit-intro-textarea ---- */
 .edit-intro-textarea {
-  width: 90% !important;
+  width: 100% !important;
   max-width: 100% !important;
   color: #ffffff;
   height: 70px;

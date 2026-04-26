@@ -206,7 +206,6 @@ input[type="password"] {
   appearance: none;
   box-sizing: border-box;
   outline: none;
-  margin: 8px 0 28px;
 }
 
 input[type="text"]:focus,

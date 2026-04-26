@@ -80,7 +80,7 @@ export default function ColorPicker({ isEditing }: { isEditing?: boolean }) {
   if (!isEditing) return null;
 
   return (
-    <div ref={panelRef} className="fixed right-[5px] z-[9998] color-picker-panel">
+    <div ref={panelRef} className="fixed z-[9998] color-picker-panel">
       {open && (
         <div className="color-picker-modal">
           {/* Header */}
