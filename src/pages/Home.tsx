@@ -8,6 +8,7 @@ import { BookingCalendar } from '../components/BookingCalendar';
 import ReviewsList from '../components/ReviewsList';
 import ReviewForm from '../components/ReviewForm';
 import { OnboardingPopup } from '../components/OnboardingPopup';
+import '../components/OnboardingPopup.css';
 import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 
@@ -346,7 +347,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--brand)]" />
+        <div className="spinner-ring" />
       </div>
     );
   }

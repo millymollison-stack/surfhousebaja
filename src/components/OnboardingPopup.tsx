@@ -188,7 +188,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [countdown, setCountdown] = useState(0);
  const [importError, setImportError] = useState('');
  const [scrapedData, setScrapedData] = useState<any>(null);
- const [showDebug, setShowDebug] = useState(false);
  const [showColorPicker, setShowColorPicker] = useState(false);
  const [brandColor, setBrandColor] = useState('#C47756');
  const [fontAccent, setFontAccent] = useState(
@@ -490,14 +489,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
  };
 
- // Debug toggle - press D on keyboard
- useEffect(() => {
- const handler = (e: KeyboardEvent) => {
- if (e.key === 'd' || e.key === 'D') setShowDebug(v => !v);
- };
- window.addEventListener('keydown', handler);
- return () => window.removeEventListener('keydown', handler);
- }, []);
 
  
 
@@ -995,70 +986,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  )}
 
- {/* Debug data page — press D to toggle */}
- {showDebug && scrapedData && (
- <div className="debug-data-overlay">
- <div className="debug-data-panel">
- <h2>Scraped Data (press D to close)</h2>
- <table>
- <tbody>
- {Object.entries(scrapedData).map(([key, val]) => (
- <tr key={key}>
- <td className="debug-key">{key}</td>
- <td className="debug-val">
- {key === 'description' && typeof val === 'string' && val.length > 200 ? (
- <div>
- <div className="debug-array-label">HERO SUBTITLE (first 200 chars):</div>
- <div className="debug-string" style={{color:'#22c55e'}}>{val.slice(0, 200)}</div>
- <div className="debug-array-label" style={{marginTop:'12px'}}>DESCRIPTION BELOW (chars {200}–{val.length}):</div>
- <div className="debug-string" style={{color:'#f97316'}}>{val.slice(200)}</div>
- </div>
- ) : Array.isArray(val) ? (
- <div>
- <div className="debug-array-label">Array ({val.length} items):</div>
- {(val as string[]).map((item, i) => (
- <div key={i} className="debug-array-item">
- <img src={item} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
- <span>{item}</span>
- </div>
- ))}
- </div>
- ) : typeof val === 'string' && val.length > 150 ? (
- <div>
- <img src={val} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
- <div className="debug-string">{val.slice(0, 120)}... [{val.length} chars]</div>
- </div>
- ) : (
- <span>{String(val)}</span>
- )}
- </td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
  
- {/* Fixed bottom total banner */}
- <div className="popup-total-banner">
- <div className="popup-total-left">
- <div className="popup-total-label">Total due today</div>
- <div className="popup-total-subline">
- {hasScrape && <span className="popup-total-tag">+${scrapeFee} Airbnb scrape</span>}
- {hasScrape && hasPlan && <span className="popup-total-sep"> · </span>}
- {!hasPlan && <span className="popup-total-sep"> · Select a plan</span>}
- {hasPlan && `+$${monthlyTotal}/mo subscription`}
- </div>
- </div>
- <div className="popup-total-right">
- <div className="popup-total-amount">${displayedTotal}</div>
- <div className="popup-total-period">
- {monthlyTotal > 0 && TRIAL_CREDIT > 0 ? `+$${monthlyTotal}/mo after free month` : (monthlyTotal > 0 ? `+$${monthlyTotal}/mo` : (hasScrape ? 'due today' : ''))}
- </div>
- </div>
- {stripeError && <div className="popup-stripe-error">{stripeError}</div>}
- </div>
- </div>
- )}
  </>
  );
 }

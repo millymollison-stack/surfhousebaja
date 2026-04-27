@@ -271,3 +271,22 @@ input[type="number"]::-moz-outer-spin-button {
 .gallery-content-overlay .flex.items-baseline .flex.items-baseline:has(.edit-price-input) {
   justify-content: flex-end !important;
 }
+
+/* ============================================
+   BOOKING MODAL TEXTAREA
+   ============================================ */
+.booking-modal-textarea {
+  width: 80%;
+  max-width: 100%;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  color: #111;
+  font-size: 0.85rem;
+  box-sizing: border-box;
+  outline: none;
+  resize: vertical;
+  display: block;
+  margin: 0;
+}

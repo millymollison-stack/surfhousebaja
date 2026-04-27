@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import './OnboardingPopup.css';
 import './Editmode.css';
 import './sidebar.css';
-import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Shield, Building, Info } from 'lucide-react';
+import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { supabase } from '../lib/supabase';
@@ -59,20 +60,57 @@ export function UserMenu() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && user) {
-      loadBookings();
-      loadUserProperty();
-      setProfileData({
-        full_name: user.full_name || '',
-        email: user.email || '',
-        phone_number: user.phone_number || '',
-        stripe_account_id: (user as any).stripe_account_id || '',
-        stripe_account_status: (user as any).stripe_account_status || ''
-      });
-      // Clear any previous messages when opening
-      setProfileError(null);
-      setProfileSuccess(null);
+    if (!isOpen) {
+      setBookings([]);
+      setBookingsLoading(false);
+      return;
     }
+    if (!user) return;
+
+    // Clear and reload bookings on every open
+    setBookings([]);
+    setBookingsLoading(true);
+    setBookingError(null);
+
+    const load = async () => {
+      try {
+        let query = supabase
+          .from('bookings')
+          .select(`*, property:properties!inner(*), user:profiles!inner(*)`);
+        if (user.role === 'admin') {
+          query = query.order('status', { ascending: true, nullsLast: true }).order('created_at', { ascending: false });
+        } else {
+          query = query.eq('user_id', user.id).order('created_at', { ascending: false });
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        const valid = (data || []).filter((b: any) => b && b.property && b.user);
+        setBookings(valid);
+      } catch (err: any) {
+        setBookingError(err.message || 'Failed to load bookings');
+      } finally {
+        setBookingsLoading(false);
+      }
+    };
+
+    const loadProperty = async () => {
+      if (!user) return;
+      const { data: property } = await supabase.from('properties').select('*').eq('owner_id', user.id).maybeSingle();
+      if (property) setUserProperty(property);
+    };
+
+    load();
+    loadProperty();
+
+    setProfileData({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      phone_number: user.phone_number || '',
+      stripe_account_id: (user as any).stripe_account_id || '',
+      stripe_account_status: (user as any).stripe_account_status || ''
+    });
+    setProfileError(null);
+    setProfileSuccess(null);
   }, [isOpen, user]);
 
   // Load user's property for custom domain
@@ -526,19 +564,6 @@ export function UserMenu() {
               )}
             </div>
 
-            {/* Action buttons */}
-            {user.role === 'admin' && (
-              <div className="sidebar-actions">
-                <hr className="sidebar-divider" />
-                <button onClick={() => { setIsOpen(false); navigate('/admin'); }} className="sidebar-action-btn sidebar-action-btn-blue">
-                  <Shield /><span>Admin Dashboard</span>
-                </button>
-                <button onClick={() => { setIsOpen(false); navigate('/property-admin'); }} className="sidebar-action-btn sidebar-action-btn-green">
-                  <Building /><span>My Property</span>
-                </button>
-              </div>
-            )}
-
             {/* Sign out */}
             <button onClick={async () => { await signOut(); setIsOpen(false); }} className="sidebar-signout" disabled={loading}>
               <LogOut /><span>Sign Out</span>
@@ -559,7 +584,7 @@ export function UserMenu() {
 
               {bookingsLoading ? (
                 <div className="sidebar-spinner-wrap">
-                  <div className="sidebar-spinner" />
+                  <div className="spinner-ring" />
                   <span className="sidebar-spinner-label">Loading bookings...</span>
                 </div>
               ) : !bookingError && bookings.length === 0 ? (
