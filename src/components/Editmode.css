@@ -247,12 +247,6 @@ input[type="password"] {
   border-color: transparent;
 }
 
-/* ---- Override OnboardingPopup max-width on popup textareas ---- */
-.popup-textarea.editmode {
-  max-width: 80% !important;
-  width: 80% !important;
-  border-radius: 6px;
-}
 
 /* ---- Number input spinners ---- */
 input[type="number"]::-webkit-inner-spin-button,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './OnboardingPopup.css';
 import './Editmode.css';
 import './sidebar.css';
-import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Info } from 'lucide-react';
+import { X, User, LogOut, CreditCard as Edit2, Save, AlertCircle, Info, Building, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { supabase } from '../lib/supabase';
@@ -27,8 +27,13 @@ export function UserMenu() {
   const [userProperty, setUserProperty] = useState<Property | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [showPayoutPanel, setShowPayoutPanel] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  const isSaaSAdmin = user?.role === 'saas_admin';
+  const isAdmin = user?.role === 'admin';
+  const isGuest = !isSaaSAdmin && !isAdmin;
 
   // Close menu on Escape key
   useEffect(() => {
@@ -44,17 +49,16 @@ export function UserMenu() {
   // Close menu when clicking outside
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Check if click is outside the menu panel
       const menuPanel = document.querySelector('[data-user-menu-panel]');
       const menuButton = document.querySelector('[data-user-menu-button]');
       if (menuPanel && !menuPanel.contains(target) && menuButton && !menuButton.contains(target)) {
         setIsOpen(false);
       }
     };
-    
+
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isOpen]);
@@ -63,25 +67,30 @@ export function UserMenu() {
     if (!isOpen) {
       setBookings([]);
       setBookingsLoading(false);
+      setShowPayoutPanel(false);
       return;
     }
     if (!user) return;
 
-    // Clear and reload bookings on every open
     setBookings([]);
     setBookingsLoading(true);
     setBookingError(null);
+    setShowPayoutPanel(false);
 
     const load = async () => {
       try {
         let query = supabase
           .from('bookings')
           .select(`*, property:properties!inner(*), user:profiles!inner(*)`);
-        if (user.role === 'admin') {
+
+        if (isSaaSAdmin) {
+          query = query.order('status', { ascending: true, nullsLast: true }).order('created_at', { ascending: false });
+        } else if (isAdmin) {
           query = query.order('status', { ascending: true, nullsLast: true }).order('created_at', { ascending: false });
         } else {
           query = query.eq('user_id', user.id).order('created_at', { ascending: false });
         }
+
         const { data, error } = await query;
         if (error) throw error;
         const valid = (data || []).filter((b: any) => b && b.property && b.user);
@@ -111,32 +120,14 @@ export function UserMenu() {
     });
     setProfileError(null);
     setProfileSuccess(null);
-  }, [isOpen, user]);
-
-  // Load user's property for custom domain
-  const loadUserProperty = async () => {
-    if (!user) return;
-    
-    const { data: property, error } = await supabase
-      .from('properties')
-      .select('*')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-    
-    if (property) {
-      setUserProperty(property);
-    }
-  };
+  }, [isOpen, user, isSaaSAdmin, isAdmin]);
 
   const loadBookings = async () => {
     if (!user) return;
-    
+
     setBookingsLoading(true);
     setBookingError(null);
-    console.log('=== LOADING BOOKINGS ===');
-    console.log('User:', user);
-    console.log('User role:', user.role);
-    
+
     try {
       let query = supabase
         .from('bookings')
@@ -146,39 +137,19 @@ export function UserMenu() {
           user:profiles!inner(*)
         `);
 
-      // For admin, show all bookings ordered by status and date
-      if (user.role === 'admin') {
-        console.log('Loading admin bookings...');
-        query = query
-          .order('status', { ascending: true, nullsLast: true })
-          .order('created_at', { ascending: false });
+      if (isSaaSAdmin) {
+        query = query.order('status', { ascending: true, nullsLast: true }).order('created_at', { ascending: false });
+      } else if (isAdmin) {
+        query = query.order('status', { ascending: true, nullsLast: true }).order('created_at', { ascending: false });
       } else {
-        console.log('Loading user bookings for user ID:', user.id);
-        // For regular users, only show their bookings
-        query = query
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+        query = query.eq('user_id', user.id).order('created_at', { ascending: false });
       }
 
       const { data, error } = await query;
-      
-      console.log('Booking query result:', { data, error });
-      
-      if (error) {
-        console.error('Error fetching bookings:', error);
-        throw error;
-      }
-
-      // Ensure we have valid data with proper relationships
-      const validBookings = (data || []).filter(booking => 
-        booking && booking.property && booking.user
-      );
-      
-      console.log('Setting bookings state with:', validBookings.length, 'valid bookings');
+      if (error) throw error;
+      const validBookings = (data || []).filter((b: any) => b && b.property && b.user);
       setBookings(validBookings);
-      console.log('Bookings loaded successfully:', validBookings.length, 'bookings');
     } catch (err) {
-      console.error('Failed to load bookings:', err);
       setBookingError(err instanceof Error ? err.message : 'Failed to load bookings');
     } finally {
       setBookingsLoading(false);
@@ -186,18 +157,12 @@ export function UserMenu() {
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: 'approved' | 'denied', reason?: string) => {
-    console.log('=== USER MENU: handleUpdateBookingStatus called ===');
-    console.log('Booking ID:', bookingId);
-    console.log('Status:', status);
-    console.log('Reason:', reason);
-
-    if (!user || user.role !== 'admin') return;
+    if (!user || (!isAdmin && !isSaaSAdmin)) return;
 
     setBookingError(null);
     setBookingsLoading(true);
 
     try {
-      console.log('Updating booking status in database...');
       const { error } = await supabase
         .from('bookings')
         .update({
@@ -209,20 +174,10 @@ export function UserMenu() {
 
       if (error) throw error;
 
-      // Send email notifications
-      console.log('Starting email notification process...');
       const booking = bookings.find(b => b.id === bookingId);
-      console.log('Found booking for email:', booking);
-
       if (booking) {
         try {
-          console.log('=== EMAIL SENDING DEBUG ===');
-          console.log('Booking ID:', bookingId);
-          console.log('Status:', status);
-          console.log('Booking data:', JSON.stringify(booking, null, 2));
-
           if (status === 'approved') {
-            console.log('Calling sendBookingConfirmationEmail...');
             await EmailNotificationService.sendBookingConfirmationEmail({
               booking: {
                 start_date: booking.start_date,
@@ -234,9 +189,7 @@ export function UserMenu() {
               user: booking.user,
               property: booking.property
             });
-            console.log('✅ Approval email sent successfully');
           } else if (status === 'denied') {
-            console.log('Calling sendBookingDenialEmail with reason:', reason);
             await EmailNotificationService.sendBookingDenialEmail({
               booking: {
                 start_date: booking.start_date,
@@ -249,22 +202,14 @@ export function UserMenu() {
               property: booking.property,
               denialReason: reason
             });
-            console.log('✅ Denial email sent successfully');
           }
         } catch (emailError) {
-          console.error('❌ Failed to send status update email:', emailError);
-          console.error('Email error details:', emailError);
-          // Don't fail the status update if email fails
+          console.error('Failed to send status update email:', emailError);
         }
-      } else {
-        console.error('❌ Booking not found for ID:', bookingId);
       }
 
-      console.log('Database update successful, reloading bookings...');
       await loadBookings();
-      console.log('=== USER MENU: handleUpdateBookingStatus completed ===');
     } catch (err) {
-      console.error('❌ USER MENU: Failed to update booking status:', err);
       setBookingError(err instanceof Error ? err.message : 'Failed to update booking status');
     } finally {
       setBookingsLoading(false);
@@ -272,7 +217,7 @@ export function UserMenu() {
   };
 
   const handleRefund = async (bookingId: string) => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || (!isAdmin && !isSaaSAdmin)) return;
 
     setBookingError(null);
     setBookingsLoading(true);
@@ -281,9 +226,7 @@ export function UserMenu() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session) {
-        throw new Error('No authentication session found');
-      }
+      if (!session) throw new Error('No authentication session found');
 
       const response = await fetch(`${supabaseUrl}/functions/v1/process-refund`, {
         method: 'POST',
@@ -302,7 +245,6 @@ export function UserMenu() {
 
       await loadBookings();
     } catch (err) {
-      console.error('Failed to process refund:', err);
       setBookingError(err instanceof Error ? err.message : 'Failed to process refund');
       throw err;
     } finally {
@@ -312,20 +254,14 @@ export function UserMenu() {
 
   const handleProfileUpdate = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     setProfileError(null);
     setProfileSuccess(null);
-    
+
     try {
-      // Validate input data
-      if (!profileData.full_name?.trim()) {
-        throw new Error('Full name is required');
-      }
-      
-      if (!profileData.email?.trim()) {
-        throw new Error('Email is required');
-      }
+      if (!profileData.full_name?.trim()) throw new Error('Full name is required');
+      if (!profileData.email?.trim()) throw new Error('Email is required');
 
       const updates: any = {
         full_name: profileData.full_name.trim(),
@@ -333,74 +269,43 @@ export function UserMenu() {
         stripe_account_id: profileData.stripe_account_id?.trim() || null,
         stripe_account_status: profileData.stripe_account_status?.trim() || null
       };
-      
-      // Add email to updates if it changed
+
       if (profileData.email.trim() !== user.email) {
         updates.email = profileData.email.trim();
       }
 
-      // Get the current auth state to ensure we have the latest user data
       const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      
-      if (!currentUser) {
-        throw new Error('User session expired. Please sign in again.');
-      }
+      if (!currentUser) throw new Error('User session expired. Please sign in again.');
 
-      // Update profile in database first
       const profileUpdates = { ...updates };
-      delete profileUpdates.email; // Handle email separately
-      
+      delete profileUpdates.email;
+
       if (Object.keys(profileUpdates).length > 0) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({
-            ...profileUpdates,
-            updated_at: new Date().toISOString()
-          })
+          .update({ ...profileUpdates, updated_at: new Date().toISOString() })
           .eq('id', currentUser.id);
-        
         if (profileError) throw profileError;
       }
-      
-      // Handle email change if needed
-      let emailChangeRequested = false;
+
       if (updates.email && updates.email !== currentUser.email) {
         const { error: emailError } = await supabase.auth.updateUser({
           email: updates.email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/confirm`
-          }
+          options: { emailRedirectTo: `${window.location.origin}/auth/confirm` }
         });
-        
         if (emailError) throw emailError;
-        emailChangeRequested = true;
-      }
-      
-      if (emailChangeRequested) {
-        setProfileSuccess('Profile updated! Please check your new email address for a confirmation link.');
+        setProfileSuccess('Profile updated! Please check your new email for a confirmation link.');
       } else {
         setProfileSuccess('Profile updated successfully!');
-        
-        // Save custom domain to property if changed
         if (userProperty && userProperty.custom_domain !== undefined) {
-          await supabase
-            .from('properties')
-            .update({ custom_domain: userProperty.custom_domain })
-            .eq('id', userProperty.id);
+          await supabase.from('properties').update({ custom_domain: userProperty.custom_domain }).eq('id', userProperty.id);
         }
-        
-        // Refresh user data from auth store
-        setTimeout(() => {
-          useAuth.getState().initialize();
-        }, 500);
+        setTimeout(() => { useAuth.getState().initialize(); }, 500);
       }
-      
+
       setIsEditingProfile(false);
     } catch (error: any) {
-      console.error('Failed to update profile:', error);
-      
-      // Handle specific error cases
       if (error.message?.includes('session')) {
         setProfileError('Your session has expired. Please sign out and sign in again.');
       } else if (error.message?.includes('email')) {
@@ -414,32 +319,18 @@ export function UserMenu() {
   };
 
   const handleProfileInputChange = (field: keyof typeof profileData, value: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    // Clear messages when user starts typing
+    setProfileData(prev => ({ ...prev, [field]: value }));
     setProfileError(null);
     setProfileSuccess(null);
   };
 
   if (!user) return null;
 
-  // Animation state
-  const [isAnimating, setIsAnimating] = useState(false);
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const closeMenu = () => setIsOpen(false);
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-    setIsAnimating(true);
-  };
-
-  const closeMenu = () => {
-    setIsOpen(false);
-  };
-
-  const handleAnimationEnd = () => {
-    setIsAnimating(false);
-  };
+  const bookingStatusHandler = (isAdmin || isSaaSAdmin) ? handleUpdateBookingStatus : undefined;
+  const refundHandler = (isAdmin || isSaaSAdmin) ? handleRefund : undefined;
 
   return (
     <>
@@ -452,31 +343,38 @@ export function UserMenu() {
         <span>{user.full_name?.split(' ')[0] || 'Profile'}</span>
       </button>
 
-      {/* Slide-out menu */}
       {isOpen && (
         <div data-user-menu-panel className="sidebar-panel">
-          {/* Header */}
+
+          {/* ── Header ── */}
           <div className="sidebar-header">
             <h1 className="sidebar-header-label">Profile</h1>
             <div className="sidebar-header-actions">
               {!isEditingProfile ? (
                 <button onClick={() => setIsEditingProfile(true)} className="sidebar-btn-edit">
-                  <Edit2 /><span>Edit</span>
+                  <span>Edit</span>
                 </button>
               ) : (
                 <>
-
-                  <button type="button" onClick={async () => { try { await handleProfileUpdate(); } catch(e) { console.error(e); } }} className="sidebar-btn-save" disabled={loading}>Save</button>
+                  <button onClick={() => setIsEditingProfile(false)} className="sidebar-btn-cancel"><span>Cancel</span></button>
+                  <button
+                    onClick={async () => { try { await handleProfileUpdate(); } catch (e) { console.error(e); } }}
+                    className="sidebar-btn-save"
+                    disabled={loading}
+                  >
+                    <span>Save</span>
+                  </button>
                 </>
               )}
-              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close menu" className="sidebar-btn-close">
+              <button onClick={closeMenu} aria-label="Close menu" className="sidebar-btn-close">
                 <X />
               </button>
             </div>
           </div>
 
-          {/* Content */}
+          {/* ── Content ── */}
           <div className="sidebar-content">
+
             {profileError && (
               <div className="sidebar-alert sidebar-alert-error">
                 <AlertCircle /><p>{profileError}</p>
@@ -488,26 +386,78 @@ export function UserMenu() {
               </div>
             )}
 
-            {/* Field list */}
+            {/* ── SECTION 1: SITE ── */}
             <div className="sidebar-fields">
-              {user.role === 'admin' && (
-                <div className="sidebar-field">
-                  <h3 className="sidebar-label">Page URL</h3>
-                  <div className="sidebar-input-wrap">
-                    {isEditingProfile ? (
-                      <input type="text" className="sidebar-input" value={userProperty?.custom_domain || ''} onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)} placeholder="your-domain.com" disabled={loading} />
-                    ) : (
-                      <p className="sidebar-value">{userProperty?.custom_domain || 'surfhousebaja.com'}</p>
-                    )}
+              <div className="sidebar-field">
+                <h3 className="sidebar-label">Site</h3>
+                <div className="sidebar-input-wrap">
+                  <p className="sidebar-value">
+                    {isSaaSAdmin ? 'Offairbnb.com'
+                      : isAdmin ? 'Offairbnb.com/Newsite'
+                      : 'offairbnb.pro/newsite'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <hr className="sidebar-divider" />
+
+            {/* ── SECTION 2: SUBHOST / OWN DOMAIN ── */}
+            {(isSaaSAdmin || isAdmin) && (
+              <>
+                <div className="sidebar-fields">
+                  <div className="sidebar-field">
+                    <h3 className="sidebar-label">Subhost / Own Domain</h3>
+                    <div className="sidebar-input-wrap">
+
+                      {isSaaSAdmin ? (
+                        <>
+                          <p className="sidebar-value">Yes — Edit DNS list for sites</p>
+                          {/* Dev sandbox / Live site / Push update */}
+                          <div className="sb-mt-8">
+                            <p className="sidebar-value-link sb-value-sm sb-mb-4">
+                              <Building /><span>Dev sandbox: localhost:5174</span>
+                            </p>
+                            <p className="sidebar-value-link sb-value-sm sb-mb-4">
+                              <Building /><span>Live site: offairbnb.com</span>
+                            </p>
+                            <button className="sidebar-action-btn sb-btn-blue">Push update</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="sidebar-value sb-mb-6">Yes</p>
+                          {isEditingProfile ? (
+                            <input
+                              type="text"
+                              className="sidebar-input"
+                              value={userProperty?.custom_domain || ''}
+                              onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)}
+                              placeholder="your-domain.com"
+                              disabled={loading}
+                            />
+                          ) : (
+                            <p className="sidebar-value">{userProperty?.custom_domain || 'Not set'}</p>
+                          )}
+                        </>
+                      )}
+
+                    </div>
                   </div>
                 </div>
-              )}
+                <hr className="sidebar-divider" />
+              </>
+            )}
+
+            {/* ── SECTION 3: PROFILE ── */}
+            <div className="sidebar-fields">
 
               <div className="sidebar-field">
                 <h3 className="sidebar-label">Full Name</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
-                    <input type="text" className="sidebar-input" value={profileData.full_name} onChange={(e) => handleProfileInputChange('full_name', e.target.value)} disabled={loading} />
+                    <input type="text" className="sidebar-input" value={profileData.full_name}
+                      onChange={(e) => handleProfileInputChange('full_name', e.target.value)} disabled={loading} />
                   ) : (
                     <p className="sidebar-value">{user.full_name}</p>
                   )}
@@ -518,9 +468,21 @@ export function UserMenu() {
                 <h3 className="sidebar-label">Email</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
-                    <input type="email" className="sidebar-input" value={profileData.email} onChange={(e) => handleProfileInputChange('email', e.target.value)} disabled={loading} />
+                    <input type="email" className="sidebar-input" value={profileData.email}
+                      onChange={(e) => handleProfileInputChange('email', e.target.value)} disabled={loading} />
                   ) : (
                     <p className="sidebar-value">{user.email}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="sidebar-field">
+                <h3 className="sidebar-label">Password</h3>
+                <div className="sidebar-input-wrap">
+                  {isEditingProfile ? (
+                    <input type="password" className="sidebar-input" placeholder="Enter new password" disabled={loading} />
+                  ) : (
+                    <p className="sidebar-value">••••••••</p>
                   )}
                 </div>
               </div>
@@ -529,71 +491,215 @@ export function UserMenu() {
                 <h3 className="sidebar-label">Phone</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
-                    <input type="tel" className="sidebar-input" value={profileData.phone_number} onChange={(e) => handleProfileInputChange('phone_number', e.target.value)} placeholder="Enter phone number" disabled={loading} />
+                    <input type="tel" className="sidebar-input" value={profileData.phone_number}
+                      onChange={(e) => handleProfileInputChange('phone_number', e.target.value)}
+                      placeholder="Enter phone number" disabled={loading} />
                   ) : (
                     <p className="sidebar-value">{user.phone_number || 'Not provided'}</p>
                   )}
                 </div>
               </div>
 
-              {user.role === 'admin' && (
-                <div className="sidebar-field">
-                  <h3 className="sidebar-label">Payouts</h3>
-                  <div className="sidebar-input-wrap">
-                    {isEditingProfile ? (
-                      <>
-                        <input type="text" className="sidebar-input" value={profileData.stripe_account_id} onChange={(e) => handleProfileInputChange('stripe_account_id', e.target.value)} placeholder="Stripe Account ID" disabled={loading} />
-                        <input type="text" className="sidebar-input" value={profileData.stripe_account_status} onChange={(e) => handleProfileInputChange('stripe_account_status', e.target.value)} placeholder="Status" disabled={loading} />
-                      </>
-                    ) : (
-                      <button className="sidebar-value-link">
-                        <Building /><span>{profileData.stripe_account_id ? 'Connected' : 'Set up payouts'}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {user.role === 'admin' && (
-                <div className="sidebar-field">
-                  <h3 className="sidebar-label">Role</h3>
-                  <div className="sidebar-input-wrap">
-                    <p className="sidebar-value capitalize">{user.role}</p>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Sign out */}
-            <button onClick={async () => { await signOut(); setIsOpen(false); }} className="sidebar-signout" disabled={loading}>
+            <hr className="sidebar-divider" />
+
+            {/* ── SECTION 4: PROPERTY ── */}
+            <div className="sidebar-fields">
+              <div className="sidebar-field">
+                <h3 className="sidebar-label">Property</h3>
+                <div className="sidebar-input-wrap">
+
+                  {(isSaaSAdmin || isAdmin) ? (
+                    isEditingProfile ? (
+                      <>
+                        <input
+                          type="text"
+                          className="sidebar-input sb-mb-8"
+                          value={userProperty?.address || ''}
+                          onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, address: e.target.value } : null)}
+                          placeholder="Property address"
+                          disabled={loading}
+                        />
+                        <button className="sidebar-action-btn sb-btn-gray">Photos</button>
+                        <button className="sidebar-action-btn sb-btn-gray">Text</button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="sidebar-value sb-mb-6">{userProperty?.address || 'No address set'}</p>
+                        <p className="sidebar-value-link sb-value-sm sb-mb-4"><Building /><span>Photos</span></p>
+                        <p className="sidebar-value-link sb-value-sm"><Building /><span>Text</span></p>
+                      </>
+                    )
+                  ) : (
+                    <p className="sidebar-value">{userProperty?.address || 'Address not available'}</p>
+                  )}
+
+                </div>
+              </div>
+            </div>
+
+            <hr className="sidebar-divider" />
+
+            {/* ── SECTION 5: PAYOUT ACCOUNT ── */}
+            {(isSaaSAdmin || isAdmin) && (
+              <>
+                <div className="sidebar-fields">
+                  <div className="sidebar-field">
+                    <h3 className="sidebar-label">Payout Account</h3>
+                    <div className="sidebar-input-wrap">
+
+                      {isAdmin ? (
+                        !showPayoutPanel ? (
+                          <button
+                            className="sidebar-action-btn sb-btn-view-payouts"
+                            onClick={() => setShowPayoutPanel(true)}
+                          >
+                            <Building /><span>View payouts</span>
+                            <ChevronDown size={14} className="sb-ml-auto" />
+                          </button>
+                        ) : (
+                          <div>
+                            <button
+                              className="sidebar-action-btn sb-btn-view-payouts"
+                              onClick={() => setShowPayoutPanel(false)}
+                            >
+                              <Building /><span>View payouts</span>
+                              <ChevronUp size={14} className="sb-ml-auto" />
+                            </button>
+                            <div className="sb-payout-panel sb-mt-8">
+                              <div className="sidebar-field">
+                                <h3 className="sidebar-label">Account Details</h3>
+                                {isEditingProfile ? (
+                                  <input type="text" className="sidebar-input"
+                                    value={profileData.stripe_account_id}
+                                    onChange={(e) => handleProfileInputChange('stripe_account_id', e.target.value)}
+                                    placeholder="Stripe Account ID" disabled={loading} />
+                                ) : (
+                                  <p className="sidebar-value">{profileData.stripe_account_id || 'Not connected'}</p>
+                                )}
+                              </div>
+                              <div className="sidebar-field sb-mt-8">
+                                <h3 className="sidebar-label">Show History</h3>
+                                <p className="sidebar-value">View in Stripe dashboard</p>
+                              </div>
+                              <div className="sidebar-field sb-mt-8">
+                                <h3 className="sidebar-label">Current Balance</h3>
+                                <p className="sidebar-value">$0.00</p>
+                              </div>
+                              <button className="sidebar-action-btn sidebar-action-btn-green sb-mt-10">Withdraw</button>
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <>
+                          <p className="sb-balance-label">Platform Balance</p>
+                          <p className="sb-value-lg">$0.00</p>
+                          <p className="sidebar-empty sb-mb-4">2% processing fee applies</p>
+                          <button className="sidebar-action-btn sidebar-action-btn-green sb-mt-8">Withdraw</button>
+                        </>
+                      )}
+
+                    </div>
+                  </div>
+                </div>
+                <hr className="sidebar-divider" />
+              </>
+            )}
+
+            {/* ── SECTION 6: GUEST PAYMENTS (SaaS admin only) ── */}
+            {isSaaSAdmin && (
+              <>
+                <div className="sidebar-fields">
+                  <div className="sidebar-field">
+                    <h3 className="sidebar-label">Guest Payments</h3>
+                    <div className="sidebar-input-wrap">
+                      <p className="sidebar-value sb-mb-4">2% processing fee</p>
+                      <p className="sb-balance-amount sb-mb-4">Balance: <strong>$0.00</strong></p>
+                      <p className="sb-balance-amount sb-mb-4">Withdrawals: <strong>$0.00</strong></p>
+                    </div>
+                  </div>
+                </div>
+                <hr className="sidebar-divider" />
+              </>
+            )}
+
+            {/* ── SECTION 7: SERVICES ── */}
+            {(isSaaSAdmin || isAdmin) && (
+              <>
+                <div className="sidebar-fields">
+                  <div className="sidebar-field">
+                    <h3 className="sidebar-label">Services</h3>
+                    <div className="sidebar-input-wrap">
+                      {isSaaSAdmin ? (
+                        <p className="sb-sub-text">Add tools here when developed</p>
+                      ) : (
+                        <>
+                          <p className="sidebar-value-link sb-service-link"><Building /><span>Marketing</span></p>
+                          <p className="sidebar-value-link sb-service-link"><Building /><span>Social</span></p>
+                          <p className="sidebar-value-link sb-service-link"><Building /><span>Ads</span></p>
+                          <p className="sidebar-value-link sb-service-link"><Building /><span>Analytics</span></p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <hr className="sidebar-divider" />
+              </>
+            )}
+
+            {/* ── SECTION 9: SUBSCRIPTION ── */}
+            <div className="sidebar-fields">
+              <div className="sidebar-field">
+                <h3 className="sidebar-label">Subscription</h3>
+                <div className="sidebar-input-wrap">
+                  <p className="sb-sub-text">{isSaaSAdmin ? 'Payment History' : 'Billing History'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Sign Out ── */}
+            <button
+              onClick={async () => { await signOut(); setIsOpen(false); }}
+              className="sidebar-signout"
+              disabled={loading}
+            >
               <LogOut /><span>Sign Out</span>
             </button>
-          </div>
 
-          {/* Bookings */}
+          </div>{/* /sidebar-content */}
+
+          {/* ── SECTION 8: BOOKINGS ── */}
           <div className="sidebar-bookings">
             <div className="sidebar-bookings-inner">
-              <h1 className="sidebar-section-header">Bookings</h1>
+              <h1 className="sidebar-section-header">
+                {isSaaSAdmin ? 'All Bookings' : isAdmin ? 'Bookings' : 'My Bookings'}
+              </h1>
 
               {bookingError && (
                 <div className="sidebar-alert sidebar-alert-error">
                   <AlertCircle /><p>{bookingError}</p>
-                  <button onClick={loadBookings} style={{ marginTop: '6px', fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Try again</button>
+                  <button onClick={loadBookings} className="sb-btn-retry">Try again</button>
                 </div>
               )}
 
               {bookingsLoading ? (
                 <div className="sidebar-spinner-wrap">
-                  <div className="spinner-ring" />
+                  <div className="sidebar-spinner" />
                   <span className="sidebar-spinner-label">Loading bookings...</span>
                 </div>
               ) : !bookingError && bookings.length === 0 ? (
                 <div className="sidebar-empty">No bookings found.</div>
               ) : !bookingError ? (
-                <UserBookings bookings={bookings} onUpdateStatus={user.role === 'admin' ? handleUpdateBookingStatus : undefined} onRefund={user.role === 'admin' ? handleRefund : undefined} />
+                <UserBookings
+                  bookings={bookings}
+                  onUpdateStatus={bookingStatusHandler}
+                  onRefund={refundHandler}
+                />
               ) : null}
             </div>
           </div>
+
         </div>
       )}
     </>
