@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: 'Inter', sans-serif;
             background: transparent;
@@ -20,21 +20,21 @@
             margin: 0;
             padding: 0;
         }
-        
+
         .p-bg {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             background: url('surfhousebaja-main.jpg') center/cover no-repeat;
             z-index: 0;
         }
-        
+
         .p-bg::after {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.15);
         }
-        
+
         .p-nav {
             position: absolute;
             top: 0;
@@ -47,14 +47,14 @@
             z-index: 20;
             background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
         }
-        
+
         .p-nav-logo { display: flex; align-items: center; gap: 6px; }
         .p-nav-icon { font-size: 1rem; color: white; }
         .p-nav-brand { font-size: 0.75rem; font-weight: 500; color: white; letter-spacing: 0.02em; }
         .p-nav-links { display: flex; align-items: center; gap: 8px; }
         .p-nav-link { font-size: 0.65rem; color: rgba(255, 255, 255, 0.9); text-decoration: none; font-weight: 400; }
         .p-nav-cta { padding: 4px 10px; background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(8px); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.2); }
-        
+
         /* Blurred container - matching Example 5 */
         .p-bottom {
             position: absolute;
@@ -67,68 +67,72 @@
             -webkit-backdrop-filter: blur(4px);
             z-index: 10;
         }
-        
-        .p-title { 
-            font-family: 'Inter', sans-serif; 
-            font-size: 1rem; 
-            font-weight: 400; 
-            letter-spacing: 0.02em; 
-            text-transform: uppercase; 
-            color: white; 
-            margin-bottom: 4px; 
-            line-height: 1.2; 
+
+        .p-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: white;
+            margin-bottom: 4px;
+            line-height: 1.2;
         }
-        
-        .p-location { 
-            font-size: 0.65rem; 
-            color: rgba(255, 255, 255, 0.65); 
-            margin-bottom: 8px; 
+
+        .p-location {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.65);
+            margin-bottom: 8px;
         }
-        
-        .p-price { 
-            font-size: 1.1rem; 
-            font-weight: 600; 
-            color: white; 
-            margin-bottom: 8px; 
+
+        .p-price {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 8px;
         }
-        
-        .p-price span { 
-            font-size: 0.65rem; 
-            font-weight: 400; 
-            color: rgba(255, 255, 255, 0.7); 
+
+        .p-price span {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.7);
         }
-        
-        .p-description { 
-            font-size: 0.65rem; 
-            color: rgba(255, 255, 255, 0.85); 
-            line-height: 1.4; 
-            margin-bottom: 8px; 
+
+        .p-description {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+            margin-bottom: 8px;
         }
-        
-        .p-details { 
-            display: flex; 
-            gap: 8px; 
-            flex-wrap: nowrap; 
-            overflow-x: auto; 
-            justify-content: flex-start; 
+
+        @media (max-width: 410px) {
+            .p-description { font-size: 0.85rem !important; }
         }
-        
-        .p-detail { 
-            display: flex; 
-            align-items: center; 
-            gap: 4px; 
-            font-size: 0.6rem; 
-            color: rgba(255, 255, 255, 0.9); 
-            background: rgba(255, 255, 255, 0.15); 
-            padding: 3px 8px; 
-            border-radius: 4px; 
+
+        .p-details {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            justify-content: flex-start;
         }
-        
-        .p-detail svg { 
-            width: 10px; 
-            height: 10px; 
+
+        .p-detail {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.15);
+            padding: 3px 8px;
+            border-radius: 4px;
         }
-        
+
+        .p-detail svg {
+            width: 10px;
+            height: 10px;
+        }
+
         /* Bottom banner */
         .p-banner {
             position: absolute;
@@ -142,29 +146,29 @@
             align-items: center;
             justify-content: space-between;
         }
-        
+
         .p-banner-left {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         .p-banner-stars {
             display: flex;
             gap: 2px;
         }
-        
+
         .p-banner-stars svg {
             width: 12px;
             height: 12px;
             fill: #fbbf24;
         }
-        
+
         .p-banner-text {
             font-size: 0.6rem;
             color: rgba(255, 255, 255, 0.8);
         }
-        
+
         .p-book-btn {
             padding: 8px 20px;
             background: #ff5a5f;
@@ -177,7 +181,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .p-book-btn:hover {
             background: #ff474c;
             transform: translateY(-1px);
@@ -186,26 +190,26 @@
 </head>
 <body>
     <div class="p-bg"></div>
-    
+
     <nav class="p-nav">
         <div class="p-nav-logo"><span class="p-nav-icon">◈</span><span class="p-nav-brand">YourLogoHere.Pro</span></div>
         <div class="p-nav-links"><a href="#" class="p-nav-link p-nav-cta">Sign up</a></div>
     </nav>
-    
+
     <!-- Info card container -->
     <div class="p-bottom">
         <!-- TITLE -->
         <h1 class="p-title">@surfhousebaja</h1>
-        
+
         <!-- LOCATION -->
         <p class="p-location">Ejido Mesa de San Jacinto, Mexico</p>
-        
+
         <!-- PRICE -->
         <div class="p-price">$350 <span>/ night</span></div>
-        
+
         <!-- DESCRIPTION -->
         <p class="p-description">Welcome to Surf House Baja, a beautiful 4-bedroom beach house sitting directly in front of the iconic surf break "Shipwrecks". Located just 4 hours south of the US border.</p>
-        
+
         <!-- DETAILS -->
         <div class="p-details">
             <div class="p-detail">
@@ -226,7 +230,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Bottom banner with rating + button -->
     <div class="p-banner">
         <div class="p-banner-left">
