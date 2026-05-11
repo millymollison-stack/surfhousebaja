@@ -869,7 +869,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       <div className={`sidebar-panel ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Header */}
         <div className="sidebar-header">
-          <h1 className="hero-title">Profile</h1>
+          <h1 className="hero-title hero-title-edit">Profile</h1>
           <div className="sidebar-header-actions">
             <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</button>
             {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel">Cancel</button>}

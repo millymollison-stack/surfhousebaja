@@ -25,6 +25,10 @@
   padding: 0px 0px 0px 0px !important;
 }
 
+.hero-title-edit {
+  color: #111 !important;
+}
+
 .hero-title-price {
   font-family: var(--font-accent, 'Playfair Display'), serif !important;
   font-size: clamp(1.5rem, 2.8vw, 1.875rem) !important;
