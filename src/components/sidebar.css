@@ -485,15 +485,15 @@ input.sidebar-input::placeholder {
 .sb-value-lg  { font-size: 20px !important; font-weight: 700 !important; color: #16a34a !important; }
 
 /* Balance display */
-.sb-balance-label { font-size: 16px; color: #545454; font-weight: 600; margin-bottom: 4px; }
-.sb-balance-amount { font-size: 16px; color: #545454; font-weight: 600; }
+.sb-balance-label { font-size: clamp(0.9rem, 2vw, 1.1rem); font-weight: 400; color: rgba(0,0,0,0.55); margin-bottom: 2px; }
+.sb-balance-amount { font-size: clamp(0.9rem, 2vw, 1.1rem); font-weight: 400; color: rgba(0,0,0,0.55); }
 .sb-balance-amount strong { font-weight: 700; }
 
 /* Payout sub-panel */
 .sb-payout-panel { padding-left: 8px; border-left: 2px solid #f0f0f0; }
 
 /* Subscription placeholder */
-.sb-sub-text { font-size: 13px; color: #9ca3af; text-align: left; padding: 4px 0; }
+.sb-sub-text { font-size: 13px; font-weight: 300; color: rgba(0,0,0,0.5); text-align: left; padding: 4px 0; }
 
 /* Services links */
 .sb-service-link { margin-bottom: 4px; }
@@ -553,8 +553,11 @@ input.sidebar-input::placeholder {
 
 .sb-field-label {
   font-size: 11px;
+  font-weight: 400;
   color: rgba(0,0,0,0.76);
-  margin-bottom: 2px;
+  margin: 0 0 2px 0;
+  text-transform: none;
+  line-height: 1.5;
 }
 
 .sb-field-label h4 {
@@ -565,25 +568,24 @@ input.sidebar-input::placeholder {
 }
 
 .sb-field-value {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
 }
 
 .sb-field-value-muted {
-  font-size: 15px;
-  font-weight: 600;
-  color: #545454;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.55);
 }
 
-/* Edit mode inputs — visible white bg, rounded, bordered */
 .sb-input {
   width: 100%;
-  font-size: 15px;
-  font-weight: 600;
-  color: #111;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
   background: #fff !important;
-  border: 1px solid #d1d5db !important;
+  border: 1px solid rgba(0,0,0,0.15) !important;
   border-radius: 6px;
   padding: 10px 14px;
   outline: none;
@@ -594,7 +596,7 @@ input.sidebar-input::placeholder {
   border-color: var(--brand) !important;
   box-shadow: 0 0 0 3px rgba(var(--brand-rgb, 0,0,0), 0.08) !important;
 }
-.sb-input::placeholder { color: #9ca3af; }
+.sb-input::placeholder { color: rgba(0,0,0,0.35); }
 
 /* ────────────────────────────────────────────
    15. BOOKING DETAILS — grid in UserBookings
@@ -654,20 +656,22 @@ input.sidebar-input::placeholder {
 }
 
 .sb-booking-guest {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
 }
 
 .sb-booking-location {
   font-size: 13px;
-  color: #6b7280;
+  font-weight: 300;
+  color: rgba(0,0,0,0.55);
   margin-top: 1px;
 }
 
 .sb-booking-meta-row {
   font-size: 13px;
-  color: #6b7280;
+  font-weight: 300;
+  color: rgba(0,0,0,0.55);
   margin-top: 3px;
 }
 
@@ -679,7 +683,7 @@ input.sidebar-input::placeholder {
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
 }
 .sb-booking-status.is-pending {
   background: #fef9c3;
@@ -722,9 +726,9 @@ input.sidebar-input::placeholder {
 }
 
 .sb-credential-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: #111;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -732,7 +736,7 @@ input.sidebar-input::placeholder {
 
 .sb-credential-balance {
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 600;
   color: #16a34a;
   margin-left: 8px;
   white-space: nowrap;
@@ -761,9 +765,9 @@ input.sidebar-input::placeholder {
 .sb-nav-btn:hover { background: #f9f9f9; }
 
 .sb-nav-btn-label {
-  font-size: 15px;
-  color: #111;
-  font-weight: 500;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
 }
 
 /* ────────────────────────────────────────────
@@ -792,14 +796,15 @@ input.sidebar-input::placeholder {
 }
 
 .sb-service-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
 }
 
 .sb-service-price {
   font-size: 13px;
-  color: #9ca3af;
+  font-weight: 300;
+  color: rgba(0,0,0,0.5);
 }
 
 /* ────────────────────────────────────────────
@@ -845,14 +850,15 @@ input.sidebar-input::placeholder {
 }
 
 .sb-plan-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
 }
 
 .sb-plan-price {
   font-size: 13px;
-  color: #6b7280;
+  font-weight: 300;
+  color: rgba(0,0,0,0.6);
 }
 
 .sb-plan-features {
@@ -866,7 +872,8 @@ input.sidebar-input::placeholder {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #6b7280;
+  font-weight: 300;
+  color: rgba(0,0,0,0.6);
   margin-bottom: 4px;
 }
 
@@ -962,21 +969,23 @@ input.sidebar-input::placeholder {
 
 .sb-dns-hint {
   font-size: 11px;
-  color: #9ca3af;
-  margin-bottom: 3px;
+  font-weight: 300;
+  color: rgba(0,0,0,0.5);
+  margin-bottom: 2px;
 }
 
 .sb-dns-label {
-  font-size: 12px;
-  color: #9ca3af;
-  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 300;
+  color: rgba(0,0,0,0.5);
+  margin-top: 2px;
 }
 
 .sb-mono {
   font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
-  color: #111;
-  background: #f3f4f6;
+  color: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.04);
   border-radius: 4px;
   padding: 2px 6px;
 }
@@ -997,8 +1006,9 @@ input.sidebar-input::placeholder {
 }
 
 .sb-toggle-label {
-  font-size: 14px;
-  color: #374151;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
 }
 
 /* ────────────────────────────────────────────
@@ -1006,27 +1016,27 @@ input.sidebar-input::placeholder {
    ──────────────────────────────────────────── */
 
 .sb-contact-role {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
 }
 
 .sb-contact-role-sub {
-  font-size: 14px;
-  font-weight: 400;
-  color: #9ca3af;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-weight: 300;
+  color: rgba(0,0,0,0.5);
 }
 
 .sb-verified-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #16a34a;
+  color: rgba(0,0,0,0.5);
 }
 
 .sb-change-pw-btn {
   font-size: 12px;
-  font-weight: 600;
-  color: #16a34a;
+  font-weight: 400;
+  color: rgba(0,0,0,0.6);
   background: none;
   border: none;
   cursor: pointer;
@@ -1042,7 +1052,7 @@ input.sidebar-input::placeholder {
   width: 100%;
   padding: 10px 16px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   color: #fff;
   background: #111;
   border: none;
@@ -1061,22 +1071,22 @@ input.sidebar-input::placeholder {
   width: 100%;
   padding: 10px 16px;
   font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  font-weight: 400;
+  color: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.12);
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s;
 }
-.sb-btn-outline:hover { background: #e5e7eb; }
+.sb-btn-outline:hover { background: rgba(0,0,0,0.08); }
 .sb-btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .sb-btn-green {
   width: 100%;
   padding: 10px 16px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   color: #fff;
   background: #16a34a;
   border: none;

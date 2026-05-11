@@ -299,13 +299,13 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   return (
     <div>
       <div className="sb-field-row">
-        <p className="sb-field-label">Property name</p>
+        <h4 className="sb-field-label">Property name</p>
         {isEditing
           ? <input type="text" value={fields.title} onChange={e => onChange(p => ({ ...p, title: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.title || '—'}</p>}
       </div>
       <div className="sb-field-row">
-        <p className="sb-field-label">Address</p>
+        <h4 className="sb-field-label">Address</p>
         {isEditing
           ? <input type="text" value={fields.address} onChange={e => onChange(p => ({ ...p, address: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.address || '—'}</p>}
@@ -313,17 +313,17 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
       {isEditing ? (
         <>
           <div className="sb-field-row">
-            <p className="sb-field-label">Latitude</p>
+            <h4 className="sb-field-label">Latitude</p>
             <input type="text" value={fields.latitude} onChange={e => onChange(p => ({ ...p, latitude: e.target.value }))} className="sb-input" />
           </div>
           <div className="sb-field-row">
-            <p className="sb-field-label">Longitude</p>
+            <h4 className="sb-field-label">Longitude</p>
             <input type="text" value={fields.longitude} onChange={e => onChange(p => ({ ...p, longitude: e.target.value }))} className="sb-input" />
           </div>
         </>
       ) : (fields.latitude || fields.longitude) ? (
         <div className="sb-field-row">
-          <p className="sb-field-label">Coordinates</p>
+          <h4 className="sb-field-label">Coordinates</p>
           <div className="flex items-center justify-between">
             <p className="sb-mono">{fields.latitude ? parseFloat(fields.latitude).toFixed(5) : '—'}, {fields.longitude ? parseFloat(fields.longitude).toFixed(5) : '—'}</p>
             {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="sb-change-pw-btn" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin className="h-3.5 w-3.5" />Maps</a>}
@@ -338,7 +338,7 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
         </div>
       )}
       <div className="sb-field-row" style={{ borderBottom: 'none' }}>
-        <p className="sb-field-label">Uploaded photos</p>
+        <h4 className="sb-field-label">Uploaded photos</p>
         <p className="sb-field-value">{imageCount}</p>
       </div>
     </div>
@@ -375,7 +375,7 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
         <Toggle checked={devUpdates} onChange={setDevUpdates} />
       </div>
       <div className="sb-field-row" style={{ borderBottom: 'none' }}>
-        <p className="sb-field-label">Dev notifications</p>
+        <h4 className="sb-field-label">Dev notifications</p>
         <p className="sb-field-value">0</p>
       </div>
     </div>
@@ -427,7 +427,7 @@ function ContactSection({ user, isEditing, fields, onChange }: {
         <p className="text-base text-gray-900"><span className="font-bold">Super Host</span><span className="font-normal text-gray-500"> (New Site Admin)</span></p>
       </div>
       <div className="sb-field-row">
-        <p className="sb-field-label">Name</p>
+        <h4 className="sb-field-label">Name</p>
         {isEditing
           ? <input type="text" value={fields.full_name} onChange={e => onChange(p => ({ ...p, full_name: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.full_name || '—'}</p>}
@@ -440,7 +440,7 @@ function ContactSection({ user, isEditing, fields, onChange }: {
         <p className="sb-field-value">{user.email}</p>
       </div>
       <div className="sb-field-row">
-        <p className="sb-field-label">Tel</p>
+        <h4 className="sb-field-label">Tel</p>
         {isEditing
           ? <input type="tel" value={fields.phone_number} onChange={e => onChange(p => ({ ...p, phone_number: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.phone_number || '—'}</p>}
