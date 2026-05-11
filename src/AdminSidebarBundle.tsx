@@ -3,6 +3,8 @@
  * Uses app's store/auth.ts, lib/supabase.ts, store/property.ts, types/index.ts
  */
 
+import './components/sidebar.css';
+
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, fromUnixTime, addDays } from 'date-fns';
@@ -863,8 +865,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   return (
     <>
-      {isOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose} />}
-      <div className={`fixed right-0 top-0 h-full w-[calc(100%-72px)] max-w-[380px] bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
+      <div className={`sidebar-panel ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Header */}
         <div className="sidebar-header">
           <h1 className="hero-title">Profile</h1>
@@ -875,7 +877,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           </div>
         </div>
 
-        <div className="px-4 pt-4 pb-6 space-y-0">
+        <div className="sidebar-content">
           {/* Next Booking Card */}
           <div className="sb-next-booking">
             <button onClick={() => setBookingCardOpen(prev => !prev)} className="w-full text-left p-4" style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}>
