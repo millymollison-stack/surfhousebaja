@@ -553,8 +553,15 @@ input.sidebar-input::placeholder {
 
 .sb-field-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: rgba(0,0,0,0.76);
   margin-bottom: 2px;
+}
+
+.sb-field-label h4 {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(0,0,0,0.76);
+  margin: 0;
 }
 
 .sb-field-value {
