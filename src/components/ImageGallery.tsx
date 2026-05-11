@@ -74,16 +74,15 @@ export function ImageGallery({
     if (savedFont) applyFontAccent(savedFont);
   }, [isEditing]);
 
-  // Auto-advance images every 4 seconds
+  // Auto-advance images every 2 seconds (logged-in users only)
   useEffect(() => {
-    if (sortedImages.length > 1 && !isEditing) {
-      // Auto-slider disabled for testing - re-enable by removing this comment
-      // const interval = setInterval(() => {
-      //   setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
-      // }, 4000);
-      // return () => clearInterval(interval);
+    if (sortedImages.length > 1 && !isEditing && user) {
+      const interval = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % sortedImages.length);
+      }, 2000);
+      return () => clearInterval(interval);
     }
-  }, [sortedImages.length, isEditing]);
+  }, [sortedImages.length, isEditing, user]);
 
   const handlePropertyTextSave = async () => {
     if (!onPropertyUpdate) return;

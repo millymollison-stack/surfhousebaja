@@ -3,11 +3,10 @@ import './Layout.css';
 import { Link } from 'react-router-dom';
 import { Home, LogIn, Share, User } from 'lucide-react';
 import { useAuth } from '../store/auth';
-import { UserMenu } from './UserMenu';
 import ColorPicker from './ColorPicker';
 import { applyFontAccent, loadFontAccent } from '../lib/fontAccent';
 
-export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges, siteName, onSiteNameChange }: { 
+export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges, siteName, onSiteNameChange, onOpenSidebar }: { 
   children: React.ReactNode; 
   isEditing?: boolean;
   siteName?: string;
@@ -15,6 +14,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
   onToggleEdit?: () => void;
   hasChanges?: boolean;
   onSaveChanges?: () => void;
+  onOpenSidebar?: () => void;
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -30,7 +30,6 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
         throw new Error('Share API not supported');
       }
     } catch (error) {
-      // Fallback to clipboard copy
       try {
         await navigator.clipboard.writeText(window.location.href);
         alert('Link copied to clipboard!');
@@ -55,18 +54,14 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
               <>
                 {hasChanges ? (
                   <button
-                    onClick={() => {
-                      onSaveChanges?.();
-                    }}
+                    onClick={() => { onSaveChanges?.(); }}
                     className="px-3 py-1.5 rounded text-sm font-bold transition-all bg-green-600 hover:bg-green-700 text-white animate-pulse"
                   >
                     Save Now
                   </button>
                 ) : isEditing ? (
                   <button
-                    onClick={() => {
-                      onToggleEdit?.();
-                    }}
+                    onClick={() => { onToggleEdit?.(); }}
                     className="px-3 py-1.5 rounded text-sm font-bold transition-all bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white"
                   >
                     Save
@@ -89,7 +84,13 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
               <span className="hidden sm:inline">Share</span>
             </button>
             {user ? (
-              <UserMenu />
+              <button
+                onClick={() => onOpenSidebar?.()}
+                className="flex items-center space-x-1 px-3 py-1.5 bg-white/20 backdrop-blur-sm border border-white/15 rounded text-white font-bold text-sm hover:bg-white/30"
+              >
+                <User className="h-4 w-4" />
+                <span>{user.full_name?.split(' ')[0] || 'Profile'}</span>
+              </button>
             ) : (
               <Link
                 to="/?auth=login"
@@ -117,7 +118,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
         )}
         <div className={`copyright-footer${isEditing ?? false ? '' : ' footer-pad-top'}`}>
           <p className="copyright-text">
-            © {new Date().getFullYear()} @surfhousebaja. All rights reserved.
+            © {new Date().getTime() % (new Date().getFullYear() + 1)} @surfhousebaja. All rights reserved.
           </p>
         </div>
       </footer>

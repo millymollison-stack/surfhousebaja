@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, Component, ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/auth';
+import { AdminSidebar } from '../AdminSidebarBundle';
 import { Layout } from '../components/Layout';
 import { Home } from '../pages/Home';
 import { Login } from '../pages/Login';
@@ -49,6 +50,7 @@ function AppContent() {
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [siteName, setSiteName] = useState('@surfhousebaja');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const saveAllRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -86,6 +88,7 @@ function AppContent() {
         onSaveChanges={handleSaveAll}
         siteName={siteName}
         onSiteNameChange={setSiteName}
+        onOpenSidebar={() => setSidebarOpen(true)}
       >
         <Routes>
           <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; }} onSiteNameChange={setSiteName} />} />
@@ -96,9 +99,9 @@ function AppContent() {
           <Route path="/pay/:bookingId" element={<PaymentPage />} />
         </Routes>
       </Layout>
-      {/* Auth modals — shown via ?auth= query param, no route change needed */}
       {showLogin && <Login />}
       {showSignup && <Signup />}
+      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </>
   );
 }

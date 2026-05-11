@@ -25,7 +25,12 @@ interface LocationMapProps {
 function MapUpdater({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom());
+    // Start at zoom 5 (~800mi radius around property), then fly in to street level (zoom 16)
+    map.setView(center, 5, { animate: false });
+    const timer = setTimeout(() => {
+      map.flyTo(center, 16, { duration: 4.0 });
+    }, 1000);
+    return () => clearTimeout(timer);
   }, [center, map]);
   return null;
 }
@@ -101,10 +106,10 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
           <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={onClose}></div>
         </div>
 
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full location-map-modal">
           <div className="bg-white px-3 pt-4 pb-3 sm:px-6 sm:pt-5 sm:pb-4">
             <div className="flex justify-between items-center mb-4">
-              <h1 style={{ color: "black" }}>Location</h1>
+              <h1>Location</h1>
               <div className="location-edit-container">
                 {isAdmin && (
                   <button
@@ -240,7 +245,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
             <div className="h-[300px] sm:h-[400px] w-full rounded-lg overflow-hidden shadow-md">
               <MapContainer
                 center={coordinates}
-                zoom={15}
+                zoom={5}
                 className="map-full-size"
                 onClick={handleMapClick}
               >
@@ -254,9 +259,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
             </div>
 
             {!isEditing && (property.address || property.local_area) && (
-              <div className="location-address-block">
-                <h3 className="location-address">{property.address || property.local_area || ''}</h3>
-              </div>
+              <p className="location-address-text">{property.address || property.local_area || ''}</p>
             )}
           </div>
         </div>

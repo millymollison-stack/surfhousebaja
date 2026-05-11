@@ -8,8 +8,16 @@
   color: #6b7280;
   font-size: 0.875rem;
 }
-.location-address {
-  color: #1f2937;
+.location-address-text {
+  color: #000000;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 400;
+  margin-top: 0.75rem;
+}
+
+.location-map-modal h1 {
+  color: #000000;
+  font-family: var(--font-accent);
+  font-size: clamp(1.5rem, 2.8vw, 1.875rem);
+  font-weight: 400;
 }

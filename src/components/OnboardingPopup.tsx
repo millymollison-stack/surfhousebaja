@@ -903,7 +903,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <div className="stripe-modal-box" onClick={e => e.stopPropagation()}>
  <div className="stripe-modal-header">
  <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h1>
- <button onClick={() => { setShowStripeModal(false); setStripeError(''); }} className="stripe-modal-close">×</button>
+ <button onClick={(e) => { e.stopPropagation(); setShowStripeModal(false); setStripeError(''); }} className="stripe-modal-close">×</button>
  </div>
 
  {/* Payment method icons */}
