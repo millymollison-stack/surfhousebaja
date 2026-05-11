@@ -416,7 +416,7 @@ input.sidebar-input::placeholder {
 .booking-callout .callout-top {
   background: #fff;
   /* padding inside white area — space between number and rounded container edge */
-  padding: 10px 6px 4px;
+  padding: 6px 4px 2px;
   text-align: left;
 }
 
@@ -429,7 +429,7 @@ input.sidebar-input::placeholder {
 
 .booking-callout .callout-mid {
   background: #fff;
-  padding: 4px 6px;
+  padding: 2px 4px;
   text-align: right;
 }
 
@@ -441,7 +441,7 @@ input.sidebar-input::placeholder {
 }
 
 .booking-callout .callout-month {
-  padding: 6px;
+  padding: 3px;
   text-align: center;
   /* bottom border-radius must match outer container */
   border-bottom-left-radius: 9px;
@@ -451,7 +451,7 @@ input.sidebar-input::placeholder {
 .booking-callout .callout-month span {
   color: #fff;
   font-weight: 900;
-  font-size: 0.8rem;
+  font-size: 1.1rem;
   letter-spacing: 0.08em;
 }
 
@@ -570,7 +570,7 @@ input.sidebar-input::placeholder {
 .sb-field-value {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
 }
 
 .sb-field-value-muted {
@@ -583,9 +583,9 @@ input.sidebar-input::placeholder {
   width: 100%;
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
-  background: #fff !important;
-  border: 1px solid rgba(0,0,0,0.15) !important;
+  color: #000;
+  background: rgba(0,0,0,0.10) !important;
+  border: 1px solid rgba(0,0,0,0.20) !important;
   border-radius: 6px;
   padding: 10px 14px;
   outline: none;
@@ -593,10 +593,10 @@ input.sidebar-input::placeholder {
   transition: border-color 0.15s;
 }
 .sb-input:focus {
-  border-color: var(--brand) !important;
+  border: 2px solid var(--brand) !important;
   box-shadow: 0 0 0 3px rgba(var(--brand-rgb, 0,0,0), 0.08) !important;
 }
-.sb-input::placeholder { color: rgba(0,0,0,0.35); }
+.sb-input::placeholder { color: #9ca3af; }
 
 /* ────────────────────────────────────────────
    15. BOOKING DETAILS — grid in UserBookings
@@ -658,21 +658,21 @@ input.sidebar-input::placeholder {
 .sb-booking-guest {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
 }
 
 .sb-booking-location {
-  font-size: 13px;
-  font-weight: 300;
-  color: rgba(0,0,0,0.55);
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #9ca3af;
   margin-top: 1px;
 }
 
 .sb-booking-meta-row {
-  font-size: 13px;
-  font-weight: 300;
-  color: rgba(0,0,0,0.55);
-  margin-top: 3px;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-top: 2px;
 }
 
 .sb-booking-status {
@@ -728,7 +728,7 @@ input.sidebar-input::placeholder {
 .sb-credential-name {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -767,7 +767,7 @@ input.sidebar-input::placeholder {
 .sb-nav-btn-label {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
 }
 
 /* ────────────────────────────────────────────
@@ -798,7 +798,7 @@ input.sidebar-input::placeholder {
 .sb-service-name {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
 }
 
 .sb-service-price {
@@ -852,7 +852,7 @@ input.sidebar-input::placeholder {
 .sb-plan-name {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
 }
 
 .sb-plan-price {
@@ -984,7 +984,7 @@ input.sidebar-input::placeholder {
 .sb-mono {
   font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
-  color: rgba(0,0,0,0.85);
+  color: #000;
   background: rgba(0,0,0,0.04);
   border-radius: 4px;
   padding: 2px 6px;
@@ -1008,7 +1008,7 @@ input.sidebar-input::placeholder {
 .sb-toggle-label {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
 }
 
 /* ────────────────────────────────────────────
@@ -1018,7 +1018,7 @@ input.sidebar-input::placeholder {
 .sb-contact-role {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
 }
 
 .sb-contact-role-sub {
@@ -1072,7 +1072,7 @@ input.sidebar-input::placeholder {
   padding: 10px 16px;
   font-size: 14px;
   font-weight: 400;
-  color: rgba(0,0,0,0.85);
+  color: #000;
   background: rgba(0,0,0,0.05);
   border: 1px solid rgba(0,0,0,0.12);
   border-radius: 10px;
@@ -1116,3 +1116,11 @@ input.sidebar-input::placeholder {
 .sb-badge-yellow { background: #fef9c3; color: #854d0e; }
 .sb-badge-gray   { background: #f3f4f6; color: #374151; }
 .sb-badge-blue   { background: #dbeafe; color: #1e40af; }
+
+.sb-h4-grey {
+  font-size: 0.9rem;
+  line-height: 1rem;
+  color: grey;
+  font-weight: 300;
+  margin: 0;
+}

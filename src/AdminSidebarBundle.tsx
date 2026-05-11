@@ -89,7 +89,7 @@ function EditField({ label, value, isEditing, onChange, type = 'text' }: {
 }) {
   return (
     <div className="py-3 border-b border-gray-100 last:border-0">
-      <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+      <h4 className="sb-h4-grey">{label}</h4>
       {isEditing
         ? <input type={type} value={value} onChange={e => onChange(e.target.value)} className="w-full text-base font-bold text-gray-900 bg-white border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:border-gray-500" />
         : <p className="text-base font-bold text-gray-900">{value || '—'}</p>
@@ -299,13 +299,13 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   return (
     <div>
       <div className="sb-field-row">
-        <h4 className="sb-field-label">Property name</h4>
+        <h4 className="sb-h4-grey">Property name</h4>
         {isEditing
           ? <input type="text" value={fields.title} onChange={e => onChange(p => ({ ...p, title: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.title || '—'}</p>}
       </div>
       <div className="sb-field-row">
-        <h4 className="sb-field-label">Address</h4>
+        <h4 className="sb-h4-grey">Address</h4>
         {isEditing
           ? <input type="text" value={fields.address} onChange={e => onChange(p => ({ ...p, address: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.address || '—'}</p>}
@@ -313,17 +313,17 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
       {isEditing ? (
         <>
           <div className="sb-field-row">
-            <h4 className="sb-field-label">Latitude</h4>
+            <h4 className="sb-h4-grey">Latitude</h4>
             <input type="text" value={fields.latitude} onChange={e => onChange(p => ({ ...p, latitude: e.target.value }))} className="sb-input" />
           </div>
           <div className="sb-field-row">
-            <h4 className="sb-field-label">Longitude</h4>
+            <h4 className="sb-h4-grey">Longitude</h4>
             <input type="text" value={fields.longitude} onChange={e => onChange(p => ({ ...p, longitude: e.target.value }))} className="sb-input" />
           </div>
         </>
       ) : (fields.latitude || fields.longitude) ? (
         <div className="sb-field-row">
-          <h4 className="sb-field-label">Coordinates</h4>
+          <h4 className="sb-h4-grey">Coordinates</h4>
           <div className="flex items-center justify-between">
             <p className="sb-mono">{fields.latitude ? parseFloat(fields.latitude).toFixed(5) : '—'}, {fields.longitude ? parseFloat(fields.longitude).toFixed(5) : '—'}</p>
             {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="sb-change-pw-btn" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin className="h-3.5 w-3.5" />Maps</a>}
@@ -338,7 +338,7 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
         </div>
       )}
       <div className="sb-field-row" style={{ borderBottom: 'none' }}>
-        <h4 className="sb-field-label">Uploaded photos</h4>
+        <h4 className="sb-h4-grey">Uploaded photos</h4>
         <p className="sb-field-value">{imageCount}</p>
       </div>
     </div>
@@ -361,10 +361,10 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
         <a href={`https://${siteUrl}`} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" style={{ color: '#16a34a' }} /></a>
       </div>
       <div className="sb-field-row">
-        <p className="sb-dns-hint">Point your custom domain DNS here</p>
-        <p className="sb-dns-label">Set an A record or CNAME to this address</p>
+        <h4 className="sb-h4-grey">Point your custom domain DNS here</h4>
+        <h4 className="sb-h4-grey">Set an A record or CNAME to this address</h4>
         <p className="sb-mono" style={{ marginTop: 4 }}>76.76.21.21</p>
-        <p className="sb-dns-label">CNAME: cname.propbook.pro</p>
+        <h4 className="sb-h4-grey">CNAME: cname.propbook.pro</h4>
       </div>
       <div className="sb-toggle-row">
         <p className="sb-toggle-label">Search for a domain</p>
@@ -375,7 +375,7 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
         <Toggle checked={devUpdates} onChange={setDevUpdates} />
       </div>
       <div className="sb-field-row" style={{ borderBottom: 'none' }}>
-        <h4 className="sb-field-label">Dev notifications</h4>
+        <h4 className="sb-h4-grey">Dev notifications</h4>
         <p className="sb-field-value">0</p>
       </div>
     </div>
@@ -419,35 +419,31 @@ function ContactSection({ user, isEditing, fields, onChange }: {
   return (
     <div>
       <div className="py-3 border-b border-gray-100">
-        <p className="text-xs text-gray-500 mb-0.5">Role</p>
+        <h4 className="sb-h4-grey">Role</h4>
         <p className="text-base text-gray-900"><span className="font-bold">Super Host</span><span className="font-normal text-gray-500"> (New Site Admin)</span></p>
       </div>
       <div className="sb-field-row">
-        <p className="text-xs text-gray-500 mb-0.5">Role</p>
-        <p className="text-base text-gray-900"><span className="font-bold">Super Host</span><span className="font-normal text-gray-500"> (New Site Admin)</span></p>
-      </div>
-      <div className="sb-field-row">
-        <h4 className="sb-field-label">Name</h4>
+        <h4 className="sb-h4-grey">Name</h4>
         {isEditing
           ? <input type="text" value={fields.full_name} onChange={e => onChange(p => ({ ...p, full_name: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.full_name || '—'}</p>}
       </div>
       <div className="sb-field-row">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h4 className="sb-field-label" style={{ marginBottom: 0 }}>Email</h4>
-          <span className="sb-verified-badge">Verified</span>
+          <h4 className="sb-h4-grey" style={{ marginBottom: 0 }}>Email</h4>
+          <span className="val-color">Verified</span>
         </div>
         <p className="sb-field-value">{user.email}</p>
       </div>
       <div className="sb-field-row">
-        <h4 className="sb-field-label">Tel</h4>
+        <h4 className="sb-h4-grey">Tel</h4>
         {isEditing
           ? <input type="tel" value={fields.phone_number} onChange={e => onChange(p => ({ ...p, phone_number: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.phone_number || '—'}</p>}
       </div>
       <div className="py-3 last:border-0">
         <div className="flex items-center justify-between mb-0.5">
-          <p className="text-xs text-gray-500">Password</p>
+          <h4 className="sb-h4-grey">Password</h4>
           {isEditing && !showPasswordForm && <button onClick={() => setShowPasswordForm(true)} className="text-xs text-green-600 hover:text-green-700 font-semibold">Change</button>}
         </div>
         {!isEditing || !showPasswordForm ? (
@@ -490,13 +486,13 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
   const payoutAmount = connectData ? connectData.available_balance - platformFee : 0;
   return (
     <div>
-      <div className="py-3 border-b border-gray-100">
-        <p className="text-xs text-gray-500 mb-0.5">Total Booking Revenue to Date</p>
+      <div className="py-3">
+        <h4 className="sb-h4-grey">Total Booking Revenue to Date</h4>
         <p className="text-base font-bold text-gray-900">${balance.toLocaleString()}</p>
       </div>
       <div className="py-3 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-gray-500">Stripe Payout Account</p>
+          <h4 className="sb-h4-grey">Stripe Payout Account</h4>
           {connectLoading && <InlineLoader />}
         </div>
         {connectData ? (
@@ -512,8 +508,8 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-gray-50 rounded-lg p-2.5"><p className="text-xs text-gray-500 mb-0.5">Available</p><p className="text-base font-bold text-gray-900">{fmt(connectData.available_balance)}</p></div>
-              <div className="bg-gray-50 rounded-lg p-2.5"><p className="text-xs text-gray-500 mb-0.5">Pending</p><p className="text-base font-bold text-gray-900">{fmt(connectData.pending_balance)}</p></div>
+              <div className="bg-gray-50 rounded-lg p-2.5"><h4 className="sb-h4-grey">Available</h4><p className="text-base font-bold text-gray-900">{fmt(connectData.available_balance)}</p></div>
+              <div className="bg-gray-50 rounded-lg p-2.5"><h4 className="sb-h4-grey">Pending</h4><p className="text-base font-bold text-gray-900">{fmt(connectData.pending_balance)}</p></div>
             </div>
             {connectData.available_balance > 0 && connectData.payouts_enabled && (
               <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
@@ -544,7 +540,7 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
         )}
       </div>
       <div className="py-3">
-        <p className="text-xs text-gray-500 mb-1">Publishable Key</p>
+        <h4 className="sb-h4-grey">Publishable Key</h4>
         <p className="text-xs font-mono text-gray-700 break-all bg-gray-50 rounded px-2 py-1">{import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.slice(0, 24)}…</p>
       </div>
     </div>
@@ -588,16 +584,16 @@ function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscri
   if (subscription?.status === 'active') {
     return (
       <div>
-        <div className="py-3 border-b border-gray-100">
+        <div className="py-3">
           <div className="flex items-center justify-between mb-0.5"><p className="text-xs text-gray-500">Plan</p><span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Active</span></div>
           <p className="text-base font-bold text-gray-900">{subscription.plan}</p>
         </div>
-        <div className="py-3 grid grid-cols-2 gap-4 border-b border-gray-100">
-          <div><p className="text-xs text-gray-500 mb-0.5">Amount</p><p className="text-base font-bold text-gray-900">${(subscription.amount / 100).toFixed(2)}<span className="text-sm font-normal text-gray-500">/{subscription.interval}</span></p></div>
-          <div><p className="text-xs text-gray-500 mb-0.5">Next Payment</p><p className="text-base font-bold text-gray-900">{format(fromUnixTime(subscription.current_period_end), 'MMM d, yyyy')}</p></div>
+        <div className="py-3 grid grid-cols-2 gap-4">
+          <div><h4 className="sb-h4-grey">Amount</h4><p className="text-base font-bold text-gray-900">${(subscription.amount / 100).toFixed(2)}<span className="text-sm font-normal text-gray-500">/{subscription.interval}</span></p></div>
+          <div><h4 className="sb-h4-grey">Next Payment</h4><p className="text-base font-bold text-gray-900">{format(fromUnixTime(subscription.current_period_end), 'MMM d, yyyy')}</p></div>
         </div>
         {subscription.cancel_at_period_end && <div className="py-3"><div className="flex items-center gap-2 text-yellow-700 bg-yellow-50 rounded-lg px-3 py-2"><AlertCircle className="h-4 w-4" /><p className="text-xs font-medium">Cancels at end of billing period</p></div></div>}
-        <div className="py-3"><p className="text-xs text-gray-500 mb-0.5">Subscription ID</p><p className="text-xs font-mono text-gray-600 break-all">{subscription.id}</p></div>
+        <div className="py-3"><h4 className="sb-h4-grey">Subscription ID</h4><p className="text-xs font-mono text-gray-600 break-all">{subscription.id}</p></div>
       </div>
     );
   }
