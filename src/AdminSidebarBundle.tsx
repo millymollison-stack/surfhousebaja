@@ -9,7 +9,7 @@ import React, { useState, useEffect, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, fromUnixTime, addDays } from 'date-fns';
 import {
-  ChevronRight, ChevronDown, X, LogOut, ExternalLink, Check,
+  ChevronRight, ChevronDown, X, LogOut, ExternalLink, Check, Edit2,
   Clock, CreditCard, AlertCircle, XCircle, CheckCircle, MapPin, Eye, EyeOff,
   Mail, Phone, User, MessageSquare, Home,
 } from 'lucide-react';
@@ -867,8 +867,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         <div className="sidebar-header">
           <h1 className="hero-title hero-title-edit">Profile</h1>
           <div className="sidebar-header-actions">
-            <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</button>
-            {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel">Cancel</button>}
+            <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>
+            {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel"><X className="h-4 w-4" /><span>Cancel</span></button>}
             <button onClick={onClose} className="sidebar-btn-close"><X className="h-6 w-6" /></button>
           </div>
         </div>

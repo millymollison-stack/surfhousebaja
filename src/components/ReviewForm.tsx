@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Star } from 'lucide-react';
+import './sidebar.css';
 import { supabase } from '../lib/supabase';
 
 interface ReviewFormProps {
@@ -91,8 +92,7 @@ export default function ReviewForm({ onSuccess }: ReviewFormProps) {
               required
               value={formData.guest_name}
               onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="John Doe"
+              className="sb-input-light"
             />
           </div>
 
@@ -106,8 +106,7 @@ export default function ReviewForm({ onSuccess }: ReviewFormProps) {
               required
               value={formData.guest_email}
               onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="john@example.com"
+              className="sb-input-light"
             />
           </div>
         </div>

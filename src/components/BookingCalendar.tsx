@@ -476,7 +476,7 @@ export function BookingCalendar({
                   value={specialRequests}
                   onChange={(e) => setSpecialRequests(e.target.value)}
                   rows={3}
-                  className="booking-modal-textarea"
+                  className="sb-input-light"
                   placeholder="Any special requirements or requests?"
                 />
               </div>
@@ -523,7 +523,7 @@ export function BookingCalendar({
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   rows={3}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756]"
+                  className="sb-input-light"
                   placeholder="Enter reason for blocking these dates"
                 />
               </div>

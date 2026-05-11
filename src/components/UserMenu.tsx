@@ -430,7 +430,7 @@ export function UserMenu() {
                           {isEditingProfile ? (
                             <input
                               type="text"
-                              className="sidebar-input"
+                              className="sb-input-light"
                               value={userProperty?.custom_domain || ''}
                               onChange={(e) => setUserProperty((prev: any) => prev ? { ...prev, custom_domain: e.target.value } : null)}
                               placeholder="your-domain.com"
@@ -456,7 +456,7 @@ export function UserMenu() {
                 <h3 className="sidebar-label">Full Name</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
-                    <input type="text" className="sidebar-input" value={profileData.full_name}
+                    <input type="text" className="sb-input-light" value={profileData.full_name}
                       onChange={(e) => handleProfileInputChange('full_name', e.target.value)} disabled={loading} />
                   ) : (
                     <p className="sidebar-value">{user.full_name}</p>
@@ -468,7 +468,7 @@ export function UserMenu() {
                 <h3 className="sidebar-label">Email</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
-                    <input type="email" className="sidebar-input" value={profileData.email}
+                    <input type="email" className="sb-input-light" value={profileData.email}
                       onChange={(e) => handleProfileInputChange('email', e.target.value)} disabled={loading} />
                   ) : (
                     <p className="sidebar-value">{user.email}</p>
@@ -480,7 +480,7 @@ export function UserMenu() {
                 <h3 className="sidebar-label">Password</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
-                    <input type="password" className="sidebar-input" placeholder="Enter new password" disabled={loading} />
+                    <input type="password" className="sb-input-light" placeholder="Enter new password" disabled={loading} />
                   ) : (
                     <p className="sidebar-value">••••••••</p>
                   )}
@@ -491,7 +491,7 @@ export function UserMenu() {
                 <h3 className="sidebar-label">Phone</h3>
                 <div className="sidebar-input-wrap">
                   {isEditingProfile ? (
-                    <input type="tel" className="sidebar-input" value={profileData.phone_number}
+                    <input type="tel" className="sb-input-light" value={profileData.phone_number}
                       onChange={(e) => handleProfileInputChange('phone_number', e.target.value)}
                       placeholder="Enter phone number" disabled={loading} />
                   ) : (
@@ -571,7 +571,7 @@ export function UserMenu() {
                               <div className="sidebar-field">
                                 <h3 className="sidebar-label">Account Details</h3>
                                 {isEditingProfile ? (
-                                  <input type="text" className="sidebar-input"
+                                  <input type="text" className="sb-input-light"
                                     value={profileData.stripe_account_id}
                                     onChange={(e) => handleProfileInputChange('stripe_account_id', e.target.value)}
                                     placeholder="Stripe Account ID" disabled={loading} />

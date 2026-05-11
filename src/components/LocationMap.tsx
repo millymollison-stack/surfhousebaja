@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import { Edit2, Save, X, MapPin } from 'lucide-react';
+import { Edit2, Save, X, MapPin, Check } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import type { Property } from '../types';
 import 'leaflet/dist/leaflet.css';
 import './LocationMap.css';
+import './sidebar.css';
 import L from 'leaflet';
 
 // Fix for default marker icon in Leaflet
@@ -112,29 +113,35 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
               <h1>Location</h1>
               <div className="location-edit-container">
                 {isAdmin && (
-                  <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="edit-location-btn"
-                  >
+                  <>
                     {isEditing ? (
-                      <>
-                        <X className="h-4 w-4" />
-                        <span className="hidden sm:inline">Cancel Edit</span>
-                      </>
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="edit-location-btn"
+                      >
+                        <Check className="h-4 w-4" />
+                        <span className="hidden sm:inline">Done</span>
+                      </button>
                     ) : (
-                      <>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="edit-location-btn"
+                      >
                         <Edit2 className="h-4 w-4" />
-                        <span className="hidden sm:inline">Edit Location</span>
-                      </>
+                        <span className="hidden sm:inline">Edit</span>
+                      </button>
                     )}
-                  </button>
+                    {isEditing && (
+                      <button
+                        onClick={onClose}
+                        className="sidebar-btn-cancel"
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="hidden sm:inline">Cancel</span>
+                      </button>
+                    )}
+                  </>
                 )}
-                <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <X className="h-6 w-6" />
-                </button>
               </div>
             </div>
 
@@ -178,7 +185,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] sm:text-sm"
+                        className="sb-input-light flex-1 block w-full"
                         placeholder="Enter street address"
                       />
                       <button
@@ -200,7 +207,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         step="any"
                         value={coordinates[0]}
                         onChange={(e) => setCoordinates([parseFloat(e.target.value), coordinates[1]])}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] sm:text-sm"
+                        className="sb-input-light"
                       />
                     </div>
                     <div>
@@ -212,7 +219,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                         step="any"
                         value={coordinates[1]}
                         onChange={(e) => setCoordinates([coordinates[0], parseFloat(e.target.value)])}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] sm:text-sm"
+                        className="sb-input-light"
                       />
                     </div>
                   </div>

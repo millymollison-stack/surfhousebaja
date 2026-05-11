@@ -106,7 +106,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                 value={formData.title}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                className="sb-input-light"
               />
             </div>
 
@@ -118,7 +118,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                className="sb-input-light"
               />
             </div>
 
@@ -131,7 +131,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                   value={formData.price_per_night}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                  className="sb-input-light"
                 />
               </div>
 
@@ -143,7 +143,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                   value={formData.bedrooms}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                  className="sb-input-light"
                 />
               </div>
 
@@ -155,7 +155,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                   value={formData.bathrooms}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                  className="sb-input-light"
                 />
               </div>
             </div>
@@ -168,7 +168,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
                 onChange={handleInputChange}
                 disabled={!isEditing}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand)] focus:ring-[#C47756] disabled:bg-gray-50 disabled:text-gray-500"
+                className="sb-input-light"
               />
             </div>
           </div>
