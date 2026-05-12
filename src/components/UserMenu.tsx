@@ -356,7 +356,7 @@ export function UserMenu() {
                 </button>
               ) : (
                 <>
-                  <button onClick={() => setIsEditingProfile(false)} className="sidebar-btn-cancel"><span>Cancel</span></button>
+                  <button onClick={() => setIsEditingProfile(false)} className="sidebar-btn-cancel inline-flex-row"><span className="btn-text">Cancel</span></button>
                   <button
                     onClick={async () => { try { await handleProfileUpdate(); } catch (e) { console.error(e); } }}
                     className="sidebar-btn-save"

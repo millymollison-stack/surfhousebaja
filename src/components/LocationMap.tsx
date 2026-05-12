@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import { Edit2, Save, X, MapPin, Check } from 'lucide-react';
+import { Edit2, Save, X, MapPin, Check, Search } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import type { Property } from '../types';
 import 'leaflet/dist/leaflet.css';
 import './LocationMap.css';
 import './sidebar.css';
+import './OnboardingPopup.css';
 import L from 'leaflet';
 
 // Fix for default marker icon in Leaflet
@@ -133,15 +134,18 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                     )}
                     {isEditing && (
                       <button
-                        onClick={onClose}
-                        className="sidebar-btn-cancel"
+                        onClick={() => setIsEditing(false)}
+                        className="sidebar-btn-cancel inline-flex-row"
                       >
                         <X className="h-4 w-4" />
-                        <span className="hidden sm:inline">Cancel</span>
+                        <span className="btn-text hidden sm:inline">Cancel</span>
                       </button>
                     )}
                   </>
                 )}
+                <button onClick={onClose} className="sidebar-btn-close">
+                  <X className="h-6 w-6" />
+                </button>
               </div>
             </div>
 
@@ -181,19 +185,22 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                       Street Address
                     </label>
                     <div className="mt-1 flex space-x-2">
-                      <input
-                        type="text"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        className="sb-input-light flex-1 block w-full"
-                        placeholder="Enter street address"
-                      />
-                      <button
-                        onClick={handleAddressSearch}
-                        className="location-edit-cancel-btn"
-                      >
-                        Search
-                      </button>
+                      <div className="sb-input-icon-wrap">
+                        <input
+                          type="text"
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          className="sb-input-light flex-1 block w-full"
+                          placeholder="Enter street address"
+                        />
+                        <button
+                          onClick={handleAddressSearch}
+                          className="sb-input-icon-btn"
+                          aria-label="Search"
+                        >
+                          <Search className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -241,7 +248,7 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                   <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="px-4 py-2 bg-[var(--brand)] text-white rounded-md text-sm font-medium hover:bg-[var(--brand-hover)] disabled:bg-[var(--brand-disabled)]"
+                    className="btn"
                   >
                     {loading ? 'Saving...' : 'Save Location'}
                   </button>

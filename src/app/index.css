@@ -496,7 +496,7 @@
 
 .view-location-btn {
   width: 100%;
-  max-width: 400px;
+  max-width: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -686,6 +686,7 @@
 
 .booking-modal-select {
   width: 80%;
+  max-width: 600px;
   border-radius: 4px;
   border: 1px solid #d1d5db;
   padding: 0.4rem;
@@ -738,6 +739,7 @@
 /* Submit button */
 .booking-modal-submit-btn {
   width: 80%;
+  max-width: 300px;
   display: flex;
   justify-content: center;
   align-items: center;

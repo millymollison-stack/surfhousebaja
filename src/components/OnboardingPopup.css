@@ -257,6 +257,7 @@ textarea.popup-textarea.editmode {
     border: 1px solid rgba(255,255,255,0.3);
     color: white !important;
     border-radius: 6px;
+    height: 110px;
 }
 
 textarea.popup-textarea.editmode:focus,

@@ -243,7 +243,7 @@ const UserBookings = memo(function UserBookings({ bookings, onUpdateStatus, onRe
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowDenialModal(null)} />
             <div className="relative inline-block bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl sm:my-8 sm:max-w-lg sm:w-full sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 text-center">Provide Reason for Denial</h3>
-              <textarea rows={4} className="mt-4 block w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="Enter reason for denying the booking..." value={denialReason} onChange={e => setDenialReason(e.target.value)} />
+              <textarea rows={4} className="mt-4 block w-full rounded-md border-gray-300 shadow-sm text-sm edit-textarea" placeholder="Enter reason for denying the booking..." value={denialReason} onChange={e => setDenialReason(e.target.value)} />
               <div className="mt-5 sm:grid sm:grid-cols-2 sm:gap-3">
                 <button disabled={isUpdating} className="w-full inline-flex justify-center rounded-md px-4 py-2 bg-red-600 text-white text-sm font-medium hover:bg-red-700 sm:col-start-2" onClick={() => { if (showDenialModal) { handleStatusUpdate(showDenialModal, 'denied', denialReason); setShowDenialModal(null); setDenialReason(''); } }}>{isUpdating ? 'Updating...' : 'Confirm Denial'}</button>
                 <button disabled={isUpdating} className="mt-3 sm:mt-0 w-full inline-flex justify-center rounded-md border border-gray-300 px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50" onClick={() => { setShowDenialModal(null); setDenialReason(''); }}>Cancel</button>
@@ -292,8 +292,8 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   property: Property | null;
   imageCount: number;
   isEditing: boolean;
-  fields: { title: string; address: string; latitude: string; longitude: string };
-  onChange: React.Dispatch<React.SetStateAction<{ title: string; address: string; latitude: string; longitude: string }>>;
+  fields: { title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates' };
+  onChange: React.Dispatch<React.SetStateAction<{ title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates' }>>;
 }) {
   const mapsUrl = googleMapsUrl(fields.address, fields.latitude, fields.longitude);
   return (
@@ -313,13 +313,30 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
       {isEditing ? (
         <>
           <div className="sb-field-row">
-            <h4 className="sb-h4-grey">Latitude</h4>
-            <input type="text" value={fields.latitude} onChange={e => onChange(p => ({ ...p, latitude: e.target.value }))} className="sb-input" />
+            <h4 className="sb-h4-grey">Location method</h4>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" value="address" checked={fields.location_type === 'address'} onChange={() => onChange(p => ({ ...p, location_type: 'address' }))} className="sb-radio" />
+                <span className="text-xs text-gray-600">Address</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" value="coordinates" checked={fields.location_type === 'coordinates'} onChange={() => onChange(p => ({ ...p, location_type: 'coordinates' }))} className="sb-radio" />
+                <span className="text-xs text-gray-600">Coordinates</span>
+              </label>
+            </div>
           </div>
-          <div className="sb-field-row">
-            <h4 className="sb-h4-grey">Longitude</h4>
-            <input type="text" value={fields.longitude} onChange={e => onChange(p => ({ ...p, longitude: e.target.value }))} className="sb-input" />
-          </div>
+          {fields.location_type === 'coordinates' && (
+            <>
+              <div className="sb-field-row">
+                <h4 className="sb-h4-grey">Latitude</h4>
+                <input type="text" value={fields.latitude} onChange={e => onChange(p => ({ ...p, latitude: e.target.value }))} className="sb-input" />
+              </div>
+              <div className="sb-field-row">
+                <h4 className="sb-h4-grey">Longitude</h4>
+                <input type="text" value={fields.longitude} onChange={e => onChange(p => ({ ...p, longitude: e.target.value }))} className="sb-input" />
+              </div>
+            </>
+          )}
         </>
       ) : (fields.latitude || fields.longitude) ? (
         <div className="sb-field-row">
@@ -363,7 +380,7 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
       <div className="sb-field-row">
         <h4 className="sb-h4-grey">Point your custom domain DNS here</h4>
         <h4 className="sb-h4-grey">Set an A record or CNAME to this address</h4>
-        <p className="sb-mono" style={{ marginTop: 4 }}>76.76.21.21</p>
+        <p className="sb-mono">76.76.21.21</p>
         <h4 className="sb-h4-grey">CNAME: cname.propbook.pro</h4>
       </div>
       <div className="sb-toggle-row">
@@ -541,7 +558,7 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
       </div>
       <div className="py-3">
         <h4 className="sb-h4-grey">Publishable Key</h4>
-        <p className="text-xs font-mono text-gray-700 break-all bg-gray-50 rounded px-2 py-1">{import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.slice(0, 24)}…</p>
+        <p className="sb-mono">{import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.slice(0, 24)}…</p>
       </div>
     </div>
   );
@@ -562,7 +579,7 @@ function ServicesSection({ services, onToggle }: { services: Record<ServiceKey, 
       <p className="sb-services-desc">Limited availability. Our team of experts work directly on your property marketing and services.</p>
       {SERVICE_LIST.map(({ key, label, price }) => (
         <div key={key} className="sb-service-row">
-          <div className="sb-service-info"><p className="sb-service-name">{label}</p><p className="sb-service-price">{price}</p></div>
+          <div className="sb-service-info"><p id={`svc-name-${key}`} className="sb-service-name" style={{padding:0}}>{label}</p><p id={`svc-price-${key}`} className="sb-service-price" style={{padding:0}}>{price}</p></div>
           <Toggle checked={services[key]} onChange={val => onToggle(key, val)} />
         </div>
       ))}
@@ -593,7 +610,7 @@ function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscri
           <div><h4 className="sb-h4-grey">Next Payment</h4><p className="text-base font-bold text-gray-900">{format(fromUnixTime(subscription.current_period_end), 'MMM d, yyyy')}</p></div>
         </div>
         {subscription.cancel_at_period_end && <div className="py-3"><div className="flex items-center gap-2 text-yellow-700 bg-yellow-50 rounded-lg px-3 py-2"><AlertCircle className="h-4 w-4" /><p className="text-xs font-medium">Cancels at end of billing period</p></div></div>}
-        <div className="py-3"><h4 className="sb-h4-grey">Subscription ID</h4><p className="text-xs font-mono text-gray-600 break-all">{subscription.id}</p></div>
+        <div className="py-3"><h4 className="sb-h4-grey">Subscription ID</h4><p className="sb-mono">{subscription.id}</p></div>
       </div>
     );
   }
@@ -666,17 +683,27 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [subLoading, setSubLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '' });
+  const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates' });
   const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
   const [hostOnHostinger, setHostOnHostinger] = useState(true);
   const [devUpdates, setDevUpdates] = useState(true);
   const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: true, marketing: true, advertising: true, analytics: true, influencers: true, social: true });
-  const [servicesLoaded] = useState(false);
 
-  useEffect(() => { if (isOpen && user) loadData(); }, [isOpen, user]);
+  // Reset data each time sidebar opens to prevent stale-loader bug
+  const [dataKey, setDataKey] = useState(0);
+  useEffect(() => {
+    if (!isOpen) return;
+    setDataKey(k => k + 1);
+    if (user) loadData();
+  }, [isOpen, user]);
 
   const loadData = async () => {
     if (!user) return;
+    const key = dataKey; // capture current dataKey to detect stale calls
+    // Reset booking/nextbooking state so loader shows while re-fetching
+    setBookings([]);
+    setNextBooking(null);
+    setBookingError(null);
     setBookingsLoading(true);
     try {
       const [bookingsRes, imagesRes, propRes, profileRes] = await Promise.all([
@@ -686,6 +713,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social').eq('id', user.id).maybeSingle(),
       ]);
 
+      if (key !== dataKey) return; // stale response, discard
       if (bookingsRes.data) {
         const valid = bookingsRes.data.filter(b => b && b.property);
         setBookings(valid);
@@ -707,7 +735,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       if (imagesRes.data) setImageCount(imagesRes.data.length);
       if (propRes.data) {
         setProperty(propRes.data);
-        setPropFields({ title: propRes.data.title || '', address: propRes.data.address || '', latitude: propRes.data.latitude?.toString() || '', longitude: propRes.data.longitude?.toString() || '' });
+        setPropFields({ title: propRes.data.title || '', address: propRes.data.address || '', latitude: propRes.data.latitude?.toString() || '', longitude: propRes.data.longitude?.toString() || '', location_type: (propRes.data.location_type as 'address' | 'coordinates') || 'coordinates' });
       }
       if (profileRes.data) {
         setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? true, marketing: profileRes.data.services_marketing ?? true, advertising: profileRes.data.services_advertising ?? true, analytics: profileRes.data.services_analytics ?? true, influencers: profileRes.data.services_influencers ?? true, social: profileRes.data.services_social ?? true });
@@ -800,13 +828,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setSaving(true);
     try {
       const saves: Promise<unknown>[] = [];
-      if (property) saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null }).eq('id', property.id));
+      if (property) saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type }).eq('id', property.id));
       if (user) saves.push(supabase.from('profiles').update({ full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null }).eq('id', user.id));
       await Promise.all(saves);
       if (propFields.title) setPropertyTitle(propFields.title);
       await loadData();
-      setIsEditing(false);
-    } catch (err) { console.error('Save failed', err); } finally { setSaving(false); }
+    } catch (err) { console.error('Save failed', err); } finally { setIsEditing(false); setSaving(false); }
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: 'approved' | 'denied', reason?: string) => {
@@ -868,7 +895,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           <h1 className="hero-title hero-title-edit">Profile</h1>
           <div className="sidebar-header-actions">
             <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>
-            {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel"><X className="h-4 w-4" /><span>Cancel</span></button>}
+            {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel inline-flex-row"><X className="h-4 w-4" /><span className="btn-text">Cancel</span></button>}
             <button onClick={onClose} className="sidebar-btn-close"><X className="h-6 w-6" /></button>
           </div>
         </div>
@@ -960,7 +987,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           </div>
 
           {/* Sign out */}
-          <div className="pt-6 flex justify-center">
+          <div className="flex justify-center">
             <button onClick={async () => { await signOut(); onClose(); }} className="sidebar-signout">
               <LogOut className="h-4 w-4" /><span>Sign Out</span>
             </button>

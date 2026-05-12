@@ -80,7 +80,7 @@ export function AdminProfile({ property, images, onSave, onImageUpload, onImageD
           <h2 className="text-[1.65rem] text-gray-900">Property Management</h2>
           <button
             onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center space-x-2 px-4 py-2 rounded-md bg-[#FDF2F8] text-[var(--brand)] hover:bg-[#FCE7F3]"
+            className="sidebar-btn-edit"
           >
             {isEditing ? (
               <>

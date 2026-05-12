@@ -549,7 +549,7 @@ input.sidebar-input::placeholder {
    ──────────────────────────────────────────── */
 
 .sb-field-row {
-  padding: 12px 0;
+  padding: 12px 0 0 0;
 }
 .sb-field-row:last-child { border-bottom: none; }
 
@@ -1001,7 +1001,8 @@ input.sb-input[type="tel"] {
   color: #000;
   background: rgba(0,0,0,0.04);
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 4px 8px;
+  margin: 10px 0;
 }
 
 /* ────────────────────────────────────────────
@@ -1145,7 +1146,7 @@ input.sb-input[type="tel"] {
    ──────────────────────────────────────────── */
 .booking-modal-select {
   width: 100% !important;
-  max-width: 400px !important;
+  max-width: 300px !important;
   font-size: 0.9rem !important;
   font-weight: 400 !important;
   color: #000 !important;
@@ -1199,3 +1200,61 @@ input.sb-input[type="tel"] {
   box-shadow: 0 0 0 3px rgba(var(--brand-rgb, 196, 119, 86), 0.15) !important;
 }
 .sb-input-light::placeholder { color: #9ca3af; }
+
+/* specialRequests textarea override — needs 600px max-width */
+textarea#specialRequests.sb-input-light { max-width: 300px !important; }
+
+/* Inline flex row for icon+text buttons — prevents wrapping, removes text if no room */
+.inline-flex-row {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  width: auto;
+}
+.inline-flex-row .btn-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* When button is too narrow, hide just the text label */
+@media (max-width: 200px) {
+  .inline-flex-row .btn-text {
+    display: none;
+  }
+}
+
+/* Radio buttons in sidebar edit forms */
+.sb-radio {
+  accent-color: var(--brand);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* Search icon inside input field */
+.sb-input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.sb-input-icon-wrap input {
+  padding-right: 40px;
+}
+.sb-input-icon-btn {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--brand);
+  padding: 4px;
+  border-radius: 4px;
+  transition: color .15s;
+}
+.sb-input-icon-btn:hover {
+  color: var(--brand-hover);
+}
