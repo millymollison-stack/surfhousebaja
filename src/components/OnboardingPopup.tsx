@@ -118,6 +118,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
  const isMountedRef = { current: true };
+ const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
  const [email, setEmail] = useState('');
  const [password, setPassword] = useState('');
  const [bookingsEmail, setBookingsEmail] = useState('');
@@ -338,8 +339,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Sync websiteName to header AND to New Site Template
  useEffect(() => {
  if (!onSiteNameChange) return;
- const trimmed = websiteName.trim();
- const display = trimmed.length > 0 ? '@' + trimmed.slice(0, 20) : '@surfhousebaja';
+ // Strip ALL leading @ to ensure no double-ups (handles both fresh input and sidebar echo-back)
+ const display = websiteName.replace(/^@+/, '').trim().length > 0
+ ? '@' + websiteName.replace(/^@+/, '').trim().slice(0, 20)
+ : '@surfhousebaja';
  onSiteNameChange(display);
  }, [websiteName, onSiteNameChange]);
 
@@ -351,12 +354,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
- // Sync to preview only on blur (handleDescBlur), not on every keystroke
+ // Debounce the preview sync so typing keeps up — fire every 1s of inactivity
+ clearTimeout(descSyncTimer.current);
+ descSyncTimer.current = setTimeout(() => {
+ if (onImported) onImported({ title: websiteName.trim() || 'surfhousebaja', description: val });
+ }, 1000);
  };
  const handleNameBlur = () => {
  if (onSiteNameChange) {
- const trimmed = websiteName.trim();
- onSiteNameChange(trimmed.length > 0 ? '@' + trimmed.slice(0, 20) : '@surfhousebaja');
+ // Strip ALL leading @ to ensure we never double up, no matter where the value came from
+ const stripped = websiteName.replace(/^@+/, '');
+ const display = stripped.trim().length > 0 ? '@' + stripped.trim().slice(0, 20) : '@surfhousebaja';
+ onSiteNameChange(display);
  }
  if (onImported) {
  onImported({ title: websiteName.trim() || 'surfhousebaja', description: websiteDesc });
@@ -521,7 +530,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Intro */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Create your site</h1>
- <p>After you complete this sign up process, you&apos;ll receive a link to your hosted website template. After onboarding you can open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience. You can edit these details later from your site&apos;s menu. Let&apos;s create your account.</p>
+ <p>After you complete this sign up process you can then open your site on your phone or desktop browser. You can finish customizing it by adding photos, editing text, and manage incoming bookings at your convenience.</p>
  <br /><hr />
 
  {/* Sign Up */}
@@ -914,7 +923,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Publish */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>7. Publish your site</h1>
- <p>After onboarding you can open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience.</p>
+ <p>After onboarding you can open your site on your phone or desktop browser. You can finish customizing it by adding photos, editing text, and manage incoming bookings at your convenience.</p>
  <ul>
  <li>
  <input type="checkbox" id="7-1" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
@@ -935,11 +944,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  
  {/* Stripe Payment Modal */}
  {showStripeModal && (
- <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); setShowCongrats(false); }}>
+ <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); }}>
  <div className="stripe-modal-box" onClick={e => e.stopPropagation()}>
  <div className="stripe-modal-header">
  <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h1>
- <button onClick={() => { setShowStripeModal(false); setStripeError(''); setShowCongrats(false); handleClose(); }} className="stripe-modal-close">×</button>
+ <button onClick={() => { setShowStripeModal(false); setStripeError(''); }} className="stripe-modal-close">×</button>
  </div>
 
  {/* Payment method icons */}
