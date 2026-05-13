@@ -108,7 +108,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, subscrip
  className="btn"
  style={{ width: '100%', fontSize: '1rem' }}
  >
- {processing ? 'Processing subscription...' : `Pay $${monthlyTotal}/mo`}
+ {processing ? 'Processing subscription...' : `Pay ${displayedTotal === 0 ? 'Free today' : `$${displayedTotal}`}`}
  </button>
  </form>
  );
@@ -346,11 +346,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Sync name to header (immediate) and template (on change — real-time)
  const handleNameChange = (val: string) => {
  setWebsiteName(val.slice(0, 20));
- if (onSiteNameChange) {
- const trimmed = val.trim();
- onSiteNameChange(trimmed.length > 0 ? '@' + trimmed.slice(0, 20) : '@surfhousebaja');
- }
- // NOTE: do NOT call onImported here — that causes stale previews on every keystroke
+ // NOTE: do NOT call onSiteNameChange here — that causes the parent to re-render
+ // with a 20-char truncated name, which overwrites the input mid-typing
  };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
@@ -524,12 +521,17 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Intro */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Create your site</h1>
- <p>After you complete this sign up process, you&apos;ll receive a link to your hosted website template. You can then open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience. Let&apos;s create your account.</p>
- <h3>You will be able to edit these details later from your site&apos;s dashboard.</h3>
+ <p>After you complete this sign up process, you&apos;ll receive a link to your hosted website template. After onboarding you can open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience. You can edit these details later from your site&apos;s menu. Let&apos;s create your account.</p>
  <br /><hr />
 
  {/* Sign Up */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign Up</h1>
+
+ {planChoice !== 'starter' && (
+ <div style={{ background: 'rgba(196,119,86,0.15)', border: '1px solid rgba(196,119,86,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem', color: '#e8c4a0' }}>
+ Your plan includes a free month — you won&apos;t be charged today.
+ </div>
+ )}
  <p>Create your new sites admin account.</p>
  <h4>Email</h4>
  <input type="email" placeholder="Email" className="editmode" value={email} onChange={e => setEmail(e.target.value)} />
@@ -833,7 +835,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  onBlur={handleDescBlur}
  />
  <p>Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
- <button className="btn" onClick={() => { const rawName = scrapedProperty?.property_title || scrapedProperty?.title || websiteName.trim() || ''; const name = rawName.replace(/[^a-zA-Z0-9\s]/g, '').trim(); const url = name ? `https://www.namecheap.com/domains/domain-checker/?domain=${encodeURIComponent(name.toLowerCase().replace(/\s+/g, ''))}.com` : 'https://www.namecheap.com'; window.open(url, '_blank'); }}>Launch Name Cheap</button>
+ <button
+ onClick={() => {
+ const rawName = websiteName.trim() || '';
+ const name = rawName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+ const url = name
+ ? `https://www.namecheap.com/domains/domain-checker/?domain=${encodeURIComponent(name.toLowerCase().replace(/\s+/g, ''))}.com`
+ : 'https://www.namecheap.com';
+ window.open(url, '_blank');
+ }}
+ >
+ Launch Name Cheap
+ </button>
 <br />
 
  <hr />
@@ -922,11 +935,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  
  {/* Stripe Payment Modal */}
  {showStripeModal && (
- <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); }}>
- <div className="stripe-modal-box">
+ <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); setShowCongrats(false); }}>
+ <div className="stripe-modal-box" onClick={e => e.stopPropagation()}>
  <div className="stripe-modal-header">
  <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h1>
- <button onClick={() => { setShowStripeModal(false); setStripeError(''); }} className="stripe-modal-close">×</button>
+ <button onClick={() => { setShowStripeModal(false); setStripeError(''); setShowCongrats(false); }} className="stripe-modal-close">×</button>
  </div>
 
  {/* Payment method icons */}
@@ -958,10 +971,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  ))}
  </div>
 
- {/* Compact total */}
- <div className="stripe-total-compact">
+ {/* Show pricing below Stripe elements */}
+ <div className="stripe-total-compact" style={{ marginTop: 16 }}>
  <span>Total due today</span>
- <span>{displayedTotal === 0 ? 'Free today' : '$' + Number(displayedTotal)}</span>
+ <span>{displayedTotal === 0 ? 'Free today' : `$${displayedTotal}`}</span>
  </div>
 
  {stripeClientSecret ? (
@@ -1061,7 +1074,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  </div>
  <div className="popup-total-right">
- <div className="popup-total-amount">{displayedTotal === 0 ? 'Free today' : '$' + Number(displayedTotal)}</div>
+ <div className="popup-total-amount">{displayedTotal === 0 ? 'Free today' : `$${displayedTotal}`}</div>
  <div className="popup-total-period">
  {monthlyTotal > 0 && TRIAL_CREDIT > 0 ? `+$${monthlyTotal}/mo after free month` : (monthlyTotal > 0 ? `+$${monthlyTotal}/mo` : (hasScrape ? 'due today' : ''))}
  </div>
