@@ -8,6 +8,7 @@ import { FontDropdown } from './FontDropdown';
 import { FONT_OPTIONS, applyFontAccent } from '../lib/fontAccent';
 import { supabase } from '../lib/supabase';
 import { saveBrandColor } from '../lib/brandColor';
+import { duplicateSiteAfterPayment } from '../services/siteDuplicationService';
 
 // Hardcoded user ID for this template (replace with auth.user.id when auth is wired)
 const TEMPLATE_USER_ID = 'surfhouse-baja-template';
@@ -27,12 +28,12 @@ const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 
 
 // ── Stripe CheckoutForm (must be inside <Elements> context) ─────────────────
-function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup }: {
+function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, subscriptionId }: {
  clientSecret: string;
  onSuccess: () => void;
  onError: (msg: string) => void;
  monthlyTotal: number;
- isSetup?: boolean;
+ subscriptionId?: string;
 }) {
  const stripe = useStripe();
  const elements = useElements();
@@ -42,11 +43,39 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup 
  e.preventDefault();
  if (!stripe || !elements) return;
  setProcessing(true);
+
  let error;
- if (isSetup) {
+
+ if (subscriptionId) {
+ // Subscription flow: confirm the SetupIntent to verify the card
  const result = await stripe.confirmCardSetup(clientSecret, { elements });
  error = result.error;
+
+ if (!error && result.setupIntent) {
+ // Card verified! Now finalize the subscription on the backend
+ try {
+ const res = await fetch('https://propbook-stripe-server-production.up.railway.app/finalize-subscription', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ subscriptionId,
+ setupIntentId: result.setupIntent.id,
+ }),
+ });
+ const data = await res.json();
+ if (!res.ok) {
+ onError(data.error || 'Subscription finalization failed.');
+ setProcessing(false);
+ return;
+ }
+ } catch (err) {
+ onError('Could not finalize subscription. Please contact support.');
+ setProcessing(false);
+ return;
+ }
+ }
  } else {
+ // One-time payment flow
  const result = await stripe.confirmPayment({
  elements,
  clientSecret,
@@ -55,6 +84,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup 
  });
  error = result.error;
  }
+
  setProcessing(false);
  if (error) {
  onError(error.message || 'Payment failed.');
@@ -67,6 +97,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup 
  <form onSubmit={handleSubmit} className="stripe-checkout-form">
  <div className="stripe-card-label">
  <div className="stripe-card-title">Card details</div>
+ <p className="stripe-consent-note">By clicking Pay, you allow propbook.pro to charge your card for the amount shown, according to the terms of your subscription.</p>
  <div className="stripe-card-field">
  <PaymentElement options={{ layout: 'tabs' }} />
  </div>
@@ -77,7 +108,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, isSetup 
  className="btn"
  style={{ width: '100%', fontSize: '1rem' }}
  >
- {processing ? (isSetup ? 'Saving card...' : 'Processing...') : (isSetup ? 'Save card for subscription' : `Pay ${monthlyTotal}`)}
+ {processing ? 'Processing subscription...' : `Pay $${monthlyTotal}/mo`}
  </button>
  </form>
  );
@@ -107,29 +138,23 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  return;
  }
  setStripeError('');
- const isSetup = displayedTotal === 0;
- setStripeIsSetup(isSetup);
  setShowStripeModal(true);
  try {
- const endpoint = isSetup ? '/create-setup-intent' : '/create-payment-intent';
- const reqBody = isSetup
- ? { customerEmail: email ||'pending@placeholder.com' }
- : {
- amount: Math.round(displayedTotal * 100),
- currency: 'usd',
- customerEmail: email,
- hasTrial: TRIAL_CREDIT > 0,
- planKey: planChoice,
- priceId: planChoice === 'starter' ? 'price_1TNJxlK5ECFjIqP3js6qeCyf' : planChoice === 'pro' ? 'price_1TNJxlK5ECFjIqP3bhOTGvL5' : planChoice === 'agency' ? 'price_1TNJxmK5ECFjIqP32ZWgrKde' : null,
- };
- const res = await fetch('http://localhost:3099' + endpoint, {
+ const priceId =
+ planChoice === 'starter' ? 'price_1TNJxlK5ECFjIqP3js6qeCyf' :
+ planChoice === 'pro' ? 'price_1TNJxlK5ECFjIqP3bhOTGvL5' :
+ planChoice === 'agency' ? 'price_1TNJxmK5ECFjIqP32ZWgrKde' : null;
+
+ // Always use /create-subscription for subscription plans
+ const res = await fetch('https://propbook-stripe-server-production.up.railway.app/create-subscription', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify(reqBody),
+ body: JSON.stringify({ priceId, customerEmail: email || 'pending@placeholder.com' }),
  });
  const data = await res.json();
  if (data.clientSecret) {
  setStripeClientSecret(data.clientSecret);
+ setStripeSubscriptionId(data.subscriptionId || '');
  } else {
  setStripeError(data.error || 'Could not initialise payment.');
  setShowStripeModal(false);
@@ -143,7 +168,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [showStripeModal, setShowStripeModal] = useState(false);
  const [stripeClientSecret, setStripeClientSecret] = useState('');
  const [stripePayMethod, setStripePayMethod] = useState<'card' | 'paypal' | 'venmo'>('card');
- const [stripeIsSetup, setStripeIsSetup] = useState(false);
+ const [stripeSubscriptionId, setStripeSubscriptionId] = useState('');
+ const [showCongrats, setShowCongrats] = useState(false);
+ const [congratsUrl, setCongratsUrl] = useState('');
 
  // Stripe payment element ref
  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
@@ -323,15 +350,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const trimmed = val.trim();
  onSiteNameChange(trimmed.length > 0 ? '@' + trimmed.slice(0, 20) : '@surfhousebaja');
  }
- if (onImported) {
- onImported({ title: val.trim() || 'surfhousebaja', description: websiteDesc });
- }
+ // NOTE: do NOT call onImported here — that causes stale previews on every keystroke
  };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
- if (onImported) {
- onImported({ title: websiteName.trim() || 'surfhousebaja', description: val });
- }
+ // Sync to preview only on blur (handleDescBlur), not on every keystroke
  };
  const handleNameBlur = () => {
  if (onSiteNameChange) {
@@ -407,7 +430,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const countInterval = setInterval(() => {
  setCountdown(c => {
  if (c <= 1) { clearInterval(countInterval); return 0; }
- return c - 1;
+ return Number(c) - 1;
  });
  }, 1000);
 
@@ -441,7 +464,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Replace with your actual endpoint that calls Stripe API
  let clientSecret = '';
  try {
- const res = await fetch('http://localhost:3099/create-payment-intent', {
+ const res = await fetch('https://propbook-stripe-server-production.up.railway.app/create-payment-intent', {
  method: 'POST',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({
@@ -521,7 +544,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <p>Enter the email address you would like your booking notifications to be sent.</p>
  <h4>Bookings email</h4>
  <input type="email" placeholder="Bookings email" className="editmode" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
- <button className="btn">Create Admin Account</button>
+ <button className="btn" onClick={() => alert('Admin account creation is automatic after payment. Your account will be created automatically.')}>Create Admin Account</button>
  <h3>Respond to the verification email now to get verified. Then sign into your website as the Admin.</h3>
  <br /><hr />
 
@@ -531,7 +554,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <input type="email" placeholder="Email" className="editmode" />
  <h4>Password</h4>
  <input type="password" placeholder="Password" className="editmode" />
- <button className="btn">Sign In</button>
+ <button className="btn" onClick={() => alert('Sign in will be available once your site is created. You\'ll receive an email with your login details.')}>Sign In</button>
  <br /><hr />
 
  {/* Banking Details */}
@@ -553,7 +576,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </ul>
  <br />
  <h3>Your banking information is held by your 3rd‑party payment platform</h3>
- <button className="btn">Link your account</button>
+ <button className="btn" onClick={() => alert('Bank account linking will be available after you subscribe. You\'ll be prompted to connect your bank account to receive payouts.')}>Link your account</button>
  <br /><hr />
 
  {/* Design */}
@@ -650,7 +673,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  )}
  {manualImages.length > 0 && (
- <p className="hero-subtitle popup-note" style={{ marginTop: '6px' }}>Click a photo to make it the hero. {manualImages.length} photo(s) added.</p>
+ <p className="hero-subtitle popup-note" style={{ marginTop: '6px' }}>{manualImages.length > 0 ? `${manualImages.length} photo${manualImages.length > 1 ? 's' : ''} added` : 'No photos added yet'}</p>
  )}
  {manualImages.length > 0 && (
  <div className="popup-preview" style={{ marginTop: '16px' }}>
@@ -810,7 +833,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  onBlur={handleDescBlur}
  />
  <p>Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
- <button className="btn">Launch Name Cheap</button>
+ <button className="btn" onClick={() => { const rawName = scrapedProperty?.property_title || scrapedProperty?.title || websiteName.trim() || ''; const name = rawName.replace(/[^a-zA-Z0-9\s]/g, '').trim(); const url = name ? `https://www.namecheap.com/domains/domain-checker/?domain=${encodeURIComponent(name.toLowerCase().replace(/\s+/g, ''))}.com` : 'https://www.namecheap.com'; window.open(url, '_blank'); }}>Launch Name Cheap</button>
 <br />
 
  <hr />
@@ -878,7 +901,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Publish */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>7. Publish your site</h1>
- <p>Now you are ready to launch your very own short‑term rental booking site. Congratulations!</p>
+ <p>After onboarding you can open your site on your phone or desktop browser and customize it by adding photos, editing text, and manage incoming bookings at your convenience.</p>
  <ul>
  <li>
  <input type="checkbox" id="7-1" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
@@ -900,10 +923,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  {/* Stripe Payment Modal */}
  {showStripeModal && (
  <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); }}>
- <div className="stripe-modal-box" onClick={e => e.stopPropagation()}>
+ <div className="stripe-modal-box">
  <div className="stripe-modal-header">
  <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h1>
- <button onClick={(e) => { e.stopPropagation(); setShowStripeModal(false); setStripeError(''); }} className="stripe-modal-close">×</button>
+ <button onClick={() => { setShowStripeModal(false); setStripeError(''); }} className="stripe-modal-close">×</button>
  </div>
 
  {/* Payment method icons */}
@@ -930,15 +953,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <path d="M17.18 6.54c-.7-1.27-2.02-1.91-3.6-1.91-2.2 0-3.8 1.37-4.08 3.2-.32 1.96.82 3.68 2.5 4.78l1.26.82c1.24.81 1.96 1.84 1.96 3.16 0 2.1-1.7 3.67-4.18 3.67-1.74 0-3.14-.67-3.88-1.82l-1.18 1.36c1.04 1.42 2.48 2.18 4.5 2.18 2.84 0 4.98-1.86 5.14-4.48.1-1.3-.46-2.5-1.54-3.4l-1.28-.84c-.98-.64-1.7-1.44-1.7-2.58 0-.92.66-1.58 1.58-1.58.72 0 1.24.32 1.24.92 0 .48-.34.86-.92.86-.24 0-.44-.12-.44-.42 0-.34.26-.66.74-1.16.7-.7 1.34-1.7 1.7-2.84.38.76.58 1.6.58 2.5 0 .8-.2 1.58-.6 2.3.06.26.1.54.1.84 0 .82-.26 1.62-.74 2.34.26.14.56.22.88.22.92 0 1.64-.7 1.64-1.58 0-.44-.18-.84-.46-1.12z"/>
  </svg>
  )}
- <span>{method === 'card' ? 'Card' : method.charAt(0).toUpperCase() + method.slice(1)}</span>
+ <span>{method === 'card' ? 'Card' : method.charAt(0).toUpperCase() + method.slice(1)} {method !== 'card' ? '(coming soon)' : ''}</span>
  </button>
  ))}
  </div>
 
  {/* Compact total */}
  <div className="stripe-total-compact">
- <span>{stripeIsSetup ? 'Card saved for future billing' : 'Total due today'}</span>
- <span>${displayedTotal === 0 ? 'Free today' : '$' + displayedTotal}</span>
+ <span>Total due today</span>
+ <span>{displayedTotal === 0 ? 'Free today' : '$' + Number(displayedTotal)}</span>
  </div>
 
  {stripeClientSecret ? (
@@ -949,6 +972,33 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  setShowStripeModal(false);
  setStripeClientSecret('');
  await saveToSupabase();
+ 
+ // ── Site duplication — the core of the business ──
+ try {
+ const result = await duplicateSiteAfterPayment({
+ email,
+ bookingsEmail,
+ websiteName,
+ websiteDesc,
+ planChoice: planChoice as 'starter' | 'pro' | 'agency',
+ hostingChoice: hostingChoice as 'our' | 'own',
+ extras,
+ scrapedData,
+ designChoice,
+ bankChoice,
+ });
+ console.log('✅ Site created:', result.siteUrl);
+ if (result.siteUrl) {
+ setCongratsUrl(result.siteUrl);
+ setShowCongrats(true);
+ // Don't close — show the congrats modal instead
+ if (onComplete) onComplete({ email, bookingsEmail, adminRequest, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
+ return;
+ }
+ } catch (err) {
+ console.warn('Site duplication failed (payment succeeded):', err);
+ }
+ 
  if (onComplete) {
  onComplete({ email, bookingsEmail, adminRequest, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
  }
@@ -956,6 +1006,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }}
  onError={msg => setStripeError(msg)}
  monthlyTotal={monthlyTotal}
+ subscriptionId={stripeSubscriptionId}
  />
  </Elements>
  ) : (
@@ -965,7 +1016,41 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  </div>
  )}
-<div className="popup-total-banner">
+ 
+ {/* Congratulations — new site ready! */}
+ {showCongrats && (
+ <div className="stripe-modal-backdrop" onClick={() => { setShowCongrats(false); handleClose(); }}>
+ <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
+ <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
+ <h1 style={{ marginBottom: '12px' }}>Your site is being built!</h1>
+ <p style={{ color: '#aaa', marginBottom: '24px', lineHeight: 1.6 }}>
+ We've saved your info and are copying your template right now.
+ You'll be able to edit and manage it as the admin once it's live.
+ </p>
+ {congratsUrl && (
+ <a
+ href={congratsUrl}
+ target="_blank"
+ rel="noopener noreferrer"
+ style={{ display: 'inline-block', background: '#C47756', color: '#fff', padding: '14px 28px', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, marginBottom: '16px' }}
+ >
+ 👉 Open your site
+ </a>
+ )}
+ <p style={{ color: '#666', fontSize: '0.85rem', marginTop: '12px' }}>
+ You'll also receive an email with your login details.
+ </p>
+ <button
+ onClick={() => { setShowCongrats(false); handleClose(); }}
+ style={{ marginTop: '20px', background: 'transparent', border: '1px solid #444', color: '#888', padding: '8px 20px', borderRadius: '6px', cursor: 'pointer' }}
+ >
+ Close
+ </button>
+ </div>
+ </div>
+ )}
+ 
+ <div className="popup-total-banner">
  <div className="popup-total-left">
  <div className="popup-total-label">Total due today</div>
  <div className="popup-total-subline">
@@ -976,7 +1061,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  </div>
  <div className="popup-total-right">
- <div className="popup-total-amount">${displayedTotal}</div>
+ <div className="popup-total-amount">{displayedTotal === 0 ? 'Free today' : '$' + Number(displayedTotal)}</div>
  <div className="popup-total-period">
  {monthlyTotal > 0 && TRIAL_CREDIT > 0 ? `+$${monthlyTotal}/mo after free month` : (monthlyTotal > 0 ? `+$${monthlyTotal}/mo` : (hasScrape ? 'due today' : ''))}
  </div>

@@ -12,6 +12,7 @@ import { EmailConfirmation } from '../pages/EmailConfirmation';
 import { loadFontAccent } from '../lib/fontAccent';
 import { loadBrandColor } from '../lib/brandColor';
 import { Onboarding } from '../pages/Onboarding';
+import { CustomerSite } from '../pages/CustomerSite';
 import PaymentPage from '../pages/PaymentPage';
 
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -97,6 +98,7 @@ function AppContent() {
           <Route path="/property-admin" element={user ? <PropertyAdmin /> : <Navigate to="/login" replace />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/pay/:bookingId" element={<PaymentPage />} />
+          <Route path="/props/:slug" element={<CustomerSite />} />
         </Routes>
       </Layout>
       {showLogin && <Login />}

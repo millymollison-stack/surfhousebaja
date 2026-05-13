@@ -18,12 +18,20 @@ export interface Profile {
 export interface Property {
   id: string;
   title: string;
+  name: string;
+  slug: string;
   description: string;
+  location: string;
+  hero_image: string;
+  images: string[];
   price_per_night: number;
-  bedrooms: number;
-  bathrooms: number;
   max_guests: number;
-  amenities: string[];
+  bedrooms: number;
+  beds: number;
+  baths: number;
+  amenities: string | string[];
+  brand_color: string | null;
+  font_accent: string | null;
   property_details: string | null;
   activities: string | null;
   local_area: string | null;
@@ -35,6 +43,9 @@ export interface Property {
   property_title: string | null;
   property_intro: string | null;
   custom_domain: string | null;
+  status: 'draft' | 'building' | 'active' | 'inactive' | null;
+  site_url: string | null;
+  owner_id: string | null;
   created_at: string;
   updated_at: string;
 }

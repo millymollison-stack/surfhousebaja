@@ -258,6 +258,9 @@ textarea.popup-textarea.editmode {
     color: white !important;
     border-radius: 6px;
     height: 110px;
+    padding: 10px !important;
+    box-sizing: border-box;
+    margin-top: 6px;
 }
 
 textarea.popup-textarea.editmode:focus,
@@ -265,8 +268,8 @@ textarea.popup-textarea.editmode:focus-within {
   color: white !important;
   border-color: var(--brand);
   box-shadow: 0 0 0 2px rgba(196,119,86,0.25);
-  max-width: 100% !important;
-  width: 400px !important;
+  max-width: 400px !important;
+  width: 94% !important;
   border-radius: 6px;
 }
 
@@ -479,9 +482,11 @@ hr {
   align-items: center;
   justify-content: center;
   z-index: 10001;
+  pointer-events: auto;
 }
 
 .stripe-modal-box {
+  position: relative;
   background: #1a1a1a;
   border-radius: 12px;
   width: 100%;
@@ -491,6 +496,8 @@ hr {
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.6);
   box-sizing: border-box;
+  pointer-events: auto;
+  z-index: 10002;
 }
 
 .stripe-modal-header {
@@ -562,7 +569,8 @@ hr {
 .stripe-checkout-form { max-width: 400px; margin: 0 auto; text-align: center; }
 .stripe-card-label { margin-bottom: 16px; color: #fff; font-size: 0.95rem; }
 .stripe-card-title { margin-bottom: 6px; }
-.stripe-card-field { background: rgba(255,255,255,0.08); border-radius: 6px; padding: 12px 8px; }
+.stripe-card-field { background: rgba(255,255,255,0.08); border-radius: 6px; padding: 12px 8px; min-height: 120px; position: relative; z-index: 1; }
+.stripe-consent-note { color: rgba(255,255,255,0.6); font-size: 0.75rem; margin: 0 0 10px 0; line-height: 1.4; }
 .stripe-loading { text-align: center; color: #fff; padding: 24px 0; font-size: 0.9rem; }
 .stripe-error { text-align: center; margin-top: 8px; }
 
