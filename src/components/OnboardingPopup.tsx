@@ -345,9 +345,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  // Sync name to header (immediate) and template (on change — real-time)
  const handleNameChange = (val: string) => {
- setWebsiteName(val.slice(0, 20));
- // NOTE: do NOT call onSiteNameChange here — that causes the parent to re-render
- // with a 20-char truncated name, which overwrites the input mid-typing
+ // Strip any leading @ so we never double it up when the sidebar prepends one
+ const cleaned = val.startsWith('@') ? val.slice(1) : val;
+ setWebsiteName(cleaned.slice(0, 20));
  };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
@@ -939,7 +939,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <div className="stripe-modal-box" onClick={e => e.stopPropagation()}>
  <div className="stripe-modal-header">
  <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Secure Payment</h1>
- <button onClick={() => { setShowStripeModal(false); setStripeError(''); setShowCongrats(false); }} className="stripe-modal-close">×</button>
+ <button onClick={() => { setShowStripeModal(false); setStripeError(''); setShowCongrats(false); handleClose(); }} className="stripe-modal-close">×</button>
  </div>
 
  {/* Payment method icons */}
