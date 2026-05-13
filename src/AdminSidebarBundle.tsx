@@ -407,7 +407,7 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
       </div>
       <div className="sb-toggle-row">
         <p className="sb-toggle-label">Search for a domain</p>
-        <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" className="sb-change-pw-btn" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
+        <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 6, background: 'var(--brand, #C47756)', color: '#fff', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
       </div>
       <div className="sb-toggle-row">
         <p className="sb-toggle-label">Enable website dev updates</p>

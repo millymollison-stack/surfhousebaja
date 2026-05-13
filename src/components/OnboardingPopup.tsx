@@ -108,7 +108,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, subscrip
  className="btn"
  style={{ width: '100%', fontSize: '1rem' }}
  >
- {processing ? 'Processing subscription...' : `Pay ${displayedTotal === 0 ? 'Free today' : `$${displayedTotal}`}`}
+ {processing ? 'Processing subscription...' : `Pay ${monthlyTotal === 0 ? 'Free today' : `$${monthlyTotal}`}`}
  </button>
  </form>
  );
@@ -536,7 +536,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  {/* Sign Up */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign Up</h1>
 
- {planChoice !== 'starter' && (
+ {planChoice === 'starter' && (
  <div style={{ background: 'rgba(196,119,86,0.15)', border: '1px solid rgba(196,119,86,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem', color: '#e8c4a0' }}>
  Your plan includes a free month — you won&apos;t be charged today.
  </div>
