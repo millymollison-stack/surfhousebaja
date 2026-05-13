@@ -83,6 +83,8 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
       status: 'draft', // not live until site is built
       owner_id: propertyId,
       site_url: `https://propbook.pro/props/${slug}`,
+      server_ip: '82.29.86.252',
+      folder_path: `/props/${slug}`,
     })
     .select('id')
     .single();
@@ -148,6 +150,8 @@ export async function buildSiteOnHostinger(slug: string, propertyId: string): Pr
     .from('properties')
     .update({
       site_url: `https://propbook.pro/props/${slug}`,
+      server_ip: '82.29.86.252',
+      folder_path: `/props/${slug}`,
       status: 'active',
     })
     .eq('id', propertyId);

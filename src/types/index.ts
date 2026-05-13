@@ -45,6 +45,8 @@ export interface Property {
   custom_domain: string | null;
   status: 'draft' | 'building' | 'active' | 'inactive' | null;
   site_url: string | null;
+  server_ip: string | null;
+  folder_path: string | null;
   owner_id: string | null;
   created_at: string;
   updated_at: string;

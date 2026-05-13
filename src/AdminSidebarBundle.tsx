@@ -362,30 +362,52 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   );
 }
 
-function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDevUpdates }: {
+function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDevUpdates, serverIp, folderPath, siteUrl, websiteName }: {
   hostOnHostinger: boolean; setHostOnHostinger: (v: boolean) => void;
   devUpdates: boolean; setDevUpdates: (v: boolean) => void;
+  serverIp?: string | null;
+  folderPath?: string | null;
+  siteUrl?: string | null;
+  websiteName?: string;
 }) {
-  const siteUrl = 'www.propbook.pro/surfhousebaja';
+  const domainName = websiteName ? websiteName.replace(/^@+/, '').trim() + '.com' : '';
+  const domainSearchUrl = domainName
+    ? `https://www.hostinger.com/domain-search?domain=${encodeURIComponent(domainName)}`
+    : 'https://www.hostinger.com/domain-search';
+
   return (
     <div>
       <div className="sb-toggle-row">
         <p className="sb-toggle-label">Host website on Hostinger</p>
         <Toggle checked={hostOnHostinger} onChange={setHostOnHostinger} />
       </div>
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">{siteUrl}</p>
-        <a href={`https://${siteUrl}`} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" style={{ color: '#16a34a' }} /></a>
-      </div>
+      {siteUrl && (
+        <div className="sb-toggle-row">
+          <p className="sb-toggle-label">{siteUrl}</p>
+          <a href={siteUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" style={{ color: '#16a34a' }} /></a>
+        </div>
+      )}
+      {serverIp && (
+        <div className="sb-field-row">
+          <h4 className="sb-h4-grey">Server IP address</h4>
+          <p className="sb-mono">{serverIp}</p>
+        </div>
+      )}
+      {folderPath && (
+        <div className="sb-field-row">
+          <h4 className="sb-h4-grey">File path on server</h4>
+          <p className="sb-mono">{folderPath}</p>
+        </div>
+      )}
       <div className="sb-field-row">
         <h4 className="sb-h4-grey">Point your custom domain DNS here</h4>
         <h4 className="sb-h4-grey">Set an A record or CNAME to this address</h4>
-        <p className="sb-mono">76.76.21.21</p>
+        <p className="sb-mono">{serverIp || '82.29.86.252'}</p>
         <h4 className="sb-h4-grey">CNAME: cname.propbook.pro</h4>
       </div>
       <div className="sb-toggle-row">
         <p className="sb-toggle-label">Search for a domain</p>
-        <a href="https://www.namecheap.com" target="_blank" rel="noopener noreferrer" className="sb-change-pw-btn" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Namecheap <ExternalLink className="h-3 w-3" /></a>
+        <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" className="sb-change-pw-btn" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
       </div>
       <div className="sb-toggle-row">
         <p className="sb-toggle-label">Enable website dev updates</p>
@@ -975,7 +997,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {openSection === key && (
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'website' && <WebsiteSection hostOnHostinger={hostOnHostinger} setHostOnHostinger={setHostOnHostinger} devUpdates={devUpdates} setDevUpdates={setDevUpdates} />}
+                    {key === 'website' && <WebsiteSection hostOnHostinger={hostOnHostinger} setHostOnHostinger={setHostOnHostinger} devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} folderPath={property?.folder_path} siteUrl={property?.site_url} websiteName={property?.name} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection balance={balance} connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}
