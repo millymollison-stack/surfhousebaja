@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './ImageGallery.css';
 import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users, Layers } from 'lucide-react';
 import { applyFontAccent } from '../lib/fontAccent';
@@ -40,6 +40,8 @@ export function ImageGallery({
   const { user } = useAuth();
   // Use external isAdmin if provided, otherwise check local auth
   const isAdmin = externalIsAdmin ?? user?.role === 'admin';
+  // Debounce flag — prevent accidental double-saves within 2 seconds
+  const saveInProgressRef = useRef(false);
 
   // Initialize state from property - only on mount or when property ID changes
   useEffect(() => {
@@ -48,15 +50,19 @@ export function ImageGallery({
   }, [property?.id]);  // Only reinitialize when property ID changes, not when content changes
 
   // Sync title/intro from scraped property data arriving from Home (without DB write)
+  // Also re-sync when property ID changes (after save completes)
   useEffect(() => {
+    console.log('[DEBUG ImageGallery] useEffect syncing, property:', property?.id, 'title:', property?.property_title?.slice(0,20), 'intro:', property?.property_intro?.slice(0,20));
     if (property?.property_title) setPropertyTitle(property.property_title);
     if (property?.property_intro) setPropertyIntro(property.property_intro);
     if (property?.price_per_night) setEditPrice(property.price_per_night);
-  }, [property?.property_title, property?.property_intro, property?.price_per_night]);
+  }, [property?.property_title, property?.property_intro, property?.price_per_night, property?.id]);
 
   useEffect(() => {
     if (registerSaveHandler) {
-      registerSaveHandler(handlePropertyTextSave);
+      console.log('[DEBUG ImageGallery] registerSaveHandler called with handlePropertyTextSave, type:', typeof handlePropertyTextSave);
+      const registered = registerSaveHandler(handlePropertyTextSave);
+      console.log('[DEBUG ImageGallery] registerSaveHandler returned:', registered);
     }
   }, [registerSaveHandler]);
 
@@ -86,13 +92,36 @@ export function ImageGallery({
 
   const handlePropertyTextSave = async () => {
     if (!onPropertyUpdate) return;
+    // Debounce: prevent accidental double-saves
+    if (saveInProgressRef.current) {
+      console.log('[DEBUG ImageGallery] save in progress, skipping duplicate');
+      return;
+    }
+    saveInProgressRef.current = true;
+    const titleToSave = propertyTitle;
+    const introToSave = propertyIntro;
+    console.log('[DEBUG ImageGallery] handlePropertyTextSave capturing title=', titleToSave?.slice(0,20), 'intro=', introToSave?.slice(0,20));
+    // Guard: only write to DB if value actually changed
+    const currentTitle = property?.property_title ?? '';
+    const currentIntro = property?.property_intro ?? '';
+    if (titleToSave === currentTitle && introToSave === currentIntro) {
+      console.log('[DEBUG ImageGallery] no changes detected, skipping DB write');
+      saveInProgressRef.current = false;
+      return;
+    }
+    setPropertyTitle(titleToSave);
+    setPropertyIntro(introToSave);
     try {
+      console.log('[DEBUG ImageGallery] calling onPropertyUpdate with', JSON.stringify({ property_title: titleToSave, property_intro: introToSave }));
       await onPropertyUpdate({
-        property_title: propertyTitle,
-        property_intro: propertyIntro
+        property_title: titleToSave,
+        property_intro: introToSave
       });
+      console.log('[DEBUG ImageGallery] onPropertyUpdate completed successfully');
     } catch (error) {
       console.error('Failed to update property text:', error);
+    } finally {
+      setTimeout(() => { saveInProgressRef.current = false; }, 2000);
     }
   };
 

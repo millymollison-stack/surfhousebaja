@@ -298,11 +298,21 @@ export function UserMenu() {
         setProfileSuccess('Profile updated! Please check your new email for a confirmation link.');
       } else {
         setProfileSuccess('Profile updated successfully!');
-        if (userProperty && userProperty.custom_domain !== undefined) {
-          await supabase.from('properties').update({ custom_domain: userProperty.custom_domain }).eq('id', userProperty.id);
-        }
-        setTimeout(() => { useAuth.getState().initialize(); }, 500);
       }
+
+      // Save property address and custom_domain if changed (admin/saas_admin only)
+      if (userProperty && (isAdmin || isSaaSAdmin)) {
+        const propUpdates: any = {};
+        if (userProperty.address !== undefined) propUpdates.address = userProperty.address;
+        if (userProperty.custom_domain !== undefined) propUpdates.custom_domain = userProperty.custom_domain;
+        if (Object.keys(propUpdates).length > 0) {
+          propUpdates.updated_at = new Date().toISOString();
+          await supabase.from('properties').update(propUpdates).eq('id', userProperty.id);
+        }
+      }
+
+      // Always reinitialize auth state so user object reflects latest data
+      setTimeout(() => { useAuth.getState().initialize(); }, 500);
 
       setIsEditingProfile(false);
     } catch (error: any) {

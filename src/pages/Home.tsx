@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { ImageGallery } from '../components/ImageGallery';
 import { PropertyDetails } from '../components/PropertyDetails';
 import { PropertyAmenities } from '../components/PropertyAmenities';
@@ -13,7 +13,7 @@ import { duplicateSiteAfterPayment } from '../services/siteDuplicationService';
 import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 
-const SURF_HOUSE_BAJA_ID = 'f3d3e867-e0c6-4cc5-a05d-b5e368f8c766';
+const SURF_HOUSE_BAJA_ID = 'efa8d280-afee-4971-9145-d591740f484d';
 
 export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void; onSiteNameChange?: (name: string) => void }) {
   const [property, setProperty] = useState<Property | null>(null);
@@ -28,10 +28,10 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const [scrapedImages, setScrapedImages] = useState<PropertyImage[]>([]);
   const [scrapedProperty, setScrapedProperty] = useState<Partial<Property> | null>(null);
   const [resetKey, setResetKey] = useState(0);
-  const [imageGallerySave, setImageGallerySave] = useState<(() => Promise<void>) | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [defaultProperty, setDefaultProperty] = useState<Property | null>(null);
   const [defaultImages, setDefaultImages] = useState<PropertyImage[]>([]);
+  const imageGallerySaveRef = useRef<(() => Promise<void>) | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -104,15 +104,24 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     loadProperty();
   }, []);
 
-  const handlePropertyUpdate = async (updates: Partial<Property>) => {
-    if (!property) return;
+  const handlePropertyUpdate = async (updates: Partial<Property>, onUpdated?: (updated: Property) => void) => {
+    const callId = Math.random().toString(36).slice(2,8);
+    console.log('[DEBUG] handlePropertyUpdate called [#', callId, '] with:', JSON.stringify(updates));
+    console.log('[DEBUG] property.id:', property?.id);
+    console.log('[DEBUG] supabaseAdmin instance:', !!supabaseAdmin, supabaseAdmin);
+    if (!property) { console.log('[DEBUG] property is null, returning'); return; }
     try {
-      const { error: updateError } = await supabase
+      console.log('[DEBUG] About to call supabaseAdmin.from(properties).update [#', callId, ']');
+      const { error: updateError } = await supabaseAdmin
         .from('properties')
         .update(updates)
         .eq('id', property.id);
+      console.log('[DEBUG] update result [#', callId, '] error:', updateError);
       if (updateError) throw updateError;
-      setProperty({ ...property, ...updates });
+      const updated = { ...property, ...updates };
+      setProperty(updated);
+      onUpdated?.(updated);
+      console.log('[DEBUG] handlePropertyUpdate completed [#', callId, ']');
     } catch (err) {
       console.error('Failed to update property:', err);
       throw err;
@@ -122,7 +131,16 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   useEffect(() => {
     if (registerSaveAll) {
       registerSaveAll(async () => {
-        console.log('Save all triggered');
+        console.log('[DEBUG] registerSaveAll callback firing, imageGallerySaveRef type:', typeof imageGallerySaveRef.current);
+        if (typeof imageGallerySaveRef.current === 'function') {
+          console.log('[DEBUG] calling imageGallerySaveRef.current()');
+          await imageGallerySaveRef.current();
+          console.log('[DEBUG] imageGallerySave completed');
+        } else {
+          console.log('[DEBUG] imageGallerySaveRef.current is NOT a function, skipping');
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('[DEBUG] registerSaveAll callback done');
       });
     }
   }, [registerSaveAll]);
@@ -176,7 +194,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
 
   const handleImageUpdate = async (imageId: string, updates: Partial<PropertyImage>) => {
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('property_images')
         .update(updates)
         .eq('id', imageId);
@@ -378,7 +396,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         onImageDelete={user?.role === 'admin' ? handleImageDelete : undefined}
         onImageUpdate={user?.role === 'admin' ? handleImageUpdate : undefined}
         onPropertyUpdate={user?.role === 'admin' ? handlePropertyUpdate : undefined}
-        registerSaveHandler={setImageGallerySave}
+        registerSaveHandler={(fn) => { imageGallerySaveRef.current = fn; }}
       />
 
       <div className="section-mt-neg bg-black section-padding">
