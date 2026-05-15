@@ -107,8 +107,6 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const handlePropertyUpdate = async (updates: Partial<Property>, onUpdated?: (updated: Property) => void) => {
     const callId = Math.random().toString(36).slice(2,8);
     console.log('[DEBUG] handlePropertyUpdate called [#', callId, '] with:', JSON.stringify(updates));
-    console.log('[DEBUG] property.id:', property?.id);
-    console.log('[DEBUG] supabaseAdmin instance:', !!supabaseAdmin, supabaseAdmin);
     if (!property) { console.log('[DEBUG] property is null, returning'); return; }
     try {
       console.log('[DEBUG] About to call supabaseAdmin.from(properties).update [#', callId, ']');
@@ -118,9 +116,12 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         .eq('id', property.id);
       console.log('[DEBUG] update result [#', callId, '] error:', updateError);
       if (updateError) throw updateError;
-      const updated = { ...property, ...updates };
-      setProperty(updated);
-      onUpdated?.(updated);
+      // Use functional updater to avoid stale closure — always derive from current state
+      setProperty(current => {
+        const updated = { ...current, ...updates };
+        onUpdated?.(updated);
+        return updated;
+      });
       console.log('[DEBUG] handlePropertyUpdate completed [#', callId, ']');
     } catch (err) {
       console.error('Failed to update property:', err);
@@ -405,7 +406,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           isEditing={isEditing}
           onEditingChange={setIsEditing}
           onSave={user?.role === 'admin' ? handlePropertyUpdate : undefined}
-          onBeforeSave={imageGallerySave}
+          onBeforeSave={async () => { if (typeof imageGallerySaveRef.current === 'function') { await imageGallerySaveRef.current(); } }}
           onHasChanges={onHasChanges}
         />
 
