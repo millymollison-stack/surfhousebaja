@@ -69,7 +69,7 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
   const { data: propertyRecord, error: propertyError } = await supabase
     .from('properties')
     .insert({
-      name: data.scrapedData?.title || data.websiteName,
+      title: data.scrapedData?.title || data.websiteName,
       slug,
       description: data.scrapedData?.description || data.websiteDesc,
       location: data.scrapedData?.location || '',
@@ -82,9 +82,6 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
       images: data.scrapedData?.images || [],
       status: 'draft', // not live until site is built
       owner_id: propertyId,
-      site_url: `https://propbook.pro/props/${slug}`,
-      server_ip: '82.29.86.252',
-      folder_path: `/props/${slug}`,
     })
     .select('id')
     .single();
@@ -151,7 +148,7 @@ export async function buildSiteOnHostinger(slug: string, propertyId: string): Pr
     .update({
       site_url: `https://propbook.pro/props/${slug}`,
       server_ip: '82.29.86.252',
-      folder_path: `/props/${slug}`,
+      folder_path: `/public_html/props/${slug}`,
       status: 'active',
     })
     .eq('id', propertyId);

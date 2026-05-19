@@ -1040,7 +1040,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {openSection === key && (
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'website' && <WebsiteSection hostOnHostinger={hostOnHostinger} setHostOnHostinger={setHostOnHostinger} devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} folderPath={property?.folder_path} siteUrl={property?.site_url} websiteName={property?.name} />}
+                    {key === 'website' && <WebsiteSection hostOnHostinger={hostOnHostinger} setHostOnHostinger={setHostOnHostinger} devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} folderPath={property?.folder_path} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection balance={balance} connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}
