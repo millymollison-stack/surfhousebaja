@@ -61,7 +61,7 @@ export function ImageGallery({
   useEffect(() => {
     if (registerSaveHandler) {
       console.log('[DEBUG ImageGallery] registerSaveHandler called with handlePropertyTextSave, type:', typeof handlePropertyTextSave);
-      const registered = registerSaveHandler(handlePropertyTextSave);
+      const registered = registerSaveHandler(() => handlePropertyTextSave());
       console.log('[DEBUG ImageGallery] registerSaveHandler returned:', registered);
     }
   }, [registerSaveHandler]);

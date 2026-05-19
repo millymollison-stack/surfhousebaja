@@ -494,8 +494,23 @@ export function BookingCalendar({
                     <Lock className="h-5 w-5 text-yellow-400" />
                     <div className="ml-3">
                       <p className="text-sm text-yellow-700">
-                        Please <a href="/login" className="font-medium underline">sign in</a> or{' '}
-                        <a href="/signup" className="font-medium underline">create an account</a> to book this property.
+                        Please{' '}
+                        <button
+                          onClick={() => navigate('/?auth=login')}
+                          className="font-medium underline text-yellow-700 hover:text-yellow-900"
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                        >
+                          sign in
+                        </button>
+                        {' or '}
+                        <button
+                          onClick={() => navigate('/?auth=signup')}
+                          className="font-medium underline text-yellow-700 hover:text-yellow-900"
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                        >
+                          create an account
+                        </button>
+                        {' to book this property.'}
                       </p>
                     </div>
                   </div>

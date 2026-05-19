@@ -431,7 +431,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  if (!airbnbUrl) { setImportError('Please enter an Airbnb URL'); return; }
  setIsImporting(true);
  setImportError('');
- setCountdown(20);
+ setCountdown(120);
 
  const countInterval = setInterval(() => {
  setCountdown(c => {
@@ -441,7 +441,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }, 1000);
 
  try {
- const resp = await fetch(`http://localhost:6905/scrape?url=${encodeURIComponent(airbnbUrl)}`);
+ const resp = await fetch(`https://airbnb-scraper-foj1.onrender.com/scrape?url=${encodeURIComponent(airbnbUrl)}`);
  const result = await resp.json();
  clearInterval(countInterval);
  if (result.success) {
@@ -735,7 +735,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </button>
  {importError && <p>{importError}</p>}
  {isImporting && (
- <h3>Please wait — scraping your listing...</h3>
+ <h3>Scraping in progress — takes about 2 minutes. Pick your brand color and font while you wait!</h3>
  )}
 
  {/* Preview — appears below Get data after import */}
