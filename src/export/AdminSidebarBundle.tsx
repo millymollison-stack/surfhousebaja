@@ -576,33 +576,53 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
         </div>
         {connectData ? (
           <div className="space-y-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-bold text-gray-900">{connectData.business_name || connectData.email}</p>
-                {connectData.bank_account && (
-                  <p className="text-xs text-gray-500 mt-0.5">{connectData.bank_account.bank_name} ••••{connectData.bank_account.last4}</p>
+            {connectData.details_submitted && connectData.bank_account ? (
+              /* ✅ Success state — fully linked */
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <p className="text-sm font-bold text-green-800">Bank Account Connected</p>
+                </div>
+                <p className="text-base font-semibold text-gray-900 pl-7">{connectData.bank_account.bank_name} ••••{connectData.bank_account.last4}</p>
+                <div className="pl-7 space-y-1">
+                  <p className="text-xs text-gray-500">Account ID: {connectData.account_id.replace('acct_', 'acct_xxxx')}</p>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className={`font-semibold px-2 py-0.5 rounded-full ${connectData.charges_enabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>Charges: {connectData.charges_enabled ? 'Enabled' : 'Disabled'}</span>
+                    <span className={`font-semibold px-2 py-0.5 rounded-full ${connectData.payouts_enabled ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>Payouts: {connectData.payouts_enabled ? 'Enabled' : 'Pending'}</span>
+                  </div>
+                </div>
+              </div>
+            ) : connectData.account_id && !connectData.details_submitted ? (
+              /* ⚠️ Setup in progress */
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                  <p className="text-sm font-bold text-yellow-800">Setup In Progress</p>
+                </div>
+                <p className="text-xs text-gray-500 pl-7">Stripe onboarding not yet complete. You can still receive bookings while you finish setup.</p>
+                <div className="pl-7 mt-1">
+                  <button onClick={onOnboard} disabled={connectOnboarding} className="text-xs font-semibold text-green-700 underline disabled:opacity-50">{connectOnboarding ? 'Redirecting...' : 'Continue Stripe Setup'}</button>
+                </div>
+              </div>
+            ) : null}
+            {connectData.details_submitted && (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-50 rounded-lg p-2.5"><h4 className="sb-h4-grey">Available</h4><p className="text-base font-bold text-gray-900">{fmt(connectData.available_balance)}</p></div>
+                  <div className="bg-gray-50 rounded-lg p-2.5"><h4 className="sb-h4-grey">Pending</h4><p className="text-base font-bold text-gray-900">{fmt(connectData.pending_balance)}</p></div>
+                </div>
+                {connectData.available_balance > 0 && connectData.payouts_enabled && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                    <div className="flex justify-between text-sm"><span className="text-gray-600">Available balance</span><span className="font-semibold text-gray-900">{fmt(connectData.available_balance)}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-gray-500">Platform fee (2%)</span><span className="text-gray-500">− {fmt(platformFee)}</span></div>
+                    <div className="border-t border-gray-100 pt-2 flex justify-between text-sm"><span className="font-bold text-gray-900">You receive</span><span className="font-bold text-green-700">{fmt(payoutAmount)}</span></div>
+                    {payoutSuccess
+                      ? <div className="flex items-center justify-center gap-2 bg-green-50 rounded-lg py-2"><CheckCircle className="h-4 w-4 text-green-600" /><span className="text-sm font-semibold text-green-700">Payout initiated!</span></div>
+                      : <button onClick={onRequestPayout} disabled={payoutLoading} className="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg py-2 disabled:opacity-50">{payoutLoading ? 'Processing...' : 'Request Payout'}</button>
+                    }
+                  </div>
                 )}
-                <p className="text-xs text-gray-400 mt-0.5">{connectData.account_id}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${connectData.charges_enabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{connectData.charges_enabled ? 'Charges On' : 'Setup Required'}</span>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${connectData.payouts_enabled ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{connectData.payouts_enabled ? 'Payouts On' : 'Payouts Pending'}</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-gray-50 rounded-lg p-2.5"><h4 className="sb-h4-grey">Available</h4><p className="text-base font-bold text-gray-900">{fmt(connectData.available_balance)}</p></div>
-              <div className="bg-gray-50 rounded-lg p-2.5"><h4 className="sb-h4-grey">Pending</h4><p className="text-base font-bold text-gray-900">{fmt(connectData.pending_balance)}</p></div>
-            </div>
-            {connectData.available_balance > 0 && connectData.payouts_enabled && (
-              <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-gray-600">Available balance</span><span className="font-semibold text-gray-900">{fmt(connectData.available_balance)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Platform fee (2%)</span><span className="text-gray-500">− {fmt(platformFee)}</span></div>
-                <div className="border-t border-gray-100 pt-2 flex justify-between text-sm"><span className="font-bold text-gray-900">You receive</span><span className="font-bold text-green-700">{fmt(payoutAmount)}</span></div>
-                {payoutSuccess
-                  ? <div className="flex items-center justify-center gap-2 bg-green-50 rounded-lg py-2"><CheckCircle className="h-4 w-4 text-green-600" /><span className="text-sm font-semibold text-green-700">Payout initiated!</span></div>
-                  : <button onClick={onRequestPayout} disabled={payoutLoading} className="w-full bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg py-2 disabled:opacity-50">{payoutLoading ? 'Processing...' : 'Request Payout'}</button>
-                }
-              </div>
+              </>
             )}
             {!connectData.details_submitted && (
               <button onClick={onOnboard} disabled={connectOnboarding} className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-lg py-2 disabled:opacity-50">{connectOnboarding ? 'Redirecting...' : 'Complete Account Setup'}</button>
@@ -832,7 +852,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   const loadConnectData = async () => {
-    if (connectData || connectLoading) return;
+    if (connectLoading) return;
     setConnectLoading(true);
     try {
       const session = await getSession();
@@ -842,6 +862,22 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       setConnectData(data);
     } catch (err) { console.error(err); } finally { setConnectLoading(false); }
   };
+
+  // Auto-refresh Stripe connect data when returning from Stripe onboarding
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('return_url') || params.has('stripe_connect_return')) {
+      // Clear the param from URL without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('return_url');
+      url.searchParams.delete('stripe_connect_return');
+      window.history.replaceState({}, '', url.toString());
+      // Refresh banking data
+      setConnectData(null);
+      setConnectLoading(false);
+      loadConnectData();
+    }
+  }, []);
 
   const loadSubscriptionData = async () => {
     if (subscriptionData || subLoading) return;

@@ -445,6 +445,26 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  };
  }, []);
 
+ // Handle return from Stripe Connect onboarding — ?return_url or ?stripe_connect_return in URL
+ useEffect(() => {
+ const params = new URLSearchParams(window.location.search);
+ const hasConnectReturn = params.has('return_url') || params.has('stripe_connect_return');
+ if (!hasConnectReturn) return;
+
+ // Clear params from URL without reload
+ const url = new URL(window.location.href);
+ url.searchParams.delete('return_url');
+ url.searchParams.delete('stripe_connect_return');
+ window.history.replaceState({}, '', url.toString());
+
+ // Show the popup if not already open and display success message
+ if (!isOpen) setIsOpen(true);
+ // Set a flag so the Banking section step shows success state
+ setShowStripeConnectSuccess(true);
+ }, []);
+
+ const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
+
  // Handle return from Stripe Checkout — ?subscription=success in URL
  useEffect(() => {
  const params = new URLSearchParams(window.location.search);
@@ -713,6 +733,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  ) : (
    <div style={{ background: 'rgba(196,119,86,0.12)', border: '1px solid rgba(196,119,86,0.35)', borderRadius: 8, padding: '12px 16px', fontSize: '0.875rem', color: '#e8c4a0' }}>
      Sign in or create an account above to link your bank account.
+   </div>
+ )}
+ {showStripeConnectSuccess && (
+   <div style={{ background: 'rgba(74,180,100,0.12)', border: '1px solid rgba(74,180,100,0.35)', borderRadius: 8, padding: '12px 16px', marginTop: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
+     ✅ Bank account connected successfully! Visit the <strong>Banking</strong> section in your sidebar for details.
    </div>
  )}
  <br /><hr />
