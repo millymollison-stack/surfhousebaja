@@ -56,6 +56,22 @@ Deno.serve(async (req: Request) => {
         stripe.balance.retrieve({ stripeAccount: accountId }),
       ]);
 
+      // Fetch bank account details
+      let bankAccount: { bank_name: string; last4: string; account_holder_name: string } | null = null;
+      try {
+        const externalAccounts = await stripe.accounts.listExternalAccounts(accountId, { object: 'bank_account', limit: 1 });
+        if (externalAccounts.data.length > 0) {
+          const bank = externalAccounts.data[0] as any;
+          bankAccount = {
+            bank_name: bank.bank_name,
+            last4: bank.last4,
+            account_holder_name: bank.account_holder_name,
+          };
+        }
+      } catch {
+        // Non-fatal — bank account info is optional
+      }
+
       const available = balance.available.find(b => b.currency === "usd")?.amount ?? 0;
       const pending = balance.pending.find(b => b.currency === "usd")?.amount ?? 0;
 
@@ -70,6 +86,7 @@ Deno.serve(async (req: Request) => {
           available_balance: available,
           pending_balance: pending,
           currency: "usd",
+          bank_account: bankAccount,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
