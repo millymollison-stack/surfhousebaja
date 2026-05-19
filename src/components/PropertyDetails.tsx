@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Editmode.css';
-import { Bed, Bath, Users, Wifi, Car, Coffee, Tv, Check, X, MapPin, ChevronDown, ChevronUp, Edit2, Waves, Scale, Fish, Truck } from 'lucide-react';
+import { Bed, Bath, Users, Wifi, Car, Coffee, Tv, Check, X, MapPin, ChevronDown, ChevronUp, CreditCard as Edit2, Waves, Scale, Fish, Truck } from 'lucide-react';
 import type { Property } from '../types';
 import { useAuth } from '../store/auth';
 import { LocationMap } from './LocationMap';

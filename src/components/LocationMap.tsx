@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import { Edit2, Save, X, MapPin, Check, Search } from 'lucide-react';
+import { CreditCard as Edit2, X, MapPin, Check, Search } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import type { Property } from '../types';
 import 'leaflet/dist/leaflet.css';
@@ -184,23 +184,24 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
                     <label className="location-edit-label">
                       Street Address
                     </label>
-                    <div className="mt-1 flex space-x-2">
-                      <div className="sb-input-icon-wrap">
-                        <input
-                          type="text"
-                          value={address}
-                          onChange={(e) => setAddress(e.target.value)}
-                          className="sb-input-light flex-1 block w-full"
-                          placeholder="Enter street address"
-                        />
-                        <button
-                          onClick={handleAddressSearch}
-                          className="sb-input-icon-btn"
-                          aria-label="Search"
-                        >
-                          <Search className="h-4 w-4" />
-                        </button>
-                      </div>
+                    <div className="mt-1 flex items-center gap-2" style={{ width: '100%' }}>
+                      <input
+                        type="text"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
+                        className="sb-input-light"
+                        style={{ flex: 1 }}
+                        placeholder="Enter street address"
+                      />
+                      <button
+                        onClick={handleAddressSearch}
+                        className="btn"
+                        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', fontSize: '0.8rem' }}
+                        aria-label="Search address"
+                      >
+                        <Search className="h-4 w-4" />Search
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -275,6 +276,28 @@ export function LocationMap({ property, onSave, onClose, isOpen }: LocationMapPr
             {!isEditing && (property.address || property.local_area) && (
               <p className="location-address-text">{property.address || property.local_area || ''}</p>
             )}
+            {!isEditing && (() => {
+              const lat = coordinates[0];
+              const lng = coordinates[1];
+              const addr = property.address || property.local_area || '';
+              const mapsUrl = lat && lng
+                ? `https://www.google.com/maps?q=${lat},${lng}`
+                : addr
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
+                  : null;
+              return mapsUrl ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="edit-location-btn"
+                  style={{ marginTop: '0.75rem', display: 'inline-flex' }}
+                >
+                  <MapPin className="h-4 w-4" />
+                  Open in Google Maps
+                </a>
+              ) : null;
+            })()}
           </div>
         </div>
       </div>

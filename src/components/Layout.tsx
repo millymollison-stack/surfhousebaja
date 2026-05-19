@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './Layout.css';
 import { Link } from 'react-router-dom';
 import { Home, LogIn, Share, User } from 'lucide-react';
@@ -18,6 +18,14 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+
+  useEffect(() => {
+    if (document.querySelector('script[src="https://elfsightcdn.com/platform.js"]')) return;
+    const script = document.createElement('script');
+    script.src = 'https://elfsightcdn.com/platform.js';
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
 
   const handleShare = async () => {
     try {
@@ -83,6 +91,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
               <Share className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>
             </button>
+            <div className="elfsight-app-723b3461-972c-4953-af10-a9662ce4a71b" data-elfsight-app-lazy></div>
             {user ? (
               <button
                 onClick={() => onOpenSidebar?.()}

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import './Editmode.css';
 import { DayPicker, DateRange } from 'react-day-picker';
 import { format, isWithinInterval, parseISO, addDays } from 'date-fns';
 import { Calendar, Lock, AlertCircle, Ban, Check } from 'lucide-react';
 import type { Booking, BlockedDate } from '../types';
 import { useAuth } from '../store/auth';
+import { useNavigate } from 'react-router-dom';
 import { EmailNotificationService } from '../services/emailService';
 import { supabase } from '../lib/supabase';
 import { PaymentForm } from './PaymentForm';
@@ -62,7 +64,9 @@ export function BookingCalendar({
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [bookingAmount, setBookingAmount] = useState(0);
   const [bookingDates, setBookingDates] = useState<{ from: Date; to: Date } | null>(null);
+  const authTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const [adminProfile, setAdminProfile] = useState<any>(null);
 
@@ -88,7 +92,6 @@ export function BookingCalendar({
 
   useEffect(() => {
     const handleResize = () => {
-      // Always show 1 month to ensure it fits properly in the container
       setNumberOfMonths(1);
     };
 
@@ -96,6 +99,15 @@ export function BookingCalendar({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Open the existing login popup 2 seconds after both dates are selected, if not logged in
+  useEffect(() => {
+    if (authTimerRef.current) clearTimeout(authTimerRef.current);
+    if (selected?.from && selected?.to && !user) {
+      authTimerRef.current = setTimeout(() => navigate('?auth=login'), 2000);
+    }
+    return () => { if (authTimerRef.current) clearTimeout(authTimerRef.current); };
+  }, [selected, user, navigate]);
 
   const approvedBookings = bookings
     .filter(booking => booking.status === 'approved')
@@ -335,7 +347,7 @@ export function BookingCalendar({
         <div className="overflow-x-auto">
           <DayPicker
             mode="range"
-            className="booking-calendar"
+            className="booking-calendar w-full"
             disableDefaultStyles
             selected={selected}
             onSelect={setSelected}
@@ -402,7 +414,6 @@ export function BookingCalendar({
                 borderBottomLeftRadius: '0 !important'
               }
             }}
-            className="w-full"
             components={{
               HeadCell: ({ ...props }) => (
                 <th 
@@ -489,32 +500,13 @@ export function BookingCalendar({
                 </div>
               )}
               {!user ? (
-                <div className="rounded-md bg-yellow-50 p-4">
-                  <div className="flex">
-                    <Lock className="h-5 w-5 text-yellow-400" />
-                    <div className="ml-3">
-                      <p className="text-sm text-yellow-700">
-                        Please{' '}
-                        <button
-                          onClick={() => navigate('/?auth=login')}
-                          className="font-medium underline text-yellow-700 hover:text-yellow-900"
-                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                        >
-                          sign in
-                        </button>
-                        {' or '}
-                        <button
-                          onClick={() => navigate('/?auth=signup')}
-                          className="font-medium underline text-yellow-700 hover:text-yellow-900"
-                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                        >
-                          create an account
-                        </button>
-                        {' to book this property.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  onClick={() => navigate('?auth=login')}
+                  className="booking-modal-submit-btn w-full"
+                >
+                  <Lock className="h-5 w-5" />
+                  <span>Sign in to Book</span>
+                </button>
               ) : (
                 <button
                   onClick={handleBookingSubmit}
@@ -556,11 +548,11 @@ export function BookingCalendar({
         </div>
       )}
 
-      {/* Payment Form */}
-      {showPaymentForm && createdBookingId && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="payment-modal" role="dialog" aria-modal="true">
+      {/* Payment Form — rendered in a portal to escape any parent overflow/transform */}
+      {showPaymentForm && createdBookingId && createPortal(
+        <div className="fixed inset-0 z-[9999] overflow-y-auto" aria-labelledby="payment-modal" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" />
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <PaymentForm
@@ -584,7 +576,8 @@ export function BookingCalendar({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Booking Confirmation Modal */}

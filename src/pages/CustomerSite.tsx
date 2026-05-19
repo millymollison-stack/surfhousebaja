@@ -152,7 +152,7 @@ export function CustomerSite() {
           <div className="cs-booking-card">
             <div className="cs-price">
               <span className="cs-price-amount">${property.price_per_night || 150}</span>
-              <span className="cs-price-unit"> / night</span>
+              <span className="cs-price-unit"> USD / night</span>
             </div>
             {property.max_guests && (
               <p className="cs-guests">Up to {property.max_guests} guests</p>

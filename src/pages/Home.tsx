@@ -107,6 +107,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const handlePropertyUpdate = async (updates: Partial<Property>, onUpdated?: (updated: Property) => void) => {
     const callId = Math.random().toString(36).slice(2,8);
     console.log('[DEBUG] handlePropertyUpdate called [#', callId, '] with:', JSON.stringify(updates));
+    console.log('[DEBUG] property.id:', property?.id);
+    console.log('[DEBUG] supabaseAdmin instance:', !!supabaseAdmin, supabaseAdmin);
     if (!property) { console.log('[DEBUG] property is null, returning'); return; }
     try {
       console.log('[DEBUG] About to call supabaseAdmin.from(properties).update [#', callId, ']');
@@ -116,12 +118,9 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         .eq('id', property.id);
       console.log('[DEBUG] update result [#', callId, '] error:', updateError);
       if (updateError) throw updateError;
-      // Use functional updater to avoid stale closure — always derive from current state
-      setProperty(current => {
-        const updated = { ...current, ...updates };
-        onUpdated?.(updated);
-        return updated;
-      });
+      const updated = { ...property, ...updates };
+      setProperty(updated);
+      onUpdated?.(updated);
       console.log('[DEBUG] handlePropertyUpdate completed [#', callId, ']');
     } catch (err) {
       console.error('Failed to update property:', err);
@@ -406,7 +405,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           isEditing={isEditing}
           onEditingChange={setIsEditing}
           onSave={user?.role === 'admin' ? handlePropertyUpdate : undefined}
-          onBeforeSave={async () => { if (typeof imageGallerySaveRef.current === 'function') { await imageGallerySaveRef.current(); } }}
+          onBeforeSave={imageGallerySaveRef.current ?? undefined}
           onHasChanges={onHasChanges}
         />
 
@@ -450,7 +449,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           }}
         ></div>
         <div className="relative">
-          <div className="pl-2.5 pt-2">
+          <div>
             <h1 className="reviews-section-heading">What our guests say</h1>
           </div>
           <ReviewsList showStars={isEditing} isEditing={isEditing} />
@@ -470,11 +469,10 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       {showReviewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-black hero-title">Leave a Review</h2>
-              
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 style={{ color: '#000', fontFamily: 'var(--font-accent, "Playfair Display"), serif', fontWeight: 400, textTransform: 'uppercase', fontSize: 'clamp(1.2rem, 2vw, 1.5rem)', margin: 0 }}>Leave a Review</h2>
             </div>
-            <div className="p-8">
+            <div className="p-6">
               <ReviewForm onSuccess={() => setShowReviewModal(false)} />
             </div>
           </div>

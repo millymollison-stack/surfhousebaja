@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Save, X, Upload, Trash2 } from 'lucide-react';
+import { CreditCard as Edit2, Save, X, Upload, Trash2 } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import type { Property, PropertyImage } from '../types';
 

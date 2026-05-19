@@ -179,10 +179,10 @@ export default function ReviewsList({ showStars = true, isEditing = false }: Rev
           {getVisibleReviews().map((review) => (
             <div
               key={review.id}
-              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-6 border border-white/20 hover:shadow-xl transition-all duration-300 flex flex-col h-full width-full-min"
+              className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-4 border border-white/20 hover:shadow-xl transition-all duration-300 flex flex-col h-full width-full-min"
             >
               {/* Review Text */}
-              <p className="text-gray-700 leading-relaxed mb-6 flex-grow italic">"{review.review_text}"</p>
+              <p className="text-gray-700 leading-relaxed mb-3 flex-grow italic">"{review.review_text}"</p>
 
               {/* Author & Date with Stars */}
               <div className="border-t border-gray-100 pt-4 flex justify-between items-start">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './ImageGallery.css';
-import { ChevronLeft, ChevronRight, Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CreditCard as Edit2, Upload, Trash2, Star, Image, X, Check, Bed, Bath, Users, Layers } from 'lucide-react';
 import { applyFontAccent } from '../lib/fontAccent';
 import type { PropertyImage, Property } from '../types';
 import { useAuth } from '../store/auth';
@@ -61,7 +61,7 @@ export function ImageGallery({
   useEffect(() => {
     if (registerSaveHandler) {
       console.log('[DEBUG ImageGallery] registerSaveHandler called with handlePropertyTextSave, type:', typeof handlePropertyTextSave);
-      const registered = registerSaveHandler(() => handlePropertyTextSave());
+      const registered = registerSaveHandler(handlePropertyTextSave);
       console.log('[DEBUG ImageGallery] registerSaveHandler returned:', registered);
     }
   }, [registerSaveHandler]);
@@ -309,7 +309,7 @@ export function ImageGallery({
                     }}
                     min="0"
                   />
-                  <span className="text-white/80 text-base font-normal ml-1">/night</span>
+                  <span className="text-white/80 text-base font-normal ml-1">USD /night</span>
                 </div>
               </div>
             ) : (
@@ -319,7 +319,7 @@ export function ImageGallery({
                   <h1 className="hero-title-price text-white">
                     ${editPrice}
                   </h1>
-                  <span className="text-white/80 text-base font-normal">/night</span>
+                  <span className="text-white/80 text-base font-normal">USD /night</span>
                 </div>
               </div>
             )}

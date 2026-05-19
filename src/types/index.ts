@@ -11,6 +11,13 @@ export interface Profile {
   role: UserRole;
   stripe_account_id: string | null;
   stripe_account_status: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_subscription_status: string | null;
+  stripe_subscription_plan: string | null;
+  stripe_subscription_amount: number | null;
+  stripe_subscription_interval: string | null;
+  stripe_subscription_period_end: string | null;
   created_at: string;
   updated_at: string;
 }
