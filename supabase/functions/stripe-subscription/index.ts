@@ -250,20 +250,8 @@ Deno.serve(async (req: Request) => {
           ...(planCfg.trialDays > 0
             ? { trial_period_days: planCfg.trialDays }
             : {}),
-          // Airbnb scrape is a one-time charge added to the first invoice
-          ...(include_scrape
-            ? {
-                add_invoice_items: [
-                  {
-                    price_data: {
-                      currency: "usd",
-                      product_data: { name: SCRAPE_PRICE.name },
-                      unit_amount: SCRAPE_PRICE.amount,
-                    },
-                  },
-                ],
-              }
-            : {}),
+        // NOTE: one-time scrape fees must be handled via a separate flow
+        // (e.g. a follow-up Invoice or PaymentIntent after subscription creation)
         },
       };
 
