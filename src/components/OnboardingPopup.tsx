@@ -9,9 +9,8 @@ import { FONT_OPTIONS, applyFontAccent } from '../lib/fontAccent';
 import { supabase } from '../lib/supabase';
 import { saveBrandColor } from '../lib/brandColor';
 import { duplicateSiteAfterPayment } from '../services/siteDuplicationService';
-
-// Hardcoded user ID for this template (replace with auth.user.id when auth is wired)
-const TEMPLATE_USER_ID = 'surfhouse-baja-template';
+import { useAuth } from '../store/auth';
+import { StripeConnectSetup } from './StripeConnectSetup';
 
 export interface OnboardingPopupProps {
  onComplete?: (data: any) => void;
@@ -20,7 +19,6 @@ export interface OnboardingPopupProps {
  scrapedProperty?: any | null;
  onSiteNameChange?: (name: string) => void;
  scrapedImages?: any[];
- onSiteNameChange?: (name: string) => void;
 }
 
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
@@ -47,33 +45,9 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, subscrip
  let error;
 
  if (subscriptionId) {
- // Subscription flow: confirm the SetupIntent to verify the card
+ // Legacy inline subscription flow (kept for fallback; primary flow now uses Stripe Checkout redirect)
  const result = await stripe.confirmCardSetup(clientSecret, { elements });
  error = result.error;
-
- if (!error && result.setupIntent) {
- // Card verified! Now finalize the subscription on the backend
- try {
- const res = await fetch('https://propbook-stripe-server-production.up.railway.app/finalize-subscription', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- subscriptionId,
- setupIntentId: result.setupIntent.id,
- }),
- });
- const data = await res.json();
- if (!res.ok) {
- onError(data.error || 'Subscription finalization failed.');
- setProcessing(false);
- return;
- }
- } catch (err) {
- onError('Could not finalize subscription. Please contact support.');
- setProcessing(false);
- return;
- }
- }
  } else {
  // One-time payment flow
  const result = await stripe.confirmPayment({
@@ -115,14 +89,68 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, subscrip
 }
 
 export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange }: OnboardingPopupProps) {
+ const { user } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
  const isMountedRef = { current: true };
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
- const [email, setEmail] = useState('');
- const [password, setPassword] = useState('');
+
+ // Inline auth state
+ const [authEmail, setAuthEmail] = useState('');
+ const [authPassword, setAuthPassword] = useState('');
+ const [authFullName, setAuthFullName] = useState('');
+ const [authPhone, setAuthPhone] = useState('');
+ const [authError, setAuthError] = useState('');
+ const [authLoading, setAuthLoading] = useState(false);
+
+ const handleSignUp = async () => {
+   if (!authEmail || !authPassword || !authFullName) {
+     setAuthError('Please fill in all fields.');
+     return;
+   }
+   setAuthLoading(true);
+   setAuthError('');
+   try {
+     const { data: { user: newUser }, error } = await supabase.auth.signUp({
+       email: authEmail,
+       password: authPassword,
+       options: { data: { full_name: authFullName, phone_number: authPhone } },
+     });
+     if (error) throw error;
+     if (newUser) {
+       await supabase.from('profiles').upsert({
+         id: newUser.id,
+         email: authEmail,
+         full_name: authFullName,
+         phone_number: authPhone,
+         role: 'user',
+       }, { onConflict: 'id' });
+     }
+   } catch (e: any) {
+     setAuthError(e.message || 'Could not create account.');
+   } finally {
+     setAuthLoading(false);
+   }
+ };
+
+ const handleSignIn = async () => {
+   if (!authEmail || !authPassword) {
+     setAuthError('Please enter your email and password.');
+     return;
+   }
+   setAuthLoading(true);
+   setAuthError('');
+   try {
+     const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+     if (error) throw error;
+   } catch (e: any) {
+     setAuthError(e.message || 'Could not sign in. Check your credentials.');
+   } finally {
+     setAuthLoading(false);
+   }
+ };
+
  const [bookingsEmail, setBookingsEmail] = useState('');
- const [adminRequest, setAdminRequest] = useState(false);
  const [bankChoice, setBankChoice] = useState('');
  const [designChoice, setDesignChoice] = useState('');
  const [websiteName, setWebsiteName] = useState('');
@@ -134,36 +162,61 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [agreed, setAgreed] = useState(false);
  const [stripeError, setStripeError] = useState('');
  const openStripeGateway = async () => {
- if (!planChoice) {
- setStripeError('Please select a subscription plan first.');
- return;
- }
- setStripeError('');
- setShowStripeModal(true);
- try {
- const priceId =
- planChoice === 'starter' ? 'price_1TNJxlK5ECFjIqP3js6qeCyf' :
- planChoice === 'pro' ? 'price_1TNJxlK5ECFjIqP3bhOTGvL5' :
- planChoice === 'agency' ? 'price_1TNJxmK5ECFjIqP32ZWgrKde' : null;
+   if (!user) {
+     setStripeError('Please sign in or create an account above first.');
+     return;
+   }
+   if (!planChoice) {
+     setStripeError('Please select a subscription plan first.');
+     return;
+   }
+   setStripeError('');
+   setShowStripeModal(true);
 
- // Always use /create-subscription for subscription plans
- const res = await fetch('https://propbook-stripe-server-production.up.railway.app/create-subscription', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ priceId, customerEmail: email || 'pending@placeholder.com' }),
- });
- const data = await res.json();
- if (data.clientSecret) {
- setStripeClientSecret(data.clientSecret);
- setStripeSubscriptionId(data.subscriptionId || '');
- } else {
- setStripeError(data.error || 'Could not initialise payment.');
- setShowStripeModal(false);
- }
- } catch (e) {
- setStripeError('Could not connect to payment server.');
- setShowStripeModal(false);
- }
+   // Save form data before redirecting to Stripe so we can restore it on return
+   await saveToSupabase();
+
+   try {
+     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+     // Build the extras list so the edge fn can add them as line items
+     const activeExtras: string[] = [];
+     if (extras.seo) activeExtras.push('seo');
+     if (extras.ads) activeExtras.push('ads');
+     if (extras.analytics) activeExtras.push('analytics');
+     if (extras.social) activeExtras.push('social');
+
+     const res = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${supabaseAnonKey}`,
+         'Apikey': supabaseAnonKey,
+       },
+       body: JSON.stringify({
+         action: 'create_checkout',
+         plan: planChoice,
+         hosting_choice: hostingChoice,
+         extras: activeExtras,
+         include_scrape: designChoice === 'airbnb',
+         email: user.email,
+         user_id: user.id,
+         return_url: window.location.origin + window.location.pathname,
+       }),
+     });
+
+     const data = await res.json();
+     if (data.url) {
+       window.location.href = data.url;
+     } else {
+       setStripeError(data.error || 'Could not initialise payment.');
+       setShowStripeModal(false);
+     }
+   } catch {
+     setStripeError('Could not connect to payment server.');
+     setShowStripeModal(false);
+   }
  };
 
  const [showStripeModal, setShowStripeModal] = useState(false);
@@ -289,8 +342,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const { data, error } = await supabase
  .from('onboarding_data')
  .select('*')
- .eq('user_id', TEMPLATE_USER_ID)
- .single();
+ .eq('user_id', user?.id || '')
+ .maybeSingle();
 
  if (error && error.code !== 'PGRST116') {
  console.warn('Could not load saved onboarding data:', error.message);
@@ -306,7 +359,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  if (data.bank_choice) setBankChoice(data.bank_choice);
  if (data.hosting_choice) setHostingChoice(data.hosting_choice);
  if (data.plan_choice) setPlanChoice(data.plan_choice);
- if (data.email) setEmail(data.email);
  if (data.bookings_email) setBookingsEmail(data.bookings_email);
 
  // Reconstruct scrapedData from saved fields
@@ -393,13 +445,86 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  };
  }, []);
 
+ // Handle return from Stripe Checkout — ?subscription=success in URL
+ useEffect(() => {
+ const params = new URLSearchParams(window.location.search);
+ if (params.get('subscription') !== 'success') return;
+
+ // Clear param from URL without reload
+ window.history.replaceState({}, '', window.location.pathname);
+
+ if (!user) {
+ // User not loaded yet — open popup so auth gate shows sign-in prompt
+ setIsOpen(true);
+ return;
+ }
+
+ (async () => {
+ try {
+ // Restore saved onboarding data for this user
+ const { data: saved } = await supabase
+ .from('onboarding_data')
+ .select('*')
+ .eq('user_id', user.id)
+ .maybeSingle();
+
+ if (saved) {
+ // Restore extras — stored as jsonb, default all false if missing
+ const savedExtras = saved.extras && typeof saved.extras === 'object'
+ ? saved.extras
+ : { seo: false, ads: false, analytics: false, social: false };
+
+ // Restore scraped data from saved columns if an Airbnb import was done
+ const restoredScrapedData = saved.design_choice === 'airbnb' && saved.scraped_title
+ ? {
+ title: saved.scraped_title || '',
+ location: saved.scraped_location || '',
+ description: saved.scraped_description || '',
+ hero_image: saved.scraped_hero_image || '',
+ images: saved.scraped_images || [],
+ guests: saved.scraped_guests ? Number(saved.scraped_guests) : null,
+ bedrooms: null,
+ beds: null,
+ baths: null,
+ rating: saved.scraped_rating ? Number(saved.scraped_rating) : null,
+ reviews: saved.scraped_reviews ? Number(saved.scraped_reviews) : null,
+ host_name: null,
+ price: '',
+ }
+ : null;
+
+ const result = await duplicateSiteAfterPayment({
+ userId: user.id,
+ email: user.email || '',
+ bookingsEmail: saved.bookings_email || '',
+ websiteName: saved.property_name || '',
+ websiteDesc: saved.property_desc || saved.property_description || '',
+ planChoice: (saved.plan_choice as 'starter' | 'pro' | 'agency') || 'starter',
+ hostingChoice: (saved.hosting_choice as 'our' | 'own') || 'our',
+ extras: savedExtras,
+ scrapedData: restoredScrapedData,
+ designChoice: saved.design_choice || '',
+ bankChoice: saved.bank_choice || '',
+ });
+ if (result.siteUrl) {
+ setCongratsUrl(result.siteUrl);
+ }
+ }
+ } catch (e) {
+ console.warn('Site creation after checkout failed:', e);
+ }
+ setShowCongrats(true);
+ setIsOpen(true);
+ })();
+ }, [user]);
+
 
  // Save or update onboarding data in Supabase
  const saveToSupabase = async (overrides: any = {}) => {
+ if (!user) return;
  try {
- // Only save account/form data — NOT scraped data (that lives in React state only)
  const row = {
- user_id: TEMPLATE_USER_ID,
+ user_id: user.id,
  property_name: websiteName,
  property_desc: websiteDesc,
  airbnb_url: airbnbUrl,
@@ -407,8 +532,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  bank_choice: bankChoice,
  hosting_choice: hostingChoice,
  plan_choice: planChoice,
- email,
+ email: user.email,
  bookings_email: bookingsEmail,
+ extras: extras,
  updated_at: new Date().toISOString(),
  ...overrides,
  };
@@ -427,6 +553,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
  };
 
+ const SCRAPER_URL = 'https://airbnb-scraper-foj1.onrender.com';
+
  const handleAirbnbScrape = async (_e?: React.MouseEvent) => {
  if (!airbnbUrl) { setImportError('Please enter an Airbnb URL'); return; }
  setIsImporting(true);
@@ -441,7 +569,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }, 1000);
 
  try {
- const resp = await fetch(`https://airbnb-scraper-foj1.onrender.com/scrape?url=${encodeURIComponent(airbnbUrl)}`);
+ const resp = await fetch(`${SCRAPER_URL}/scrape?url=${encodeURIComponent(airbnbUrl)}`);
  const result = await resp.json();
  clearInterval(countInterval);
  if (result.success) {
@@ -450,14 +578,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  if (data.title) setWebsiteName(data.title.slice(0, 20));
  if (data.description) setWebsiteDesc(data.description.slice(0, 200));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
- // Save to Supabase immediately after scrape
  await saveToSupabase();
  } else {
- setImportError('Failed to import listing. Please check the URL.');
+ setImportError('Failed to import listing. Please check the URL and try again.');
  }
  } catch (err) {
  clearInterval(countInterval);
- setImportError('Could not reach scraper service.');
+ setImportError('Could not reach the scraper service. It may be waking up — please wait 60 seconds and try again.');
  } finally {
  setIsImporting(false);
  setCountdown(0);
@@ -535,59 +662,59 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Sign Up */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign Up</h1>
+ {user ? (
+   <div style={{ background: 'rgba(80,180,100,0.12)', border: '1px solid rgba(80,180,100,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
+     Signed in as <strong>{user.email}</strong>
+   </div>
+ ) : (
+   <>
+     {planChoice === 'starter' && (
+       <div style={{ background: 'rgba(196,119,86,0.15)', border: '1px solid rgba(196,119,86,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem', color: '#e8c4a0' }}>
+         Your plan includes a free month — you won&apos;t be charged today.
+       </div>
+     )}
+     <p>Create your account to get started.</p>
+     <h4>Full name</h4>
+     <input type="text" placeholder="Full name" className="editmode" value={authFullName} onChange={e => setAuthFullName(e.target.value)} />
+     <h4>Phone (optional)</h4>
+     <input type="tel" placeholder="Phone number" className="editmode" value={authPhone} onChange={e => setAuthPhone(e.target.value)} />
+     <h4>Email</h4>
+     <input type="email" placeholder="Email" className="editmode" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
+     <h4>Password</h4>
+     <input type="password" placeholder="Password" className="editmode" value={authPassword} onChange={e => setAuthPassword(e.target.value)} />
+     {authError && <p style={{ color: '#e07070', fontSize: '0.85rem', margin: '6px 0' }}>{authError}</p>}
+     <button className="btn" onClick={handleSignUp} disabled={authLoading}>
+       {authLoading ? 'Creating account...' : 'Create Account'}
+     </button>
+     <br /><hr />
 
- {planChoice === 'starter' && (
- <div style={{ background: 'rgba(196,119,86,0.15)', border: '1px solid rgba(196,119,86,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem', color: '#e8c4a0' }}>
- Your plan includes a free month — you won&apos;t be charged today.
- </div>
+     {/* Sign In */}
+     <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Already have an account? Sign In</h1>
+     <h4>Email</h4>
+     <input type="email" placeholder="Email" className="editmode" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
+     <h4>Password</h4>
+     <input type="password" placeholder="Password" className="editmode" value={authPassword} onChange={e => setAuthPassword(e.target.value)} />
+     {authError && <p style={{ color: '#e07070', fontSize: '0.85rem', margin: '6px 0' }}>{authError}</p>}
+     <button className="btn" onClick={handleSignIn} disabled={authLoading}>
+       {authLoading ? 'Signing in...' : 'Sign In'}
+     </button>
+   </>
  )}
- <p>Create your new sites admin account.</p>
- <h4>Email</h4>
- <input type="email" placeholder="Email" className="editmode" value={email} onChange={e => setEmail(e.target.value)} />
- <h4>Password</h4>
- <input type="password" placeholder="Password" className="editmode" value={password} onChange={e => setPassword(e.target.value)} />
- <ul className="popup-checkbox-list">
- <li>
- <input type="checkbox" id="1-1" checked={adminRequest} onChange={e => setAdminRequest(e.target.checked)} />
- <label htmlFor="1-1">Request admin account</label>
- </li>
- </ul>
- <p>Enter the email address you would like your booking notifications to be sent.</p>
+ <p>Enter the email address you would like your booking notifications sent to.</p>
  <h4>Bookings email</h4>
  <input type="email" placeholder="Bookings email" className="editmode" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
- <button className="btn" onClick={() => alert('Admin account creation is automatic after payment. Your account will be created automatically.')}>Create Admin Account</button>
- <h3>Respond to the verification email now to get verified. Then sign into your website as the Admin.</h3>
- <br /><hr />
-
- {/* Sign In */}
- <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign In</h1>
- <h4>Email</h4>
- <input type="email" placeholder="Email" className="editmode" />
- <h4>Password</h4>
- <input type="password" placeholder="Password" className="editmode" />
- <button className="btn" onClick={() => alert('Sign in will be available once your site is created. You\'ll receive an email with your login details.')}>Sign In</button>
  <br /><hr />
 
  {/* Banking Details */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>1. Banking Details</h1>
- <p>How do you want to get paid?</p>
- <ul>
- <li>
- <input type="radio" name="bank" id="2-1" checked={bankChoice === 'bank'} onChange={() => setBankChoice('bank')} />
- <label htmlFor="2-1">Bank - 4 - 8% processing fee</label>
- </li>
- <li>
- <input type="radio" name="bank" id="2-2" checked={bankChoice === 'venmo'} onChange={() => setBankChoice('venmo')} />
- <label htmlFor="2-2">Venmo - 6% processing fee</label>
- </li>
- <li>
- <input type="radio" name="bank" id="2-3" checked={bankChoice === 'paypal'} onChange={() => setBankChoice('paypal')} />
- <label htmlFor="2-3">PayPal - 6% processing fee</label>
- </li>
- </ul>
- <br />
- <h3>Your banking information is held by your 3rd‑party payment platform</h3>
- <button className="btn" onClick={() => alert('Bank account linking will be available after you subscribe. You\'ll be prompted to connect your bank account to receive payouts.')}>Link your account</button>
+ <p>Link your bank account via Stripe to receive booking payouts. We take a 2% platform fee on each payout — all other revenue goes directly to you.</p>
+ {user ? (
+   <StripeConnectSetup variant="onboarding" />
+ ) : (
+   <div style={{ background: 'rgba(196,119,86,0.12)', border: '1px solid rgba(196,119,86,0.35)', borderRadius: 8, padding: '12px 16px', fontSize: '0.875rem', color: '#e8c4a0' }}>
+     Sign in or create an account above to link your bank account.
+   </div>
+ )}
  <br /><hr />
 
  {/* Design */}
@@ -735,7 +862,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </button>
  {importError && <p>{importError}</p>}
  {isImporting && (
- <h3>Scraping in progress — takes about 2 minutes. Pick your brand color and font while you wait!</h3>
+ <div style={{ marginTop: 10 }}>
+ <h3 style={{ marginBottom: 4 }}>Importing your listing — takes about 2 minutes.</h3>
+ <p style={{ fontSize: '0.8rem', color: '#aaa', margin: 0 }}>Pick your brand color and font below while you wait.</p>
+ </div>
  )}
 
  {/* Preview — appears below Get data after import */}
@@ -938,10 +1068,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  >
  PUBLISH MY SITE
  </button>
- </div>
- 
+
  {/* Fixed bottom total banner */}
- 
+
  {/* Stripe Payment Modal */}
  {showStripeModal && (
  <div className="stripe-modal-backdrop" onClick={() => { setShowStripeModal(false); setStripeError(''); }}>
@@ -994,11 +1123,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  setShowStripeModal(false);
  setStripeClientSecret('');
  await saveToSupabase();
- 
+
  // ── Site duplication — the core of the business ──
  try {
  const result = await duplicateSiteAfterPayment({
- email,
+ userId: user?.id || '',
+ email: user?.email || '',
  bookingsEmail,
  websiteName,
  websiteDesc,
@@ -1009,20 +1139,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  designChoice,
  bankChoice,
  });
- console.log('✅ Site created:', result.siteUrl);
  if (result.siteUrl) {
  setCongratsUrl(result.siteUrl);
  setShowCongrats(true);
- // Don't close — show the congrats modal instead
- if (onComplete) onComplete({ email, bookingsEmail, adminRequest, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
+ if (onComplete) onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
  return;
  }
  } catch (err) {
  console.warn('Site duplication failed (payment succeeded):', err);
  }
- 
+
  if (onComplete) {
- onComplete({ email, bookingsEmail, adminRequest, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
+ onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
  }
  handleClose();
  }}
@@ -1091,9 +1219,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  {stripeError && <div className="popup-stripe-error">{stripeError}</div>}
  </div>
  </div>
+ </div>
  )}
 
- 
  </>
  );
 }
