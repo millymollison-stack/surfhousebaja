@@ -266,6 +266,7 @@ interface StripeConnectData {
   available_balance: number;
   pending_balance: number;
   currency: string;
+  bank_account?: { bank_name: string; last4: string; account_holder_name: string } | null;
 }
 
 interface SubscriptionData {
@@ -378,7 +379,8 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
   const domainSearchUrl = domainName
     ? `https://www.hostinger.com/domain-search?domain=${encodeURIComponent(domainName)}`
     : 'https://www.hostinger.com/domain-search';
-  const ip = serverIp || '82.29.86.252';
+  const ip = serverIp || null;
+
 
   return (
     <div>
@@ -400,10 +402,15 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
             ) : null;
           })()}
 
-          {folderPath && (
+          {folderPath ? (
             <div className="sb-field-row">
               <h4 className="sb-h4-grey">File path on server</h4>
               <p className="sb-mono">{folderPath}</p>
+            </div>
+          ) : (
+            <div className="sb-field-row">
+              <h4 className="sb-h4-grey">File path on server</h4>
+              <p className="sb-field-value">will be shown after first deploy to Hostinger</p>
             </div>
           )}
 
@@ -426,10 +433,17 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
           </div>
           {showDnsPanel && (
             <div className="sb-field-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, background: '#f9fafb', borderRadius: 8, padding: '10px 12px', marginTop: 4 }}>
-              <p className="sb-h4-grey" style={{ marginBottom: 2 }}>Set an <strong>A record</strong> pointing to:</p>
-              <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>{ip}</p>
-              <p className="sb-h4-grey" style={{ marginTop: 6, marginBottom: 2 }}>Or a <strong>CNAME</strong> pointing to:</p>
-              <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>cname.propbook.pro</p>
+              {ip ? (
+                <>
+                  <p className="sb-h4-grey" style={{ marginBottom: 2 }}>Set an <strong>A record</strong> pointing to:</p>
+                  <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>{ip}</p>
+                  <p className="text-xs text-gray-500 mt-1">This is your server IP address on Hostinger</p>
+                  <p className="sb-h4-grey" style={{ marginTop: 6, marginBottom: 2 }}>Or a <strong>CNAME</strong> pointing to:</p>
+                  <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>cname.propbook.pro</p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">Deploy to Hostinger first to get your server IP. Use <strong>cname.propbook.pro</strong> as a temporary CNAME target.</p>
+              )}
             </div>
           )}
         </>
@@ -565,6 +579,9 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-bold text-gray-900">{connectData.business_name || connectData.email}</p>
+                {connectData.bank_account && (
+                  <p className="text-xs text-gray-500 mt-0.5">{connectData.bank_account.bank_name} ••••{connectData.bank_account.last4}</p>
+                )}
                 <p className="text-xs text-gray-400 mt-0.5">{connectData.account_id}</p>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -606,7 +623,7 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
       </div>
       <div className="py-3">
         <h4 className="sb-h4-grey">Publishable Key</h4>
-        <p className="sb-mono">{import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.slice(0, 24)}…</p>
+        <p className="sb-mono">{import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ? import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY.slice(0, 24) + '…' : 'Not configured'}</p>
       </div>
     </div>
   );
