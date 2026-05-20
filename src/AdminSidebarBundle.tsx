@@ -724,7 +724,11 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setConnectData(null);
     setSubscriptionData(null);
     setDataKey(k => k + 1);
-    if (user) loadData();
+    if (user) {
+      loadData();
+      loadConnectData();
+      loadSubscriptionData();
+    }
   }, [isOpen, user]);
 
   const loadData = async () => {
@@ -834,7 +838,6 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setConnectOnboarding(true);
     try {
       const session = await getSession();
-      // Call edge function to create a Connect onboarding session for embedded flow
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
@@ -842,21 +845,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      const { client_secret, account_id } = data;
-
-      // Lazily initialise the Stripe promise so it's ready for any Stripe call
-      if (!stripePromiseRef.current) {
-        stripePromiseRef.current = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
-      }
-      const stripe = await stripePromiseRef.current;
-      if (!stripe) throw new Error('Stripe failed to load');
-
-
-      // Open Stripe's embedded Connect onboarding modal
-      const { error: onboardingError } = await stripe.initiateAccountOnboarding({
-        clientSecret: client_secret,
-      });
-      if (onboardingError) throw new Error(onboardingError.message);
+      // Redirect to Stripe's hosted Connect onboarding — on return, loadConnectData refreshes the status
+      window.location.href = data.url;
     } catch (err) { alert(`Failed to start Stripe onboarding: ${err instanceof Error ? err.message : 'Unknown error'}`); } finally { setConnectOnboarding(false); }
   };
 

@@ -263,9 +263,9 @@ Deno.serve(async (req: Request) => {
         type: "account_onboarding",
       });
 
-      // Return client_secret and account_id for Stripe's embedded Connect onboarding
+      // Return the AccountLink URL for Stripe's hosted Connect onboarding redirect
       return new Response(
-        JSON.stringify({ client_secret: accountLink.url, account_id: accountId }),
+        JSON.stringify({ url: accountLink.url, account_id: accountId }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
