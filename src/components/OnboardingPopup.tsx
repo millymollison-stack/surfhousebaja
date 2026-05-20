@@ -80,7 +80,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
 }
 
 export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange }: OnboardingPopupProps) {
- const { user } = useAuth();
+ const { user, refreshUser } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
  const isMountedRef = { current: true };
@@ -1162,6 +1162,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  setShowStripeModal(false);
  setStripeClientSecret('');
  await saveToSupabase();
+ // Refresh auth state so "Setup payment" button and sidebar update immediately
+ await refreshUser();
 
  // ── Site duplication — the core of the business ──
  try {

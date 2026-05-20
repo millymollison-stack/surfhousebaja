@@ -11,6 +11,7 @@ interface AuthState {
   signUp: (email: string, password: string, fullName: string, phoneNumber: string, isAdmin?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuth = create<AuthState>((set) => ({
@@ -117,6 +118,23 @@ export const useAuth = create<AuthState>((set) => ({
     } catch (error) {
       console.error('Sign up error:', error);
       set({ error: 'Failed to create account. Please try again.' });
+    }
+  },
+
+  refreshUser: async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id);
+        if (!profileError && profile && profile.length > 0) {
+          set({ user: profile[0], loading: false, error: null });
+        }
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error);
     }
   },
 
