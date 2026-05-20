@@ -228,22 +228,34 @@ Deno.serve(async (req: Request) => {
 
       const invoice = subscription.latest_invoice as Stripe.Invoice;
 
+      // ── $0 trial — Stripe auto-finalizes these immediately, no PaymentIntent needed ──
+      if (invoice.total === 0) {
+        return new Response(
+          JSON.stringify({ trial_only: true, subscription_id: subscription.id }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // ── Get or create PaymentIntent ────────────────────────────────────────
+      // Invoice states: draft (awaiting finalization) or finalized (already processed by Stripe).
+      // For draft invoices: finalize first to get the PaymentIntent.
+      // For already-finalized invoices: create a new PaymentIntent manually.
       let paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
 
-      if (!paymentIntent) {
+      if (invoice.status === 'draft') {
         const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
         paymentIntent = (finalizedInvoice as Stripe.Invoice).payment_intent as Stripe.PaymentIntent | null;
-        if (!paymentIntent) {
-          const totalAmt = (finalizedInvoice as Stripe.Invoice).total || 0;
-          paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.max(totalAmt, 0),
-            currency: "usd",
-            customer: customerId,
-            metadata: { subscription_id: subscription.id, invoice_id: invoice.id, plan, user_id: user_id || "" },
-          });
-          await stripe.invoices.update(invoice.id, { metadata: { payment_intent_id: paymentIntent.id } });
-        }
+      }
+
+      if (!paymentIntent) {
+        // Finalized invoice with no PaymentIntent (e.g. $0 trial that slipped through, or mixed
+        // trial+paid items) — create a PaymentIntent manually for whatever is outstanding.
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: invoice.total || 0,
+          currency: "usd",
+          customer: customerId,
+          metadata: { subscription_id: subscription.id, invoice_id: invoice.id, plan, user_id: user_id || "" },
+        });
       }
 
       if (!paymentIntent?.client_secret) {

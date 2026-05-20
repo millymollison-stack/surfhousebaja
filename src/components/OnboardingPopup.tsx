@@ -202,33 +202,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        setStripeClientSecret(data.client_secret);
        if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
      } else if (data.trial_only) {
-       // Trial plan — no payment needed, subscription is active
+       // Trial plan - no payment needed today, subscription is active
        setShowStripeModal(false);
        setStripeClientSecret('');
-       // Proceed directly to site duplication
-       try {
-         const result = await duplicateSiteAfterPayment({
-           userId: user?.id || '',
-           email: user?.email || '',
-           bookingsEmail,
-           websiteName,
-           websiteDesc,
-           planChoice: planChoice as 'starter' | 'pro' | 'agency',
-           hostingChoice: hostingChoice as 'our' | 'own',
-           extras,
-           scrapedData,
-           designChoice,
-           bankChoice,
-         });
-         if (result.siteUrl) {
-           setCongratsUrl(result.siteUrl);
-           setShowCongrats(true);
-         }
-       } catch (err) {
-         console.warn('Site duplication failed:', err);
-         if (onComplete) onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
-         handleClose();
-       }
+       await refreshUser();
+       // Proceed to publish step - CheckoutForm.onSuccess handles site duplication
      } else {
        setStripeError(data.error || data.message || 'Could not initialise payment.');
        setShowStripeModal(false);
@@ -351,7 +329,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  reviews: null,
  host_name: null,
  });
- // Auto-open popup when scraped data arrives — but NOT if user explicitly closed it
+ // Auto-open popup when scraped data arrives - but NOT if user explicitly closed it
  if (!isOpen && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
  setIsOpen(true);
  }
@@ -418,7 +396,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  onSiteNameChange(display);
  }, [websiteName, onSiteNameChange]);
 
- // Sync name to header (immediate) and template (on change — real-time)
+ // Sync name to header (immediate) and template (on change - real-time)
  const handleNameChange = (val: string) => {
  // Strip any leading @ so we never double it up when the sidebar prepends one
  const cleaned = val.startsWith('@') ? val.slice(1) : val;
@@ -426,7 +404,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
- // Debounce the preview sync so typing keeps up — fire every 1s of inactivity
+ // Debounce the preview sync so typing keeps up - fire every 1s of inactivity
  clearTimeout(descSyncTimer.current);
  descSyncTimer.current = setTimeout(() => {
  if (onImported) onImported({ title: websiteName.trim() || 'surfhousebaja', description: val });
@@ -465,7 +443,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  };
  }, []);
 
- // Handle return from Stripe Connect onboarding — ?return_url or ?stripe_connect_return in URL
+ // Handle return from Stripe Connect onboarding - ?return_url or ?stripe_connect_return in URL
  useEffect(() => {
  const params = new URLSearchParams(window.location.search);
  const hasConnectReturn = params.has('return_url') || params.has('stripe_connect_return');
@@ -485,7 +463,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
- // Handle return from Stripe Checkout — ?subscription=success in URL
+ // Handle return from Stripe Checkout - ?subscription=success in URL
  useEffect(() => {
  const params = new URLSearchParams(window.location.search);
  if (params.get('subscription') !== 'success') return;
@@ -494,7 +472,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  window.history.replaceState({}, '', window.location.pathname);
 
  if (!user) {
- // User not loaded yet — open popup so auth gate shows sign-in prompt
+ // User not loaded yet - open popup so auth gate shows sign-in prompt
  setIsOpen(true);
  return;
  }
@@ -509,7 +487,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  .maybeSingle();
 
  if (saved) {
- // Restore extras — stored as jsonb, default all false if missing
+ // Restore extras - stored as jsonb, default all false if missing
  const savedExtras = saved.extras && typeof saved.extras === 'object'
  ? saved.extras
  : { seo: false, ads: false, analytics: false, social: false };
@@ -624,69 +602,85 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
  } catch (err) {
  clearInterval(countInterval);
- setImportError('Could not reach the scraper service. It may be waking up — please wait 60 seconds and try again.');
+ setImportError('Could not reach the scraper service. It may be waking up - please wait 60 seconds and try again.');
  } finally {
  setIsImporting(false);
  setCountdown(0);
  }
  };
  const handlePublish = async (_e?: React.MouseEvent) => {
- setStripeError('');
- 
- // Create payment intent on your backend and get clientSecret
- // Replace with your actual endpoint that calls Stripe API
- let clientSecret = '';
- try {
- const res = await fetch('https://propbook-stripe-server-production.up.railway.app/create-payment-intent', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- amount: Math.round(monthlyTotal * 100),
- currency: 'usd',
- }),
- });
- const data = await res.json();
- clientSecret = data.clientSecret;
- } catch (e) {
- console.error('Payment intent error:', e);
- setStripeError('Could not connect to payment system. Please try again.');
- return;
- }
+   if (!user) {
+     setStripeError('Please sign in or create an account first.');
+     return;
+   }
+   if (!planChoice) {
+     setStripeError('Please select a subscription plan first.');
+     return;
+   }
+   if (!websiteName.trim()) {
+     setStripeError('Please enter a website name first.');
+     return;
+   }
+   setStripeError('');
+   await saveToSupabase();
 
- if (!clientSecret) {
- setStripeError('Payment setup failed. Please try again.');
- return;
- }
+   try {
+     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
- // Confirm payment client-side
- const stripeInst = await stripePromise;
- if (!stripeInst) {
- setStripeError('Stripe failed to load. Please refresh and try again.');
- return;
- }
- const { error } = await stripeInst.confirmPayment({
- clientSecret,
- confirmParams: { return_url: window.location.origin + '?published=true' },
- redirect: 'if_required',
- });
+     const activeExtras: string[] = [];
+     if (extras.seo) activeExtras.push('seo');
+     if (extras.ads) activeExtras.push('ads');
+     if (extras.analytics) activeExtras.push('analytics');
+     if (extras.social) activeExtras.push('social');
 
- if (error) {
- setStripeError(error.message || 'Payment failed. Please try again.');
- } else {
- await saveToSupabase();
- if (onComplete) {
- onComplete({
- email, bookingsEmail, adminRequest, bankChoice, designChoice,
- websiteName, websiteDesc, hostingChoice, planChoice, extras,
- scrapedData
- });
- }
- handleClose();
- }
+     const res = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+         'Apikey': supabaseAnonKey,
+       },
+       body: JSON.stringify({
+         action: 'create_checkout',
+         plan: planChoice,
+         hosting_choice: hostingChoice,
+         extras: activeExtras,
+         include_scrape: designChoice === 'airbnb',
+         email: user.email,
+         user_id: user.id,
+         return_url: window.location.origin + window.location.pathname,
+       }),
+     });
+
+     const data = await res.json();
+
+     if (data.trial_only) {
+       // Trial plan — no payment needed, subscription created. Proceed to duplication.
+       await refreshUser();
+       if (onComplete) {
+         onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
+       }
+       handleClose();
+       return;
+     }
+
+     if (!data.client_secret) {
+       setStripeError(data.error || 'Could not initialise payment. Please try again.');
+       return;
+     }
+
+     // Show the embedded Stripe modal with the client_secret
+     setStripeClientSecret(data.client_secret);
+     setShowStripeModal(true);
+     if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
+   } catch {
+     setStripeError('Could not connect to payment server. Please try again.');
+   }
  };
 
 
- 
+
 
  return (
  <>
@@ -710,7 +704,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    <>
      {planChoice === 'starter' && (
        <div style={{ background: 'rgba(196,119,86,0.15)', border: '1px solid rgba(196,119,86,0.4)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem', color: '#e8c4a0' }}>
-         Your plan includes a free month — you won&apos;t be charged today.
+         Your plan includes a free month - you won&apos;t be charged today.
        </div>
      )}
      <p>Create your account to get started.</p>
@@ -745,7 +739,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <input type="email" placeholder="Bookings email" className="editmode" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
  <br /><hr />
 
-  {/* Banking section — completed in sidebar after signup */}
+  {/* Banking section - completed in sidebar after signup */}
 
  {/* Design */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>2. Design your website</h1>
@@ -872,7 +866,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </li>
  </ul>
 
- {/* Airbnb import — shown only when Airbnb radio is selected */}
+ {/* Airbnb import - shown only when Airbnb radio is selected */}
  {designChoice === 'airbnb' && (
  <div className="popup-airbnb-section">
  <h4>Paste your Airbnb listing URL</h4>
@@ -893,12 +887,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  {importError && <p>{importError}</p>}
  {isImporting && (
  <div style={{ marginTop: 10 }}>
- <h3 style={{ marginBottom: 4 }}>Importing your listing — takes about 2 minutes.</h3>
+ <h3 style={{ marginBottom: 4 }}>Importing your listing - takes about 2 minutes.</h3>
  <p style={{ fontSize: '0.8rem', color: '#aaa', margin: 0 }}>Pick your brand color and font below while you wait.</p>
  </div>
  )}
 
- {/* Preview — appears below Get data after import */}
+ {/* Preview - appears below Get data after import */}
  {scrapedData && (
  <div className="popup-preview">
  <h3>Preview:</h3>
@@ -1078,7 +1072,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Payment */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Payment Calculated</h1>
- <p>Input your card details with our 3rd‑party, secure payment partner.</p>
+ <p>Input your card details with our 3rd-party, secure payment partner.</p>
  <button
  className="btn"
  onClick={openStripeGateway}
@@ -1162,34 +1156,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  setShowStripeModal(false);
  setStripeClientSecret('');
  await saveToSupabase();
- // Refresh auth state so "Setup payment" button and sidebar update immediately
  await refreshUser();
-
- // ── Site duplication — the core of the business ──
- try {
- const result = await duplicateSiteAfterPayment({
- userId: user?.id || '',
- email: user?.email || '',
- bookingsEmail,
- websiteName,
- websiteDesc,
- planChoice: planChoice as 'starter' | 'pro' | 'agency',
- hostingChoice: hostingChoice as 'our' | 'own',
- extras,
- scrapedData,
- designChoice,
- bankChoice,
- });
- if (result.siteUrl) {
- setCongratsUrl(result.siteUrl);
- setShowCongrats(true);
- if (onComplete) onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
- return;
- }
- } catch (err) {
- console.warn('Site duplication failed (payment succeeded):', err);
- }
-
  if (onComplete) {
  onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
  }
@@ -1206,7 +1173,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  </div>
  )}
- 
+
  {/* Subscription set up */}
  {showCongrats && (
  <div className="stripe-modal-backdrop" onClick={() => { setShowCongrats(false); handleClose(); }}>
@@ -1225,7 +1192,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  </div>
  )}
- 
+
  <div className="popup-total-banner">
  <div className="popup-total-left">
  <div className="popup-total-label">Total due today</div>
