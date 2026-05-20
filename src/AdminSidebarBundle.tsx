@@ -5,7 +5,8 @@
 
 import './components/sidebar.css';
 
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useRef } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import { useNavigate } from 'react-router-dom';
 import { format, fromUnixTime, addDays } from 'date-fns';
 import {
@@ -703,6 +704,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [payoutSuccess, setPayoutSuccess] = useState(false);
 
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const subLoadStarted = useRef(false);
+  const stripePromiseRef = useRef<ReturnType<typeof loadStripe> | null>(null);
   const [subLoading, setSubLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
@@ -734,7 +737,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setBookingsLoading(true);
     try {
       const [bookingsRes, imagesRes, propRes, profileRes] = await Promise.all([
-        supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }),
+        supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user', user.id).order('created_at', { ascending: false }),
         supabase.from('property_images').select('id'),
         supabase.from('properties').select('*').limit(1).maybeSingle(),
         supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social').eq('id', user.id).maybeSingle(),
@@ -775,6 +778,13 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   useEffect(() => {
     if (user) setContactFields({ full_name: user.full_name || '', email: user.email || '', phone_number: user.phone_number || '' });
   }, [user]);
+
+  // Listen for subscription-updated event dispatched by CheckoutForm after payment succeeds
+  useEffect(() => {
+    const handleSubUpdated = () => { loadSubscriptionData(); };
+    window.addEventListener('subscription-updated', handleSubUpdated);
+    return () => window.removeEventListener('subscription-updated', handleSubUpdated);
+  }, []);
 
   const saveServices = async (updated: Record<ServiceKey, boolean>) => {
     if (!user) return;
@@ -824,11 +834,30 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setConnectOnboarding(true);
     try {
       const session = await getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'create_account_link', return_url: window.location.href }) });
+      // Call edge function to create a Connect onboarding session for embedded flow
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'create_onboarding_session', return_url: window.location.href }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      window.location.href = data.url;
-    } catch { alert('Failed to start Stripe onboarding. Please try again.'); } finally { setConnectOnboarding(false); }
+      const { client_secret, account_id } = data;
+
+      // Lazily initialise the Stripe promise so it's ready for any Stripe call
+      if (!stripePromiseRef.current) {
+        stripePromiseRef.current = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+      }
+      const stripe = await stripePromiseRef.current;
+      if (!stripe) throw new Error('Stripe failed to load');
+
+
+      // Open Stripe's embedded Connect onboarding modal
+      const { error: onboardingError } = await stripe.initiateAccountOnboarding({
+        clientSecret: client_secret,
+      });
+      if (onboardingError) throw new Error(onboardingError.message);
+    } catch (err) { alert(`Failed to start Stripe onboarding: ${err instanceof Error ? err.message : 'Unknown error'}`); } finally { setConnectOnboarding(false); }
   };
 
   const handleRequestPayout = async () => {
@@ -980,7 +1009,13 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
               <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Credentials</p>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasStripeAccount} /><p className="sb-credential-name">Stripe Payout Account</p></div>
-                {hasStripeAccount && <p className="sb-credential-balance">{connectData ? `$${(connectData.available_balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '–'}</p>}
+                {hasStripeAccount && (
+                  <p className="sb-credential-balance">
+                    {connectData?.available_balance != null
+                      ? `$${(connectData.available_balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '–'}
+                  </p>
+                )}
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">www.propbook.pro/surfhousebaja</p></div>

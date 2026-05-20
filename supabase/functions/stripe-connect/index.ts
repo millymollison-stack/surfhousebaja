@@ -211,6 +211,65 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (action === "create_onboarding_session") {
+      // Find or create the Stripe Connect Express account for this user
+      const { data: property } = await supabase
+        .from("properties")
+        .select("id, stripe_account_id, title")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+
+      let accountId = property?.stripe_account_id;
+
+      if (!accountId) {
+        // Create a new Express account scoped to this property/user
+        const account = await stripe.accounts.create({
+          type: "express",
+          country: "US",
+          email: user.email,
+          business_profile: {
+            name: property?.title || undefined,
+          },
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          metadata: {
+            user_id: user.id,
+            property_id: property?.id || "",
+          },
+        });
+        accountId = account.id;
+
+        if (property?.id) {
+          await supabase
+            .from("properties")
+            .update({ stripe_account_id: accountId, stripe_account_status: "pending" })
+            .eq("id", property.id);
+        }
+        await supabase
+          .from("profiles")
+          .update({ stripe_account_id: accountId, stripe_account_status: "pending" })
+          .eq("id", user.id);
+      }
+
+      // Create an AccountLink for embedded onboarding
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: body.return_url || `${supabaseUrl}/`,
+        return_url: body.return_url || `${supabaseUrl}/`,
+        type: "account_onboarding",
+      });
+
+      // Return client_secret and account_id for Stripe's embedded Connect onboarding
+      return new Response(
+        JSON.stringify({ client_secret: accountLink.url, account_id: accountId }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     throw new Error("Unknown action");
   } catch (error) {
     return new Response(

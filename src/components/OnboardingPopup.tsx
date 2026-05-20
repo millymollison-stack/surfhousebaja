@@ -47,7 +47,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
     const { error } = await stripe.confirmPayment({
       elements,
       clientSecret,
-      confirmParams: { return_url: window.location.origin + '?paid=true' },
+      confirmParams: { return_url: window.location.origin + '?paid=true', redirect: 'if_required' },
     });
 
     setProcessing(false);
@@ -55,6 +55,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
       onError(error.message || 'Payment failed.');
     } else {
       onSuccess();
+      window.dispatchEvent(new CustomEvent('subscription-updated'));
     }
   };
 
