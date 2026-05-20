@@ -140,9 +140,12 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const { action } = body;
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     // ── create_payment_intent ────────────────────────────────────────────────
-    // Creates a PaymentIntent + subscription for embedded Stripe Elements.
-    // Returns client_secret so the frontend can render the embedded payment form.
     if (action === "create_checkout") {
       const {
         plan,
@@ -156,6 +159,7 @@ Deno.serve(async (req: Request) => {
 
       if (!PLANS[plan]) throw new Error(`Invalid plan: ${plan}`);
       if (!email) throw new Error("email is required");
+      if (!user_id) throw new Error("user_id is required");
 
       const planCfg = PLANS[plan];
 
@@ -173,9 +177,7 @@ Deno.serve(async (req: Request) => {
         ? existing.data[0].id
         : (await stripe.customers.create({ email, metadata: { user_id: user_id || "" } })).id;
 
-      // ── Create or retrieve the subscription with trial if starter plan ───
-      // We create the subscription in advance so we can get the first invoice's
-      // PaymentIntent client_secret for the embedded element.
+      // ── Create subscription with trial if starter plan ────────────────────
       const subParams: Stripe.SubscriptionCreateParams = {
         customer: customerId,
         items: [{ price: await getOrCreateRecurringPrice(stripe, `propbook_plan_${plan}`, planCfg.amount, planCfg.name) }],
@@ -196,70 +198,62 @@ Deno.serve(async (req: Request) => {
         subParams.trial_period_days = planCfg.trialDays;
       }
 
-      // Add hosting add-on
       if (hosting_choice === "our") {
-        const hostingPriceId = await getOrCreateRecurringPrice(
-          stripe, "propbook_hosting_our", HOSTING_ADDON.amount, HOSTING_ADDON.name
-        );
+        const hostingPriceId = await getOrCreateRecurringPrice(stripe, "propbook_hosting_our", HOSTING_ADDON.amount, HOSTING_ADDON.name);
         (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: hostingPriceId });
       }
 
-      // Add extras
       for (const extra of extras) {
         if (!EXTRAS[extra]) continue;
-        const extPriceId = await getOrCreateRecurringPrice(
-          stripe, `propbook_extra_${extra}`, EXTRAS[extra].amount, EXTRAS[extra].name
-        );
+        const extPriceId = await getOrCreateRecurringPrice(stripe, `propbook_extra_${extra}`, EXTRAS[extra].amount, EXTRAS[extra].name);
         (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: extPriceId });
       }
 
       const subscription = await stripe.subscriptions.create(subParams);
 
+      // ── Save subscription ID to profile so UI can poll and show it ─────────
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            stripe_subscription_id: subscription.id,
+            stripe_subscription_status: subscription.status,
+            stripe_subscription_plan: plan,
+            stripe_subscription_amount: planCfg.amount,
+          })
+          .eq('id', user_id);
+      } catch (err) {
+        console.error('Failed to persist subscription ID to profile:', err);
+      }
+
       const invoice = subscription.latest_invoice as Stripe.Invoice;
 
       // ── Get or create PaymentIntent ────────────────────────────────────────
-      // During trial periods, Stripe may not auto-create a payment intent.
-      // In that case we create one manually for the invoice amount.
       let paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
 
       if (!paymentIntent) {
-        // Finalize the invoice to trigger PaymentIntent creation
         const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
         paymentIntent = (finalizedInvoice as Stripe.Invoice).payment_intent as Stripe.PaymentIntent | null;
-
-        // If still no payment intent (e.g. $0 trial invoice), create one manually
         if (!paymentIntent) {
-          const totalAmount = (finalizedInvoice as Stripe.Invoice).total || 0;
+          const totalAmt = (finalizedInvoice as Stripe.Invoice).total || 0;
           paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.max(totalAmount, 0),
+            amount: Math.max(totalAmt, 0),
             currency: "usd",
             customer: customerId,
-            metadata: {
-              subscription_id: subscription.id,
-              invoice_id: invoice.id,
-              plan,
-              user_id: user_id || "",
-            },
+            metadata: { subscription_id: subscription.id, invoice_id: invoice.id, plan, user_id: user_id || "" },
           });
-          // Attach it to the invoice
-          await stripe.invoices.update(invoice.id, {
-            metadata: { payment_intent_id: paymentIntent.id },
-          });
+          await stripe.invoices.update(invoice.id, { metadata: { payment_intent_id: paymentIntent.id } });
         }
       }
 
       if (!paymentIntent?.client_secret) {
-        console.error("stripe-subscription: PaymentIntent still null. Invoice status:", invoice.status, "total:", invoice.total, "sub status:", subscription.status);
-        throw new Error("Could not create payment intent for first invoice");
+        console.error('stripe-subscription: PaymentIntent still null. Invoice status:', invoice.status, 'total:', invoice.total, 'sub status:', subscription.status);
+        throw new Error('Could not create payment intent for first invoice');
       }
 
       return new Response(
-        JSON.stringify({
-          client_secret: paymentIntent.client_secret,
-          subscription_id: subscription.id,
-          payment_intent_id: paymentIntent.id,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ client_secret: paymentIntent.client_secret, subscription_id: subscription.id, payment_intent_id: paymentIntent.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

@@ -1079,7 +1079,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  {/* Payment */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Payment Calculated</h1>
  <p>Input your card details with our 3rd‑party, secure payment partner.</p>
- <button className="btn" onClick={openStripeGateway}>Setup payment</button>
+ <button
+ className="btn"
+ onClick={openStripeGateway}
+ disabled={!!user?.stripe_subscription_status && (user.stripe_subscription_status === 'active' || user.stripe_subscription_status === 'trialing')}
+ >
+ {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
+ ? '✓ Subscribed'
+ : 'Setup payment'}
+ </button>
  <br /><hr />
 
  {/* Publish */}

@@ -801,13 +801,17 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   const loadSubscriptionData = async () => {
-    if (subscriptionData || subLoading) return;
     setSubLoading(true);
     try {
       const session = await getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription?action=get`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
       const data = await res.json();
-      if (res.ok && data.subscription) setSubscriptionData(data.subscription);
+      if (res.ok && data.subscription) {
+        setSubscriptionData(data.subscription);
+      } else if (res.ok && !data.subscription) {
+        // No active subscription — clear stale cached data
+        setSubscriptionData(null);
+      }
     } catch (err) { console.error(err); } finally { setSubLoading(false); }
   };
 
