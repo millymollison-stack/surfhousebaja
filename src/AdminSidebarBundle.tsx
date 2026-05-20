@@ -716,6 +716,10 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [dataKey, setDataKey] = useState(0);
   useEffect(() => {
     if (!isOpen) return;
+    // Always clear Stripe/connect/subscription state on open — prevents stale data
+    // from a previous user's session leaking into the current one
+    setConnectData(null);
+    setSubscriptionData(null);
     setDataKey(k => k + 1);
     if (user) loadData();
   }, [isOpen, user]);
@@ -911,7 +915,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const hasStripeAccount = !!(connectData?.charges_enabled && connectData?.payouts_enabled);
   const hasWebsite = hostOnHostinger;
   const hasEmail = !!displayUser.email;
-  const hasSubscription = !!(subscriptionData?.status === 'active' || subscriptionData?.status === 'trialing');
+  const hasSubscription = !!(subscriptionData && (subscriptionData.status === 'active' || subscriptionData.status === 'trialing'));
 
   return (
     <>

@@ -122,15 +122,20 @@ export const useAuth = create<AuthState>((set) => ({
   },
 
   refreshUser: async () => {
+    console.log('[refreshUser] starting...');
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[refreshUser] session:', !!session?.user);
       if (session?.user) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id);
+        console.log('[refreshUser] profileError:', profileError);
+        console.log('[refreshUser] profile stripe_subscription_status:', profile?.[0]?.stripe_subscription_status);
         if (!profileError && profile && profile.length > 0) {
           set({ user: profile[0], loading: false, error: null });
+          console.log('[refreshUser] auth state updated, user.stripe_subscription_status:', profile[0].stripe_subscription_status);
         }
       }
     } catch (error) {
