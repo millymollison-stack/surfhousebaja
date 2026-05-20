@@ -124,10 +124,11 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      set({ user: null, error: null });
     } catch (error) {
       console.error('Sign out error:', error);
-      set({ error: 'Failed to sign out' });
+    } finally {
+      // Always clear local state — don't let a failed server call leave the UI stuck
+      set({ user: null, error: null, loading: false });
     }
   },
 

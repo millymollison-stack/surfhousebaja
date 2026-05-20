@@ -41,6 +41,9 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
     if (!stripe || !elements) return;
     setProcessing(true);
 
+    // Must call submit() before confirmPayment() per Stripe.js v3 migration
+    await elements.submit();
+
     const { error } = await stripe.confirmPayment({
       elements,
       clientSecret,
