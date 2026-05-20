@@ -852,7 +852,6 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   const loadConnectData = async () => {
-    if (connectLoading) return;
     setConnectLoading(true);
     try {
       const session = await getSession();
@@ -982,7 +981,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   if (!displayUser) return null;
 
   const isPending = displayBooking?.status === 'pending';
-  const hasStripeAccount = !!(connectData?.charges_enabled && connectData?.payouts_enabled);
+  const hasStripeAccount = !!(connectData?.charges_enabled && connectData?.payouts_enabled && connectData?.details_submitted);
   const hasWebsite = hostOnHostinger;
   const hasEmail = !!displayUser.email;
   const hasSubscription = !!(subscriptionData?.status === 'active');

@@ -1192,34 +1192,20 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  )}
  
- {/* Congratulations — new site ready! */}
+ {/* Subscription set up */}
  {showCongrats && (
  <div className="stripe-modal-backdrop" onClick={() => { setShowCongrats(false); handleClose(); }}>
  <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
- <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
- <h1 style={{ marginBottom: '12px' }}>Your site is being built!</h1>
+ <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
+ <h1 style={{ marginBottom: '12px' }}>Subscription Set Up!</h1>
  <p style={{ color: '#aaa', marginBottom: '24px', lineHeight: 1.6 }}>
- We've saved your info and are copying your template right now.
- You'll be able to edit and manage it as the admin once it's live.
- </p>
- {congratsUrl && (
- <a
- href={congratsUrl}
- target="_blank"
- rel="noopener noreferrer"
- style={{ display: 'inline-block', background: '#C47756', color: '#fff', padding: '14px 28px', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, marginBottom: '16px' }}
- >
- 👉 Open your site
- </a>
- )}
- <p style={{ color: '#666', fontSize: '0.85rem', marginTop: '12px' }}>
- You'll also receive an email with your login details.
+ Your plan is active. Click <strong>Publish Site</strong> in the sidebar when you're ready to launch.
  </p>
  <button
  onClick={() => { setShowCongrats(false); handleClose(); }}
- style={{ marginTop: '20px', background: 'transparent', border: '1px solid #444', color: '#888', padding: '8px 20px', borderRadius: '6px', cursor: 'pointer' }}
+ style={{ marginTop: '20px', background: '#C47756', border: 'none', color: '#fff', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
  >
- Close
+ Got it
  </button>
  </div>
  </div>
