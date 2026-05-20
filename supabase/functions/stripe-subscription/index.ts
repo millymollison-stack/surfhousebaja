@@ -83,17 +83,17 @@ Deno.serve(async (req: Request) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
     // ── GET: fetch current subscription for authenticated user ───────────────
     if (req.method === "GET") {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) throw new Error("No authorization header");
+
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
 
       const { data: { user }, error: authError } = await supabase.auth.getUser(
         authHeader.replace("Bearer ", "")
@@ -140,17 +140,14 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const { action } = body;
 
-    // ── create_checkout ──────────────────────────────────────────────────────
-    // Builds a Stripe Checkout Session with:
-    //   - One recurring subscription for the plan (+ hosting add-on if selected)
-    //   - One recurring line item per selected extra
-    //   - One one-time line item for the Airbnb scrape if selected
-    // Amounts exactly match the frontend pricing object / bottom banner.
+    // ── create_payment_intent ────────────────────────────────────────────────
+    // Creates a PaymentIntent + subscription for embedded Stripe Elements.
+    // Returns client_secret so the frontend can render the embedded payment form.
     if (action === "create_checkout") {
       const {
         plan,
         hosting_choice,
-        extras = [],           // string[]  e.g. ['seo', 'ads']
+        extras = [],
         include_scrape = false,
         email,
         user_id,
@@ -159,80 +156,29 @@ Deno.serve(async (req: Request) => {
 
       if (!PLANS[plan]) throw new Error(`Invalid plan: ${plan}`);
       if (!email) throw new Error("email is required");
-      if (!return_url) throw new Error("return_url is required");
 
       const planCfg = PLANS[plan];
 
-      // ── Build recurring line items ────────────────────────────────────────
-      // Plan price
-      const planPriceId = await getOrCreateRecurringPrice(
-        stripe,
-        `propbook_plan_${plan}`,
-        planCfg.amount,
-        planCfg.name,
-      );
-
-      const subscriptionItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-        { price: planPriceId, quantity: 1 },
-      ];
-
-      // Hosting add-on
-      if (hosting_choice === "our") {
-        const hostingPriceId = await getOrCreateRecurringPrice(
-          stripe,
-          "propbook_hosting_our",
-          HOSTING_ADDON.amount,
-          HOSTING_ADDON.name,
-        );
-        subscriptionItems.push({ price: hostingPriceId, quantity: 1 });
-      }
-
-      // Optional extras (recurring monthly)
+      // Calculate total amount in cents
+      let totalAmount = planCfg.amount;
+      if (hosting_choice === "our") totalAmount += HOSTING_ADDON.amount;
       for (const extra of extras) {
-        if (!EXTRAS[extra]) continue;
-        const extPriceId = await getOrCreateRecurringPrice(
-          stripe,
-          `propbook_extra_${extra}`,
-          EXTRAS[extra].amount,
-          EXTRAS[extra].name,
-        );
-        subscriptionItems.push({ price: extPriceId, quantity: 1 });
+        if (EXTRAS[extra]) totalAmount += EXTRAS[extra].amount;
       }
+      if (include_scrape) totalAmount += SCRAPE_PRICE.amount;
 
-      // ── Build one-time line items ─────────────────────────────────────────
-      const oneTimeItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
-
-      if (include_scrape) {
-        const scrapePriceId = await getOrCreateOneTimePrice(
-          stripe,
-          "propbook_scrape_onetime",
-          SCRAPE_PRICE.amount,
-          SCRAPE_PRICE.name,
-        );
-        oneTimeItems.push({ price: scrapePriceId, quantity: 1 });
-      }
-
-      // ── Find or create Stripe customer ────────────────────────────────────
+      // ── Find or create Stripe customer ─────────────────────────────────
       const existing = await stripe.customers.list({ email, limit: 1 });
       const customerId = existing.data.length > 0
         ? existing.data[0].id
         : (await stripe.customers.create({ email, metadata: { user_id: user_id || "" } })).id;
 
-      // ── Stripe Checkout does not support mixing recurring + one-time in one
-      //    session. If there's a scrape fee, create two sessions or add it as
-      //    a subscription add-on via invoice_items.
-      //    Simplest approach: if scrape included, add it as a subscription item
-      //    with a one-time invoice item via subscription_data.add_invoice_items.
-      //
-      //    This appears as a separate charge on the first invoice alongside the
-      //    subscription, exactly matching what the banner shows as "due today".
-
-      const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      // ── Create or retrieve the subscription with trial if starter plan ───
+      // We create the subscription in advance so we can get the first invoice's
+      // PaymentIntent client_secret for the embedded element.
+      const subParams: Stripe.SubscriptionCreateParams = {
         customer: customerId,
-        mode: "subscription",
-        line_items: subscriptionItems,
-        success_url: `${return_url}?subscription=success&plan=${plan}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${return_url}?subscription=cancelled`,
+        items: [{ price: await getOrCreateRecurringPrice(stripe, `propbook_plan_${plan}`, planCfg.amount, planCfg.name) }],
         metadata: {
           plan,
           email,
@@ -241,23 +187,78 @@ Deno.serve(async (req: Request) => {
           extras: extras.join(","),
           include_scrape: include_scrape ? "true" : "false",
         },
-        subscription_data: {
-          metadata: {
-            plan,
-            email,
-            user_id: user_id || "",
-          },
-          ...(planCfg.trialDays > 0
-            ? { trial_period_days: planCfg.trialDays }
-            : {}),
-        },
-        payment_method_configuration: 'config_based_on_plan',
+        payment_behavior: "default_incomplete",
+        payment_settings: { save_default_payment_method: "on_subscription" },
+        expand: ["latest_invoice.payment_intent"],
       };
 
-      const session = await stripe.checkout.sessions.create(sessionParams);
+      if (planCfg.trialDays > 0) {
+        subParams.trial_period_days = planCfg.trialDays;
+      }
+
+      // Add hosting add-on
+      if (hosting_choice === "our") {
+        const hostingPriceId = await getOrCreateRecurringPrice(
+          stripe, "propbook_hosting_our", HOSTING_ADDON.amount, HOSTING_ADDON.name
+        );
+        (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: hostingPriceId });
+      }
+
+      // Add extras
+      for (const extra of extras) {
+        if (!EXTRAS[extra]) continue;
+        const extPriceId = await getOrCreateRecurringPrice(
+          stripe, `propbook_extra_${extra}`, EXTRAS[extra].amount, EXTRAS[extra].name
+        );
+        (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: extPriceId });
+      }
+
+      const subscription = await stripe.subscriptions.create(subParams);
+
+      const invoice = subscription.latest_invoice as Stripe.Invoice;
+
+      // ── Get or create PaymentIntent ────────────────────────────────────────
+      // During trial periods, Stripe may not auto-create a payment intent.
+      // In that case we create one manually for the invoice amount.
+      let paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
+
+      if (!paymentIntent) {
+        // Finalize the invoice to trigger PaymentIntent creation
+        const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+        paymentIntent = (finalizedInvoice as Stripe.Invoice).payment_intent as Stripe.PaymentIntent | null;
+
+        // If still no payment intent (e.g. $0 trial invoice), create one manually
+        if (!paymentIntent) {
+          const totalAmount = (finalizedInvoice as Stripe.Invoice).total || 0;
+          paymentIntent = await stripe.paymentIntents.create({
+            amount: Math.max(totalAmount, 0),
+            currency: "usd",
+            customer: customerId,
+            metadata: {
+              subscription_id: subscription.id,
+              invoice_id: invoice.id,
+              plan,
+              user_id: user_id || "",
+            },
+          });
+          // Attach it to the invoice
+          await stripe.invoices.update(invoice.id, {
+            metadata: { payment_intent_id: paymentIntent.id },
+          });
+        }
+      }
+
+      if (!paymentIntent?.client_secret) {
+        console.error("stripe-subscription: PaymentIntent still null. Invoice status:", invoice.status, "total:", invoice.total, "sub status:", subscription.status);
+        throw new Error("Could not create payment intent for first invoice");
+      }
 
       return new Response(
-        JSON.stringify({ client_secret: session.client_secret, session_id: session.id }),
+        JSON.stringify({
+          client_secret: paymentIntent.client_secret,
+          subscription_id: subscription.id,
+          payment_intent_id: paymentIntent.id,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -266,6 +267,11 @@ Deno.serve(async (req: Request) => {
     if (action === "cancel_subscription") {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) throw new Error("No authorization header");
+
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
 
       const { data: { user }, error: authError } = await supabase.auth.getUser(
         authHeader.replace("Bearer ", "")

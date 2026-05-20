@@ -179,7 +179,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        method: 'POST',
        headers: {
          'Content-Type': 'application/json',
-         'Authorization': `Bearer ${supabaseAnonKey}`,
+         'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
          'Apikey': supabaseAnonKey,
        },
        body: JSON.stringify({
@@ -197,8 +197,37 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      const data = await res.json();
      if (data.client_secret) {
        setStripeClientSecret(data.client_secret);
+       if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
+     } else if (data.trial_only) {
+       // Trial plan — no payment needed, subscription is active
+       setShowStripeModal(false);
+       setStripeClientSecret('');
+       // Proceed directly to site duplication
+       try {
+         const result = await duplicateSiteAfterPayment({
+           userId: user?.id || '',
+           email: user?.email || '',
+           bookingsEmail,
+           websiteName,
+           websiteDesc,
+           planChoice: planChoice as 'starter' | 'pro' | 'agency',
+           hostingChoice: hostingChoice as 'our' | 'own',
+           extras,
+           scrapedData,
+           designChoice,
+           bankChoice,
+         });
+         if (result.siteUrl) {
+           setCongratsUrl(result.siteUrl);
+           setShowCongrats(true);
+         }
+       } catch (err) {
+         console.warn('Site duplication failed:', err);
+         if (onComplete) onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
+         handleClose();
+       }
      } else {
-       setStripeError(data.error || 'Could not initialise payment.');
+       setStripeError(data.error || data.message || 'Could not initialise payment.');
        setShowStripeModal(false);
      }
    } catch {
