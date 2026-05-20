@@ -1049,7 +1049,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
               <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Credentials</p>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasStripeAccount} /><p className="sb-credential-name">Stripe Payout Account</p></div>
-                {hasStripeAccount && <p className="sb-credential-balance">${balance.toLocaleString()}</p>}
+                {hasStripeAccount && connectData && <p className="sb-credential-balance">${connectData.available_balance > 0 ? (connectData.available_balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '$0.00'}</p>}
+                {!hasStripeAccount && <p className="sb-credential-name" style={{ color: '#999', fontSize: '0.8rem' }}>No account added</p>}
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">www.propbook.pro/surfhousebaja</p></div>
