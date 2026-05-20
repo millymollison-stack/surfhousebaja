@@ -684,7 +684,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign Up</h1>
  {user ? (
    <div style={{ background: 'rgba(80,180,100,0.12)', border: '1px solid rgba(80,180,100,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
-     Signed in as <strong>{user.user_metadata?.full_name || user.email}</strong>
+     Signed in as <strong>{user.full_name || user.email}</strong>
    </div>
  ) : (
    <>
@@ -985,6 +985,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  />
  <p>Check domain availability so you can point it to your hosting server.</p>
  <button
+ style={{ display: 'inline-block', background: 'var(--brand, #C47756)', color: '#fff', padding: '10px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', marginTop: 4 }}
  onClick={() => {
  const rawName = websiteName.trim() || '';
  const name = rawName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
