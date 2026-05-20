@@ -725,22 +725,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <input type="email" placeholder="Bookings email" className="editmode" value={bookingsEmail} onChange={e => setBookingsEmail(e.target.value)} />
  <br /><hr />
 
- {/* Banking Details */}
- <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>1. Banking Details</h1>
- <p>Link your bank account via Stripe to receive booking payouts. We take a 2% platform fee on each payout — all other revenue goes directly to you.</p>
- {user ? (
-   <StripeConnectSetup variant="onboarding" />
- ) : (
-   <div style={{ background: 'rgba(196,119,86,0.12)', border: '1px solid rgba(196,119,86,0.35)', borderRadius: 8, padding: '12px 16px', fontSize: '0.875rem', color: '#e8c4a0' }}>
-     Sign in or create an account above to link your bank account.
-   </div>
- )}
- {showStripeConnectSuccess && (
-   <div style={{ background: 'rgba(74,180,100,0.12)', border: '1px solid rgba(74,180,100,0.35)', borderRadius: 8, padding: '12px 16px', marginTop: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
-     ✅ Bank account connected successfully! Visit the <strong>Banking</strong> section in your sidebar for details.
-   </div>
- )}
- <br /><hr />
+  {/* Banking section — completed in sidebar after signup */}
 
  {/* Design */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>2. Design your website</h1>
@@ -988,7 +973,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Name property */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>3. Name your property</h1>
- <h4>Website name</h4>
+ <h4>Website name <span style={{ color: '#e53e3e', fontWeight: 700 }}>(IMPORTANT)</span></h4>
  <input type="text" placeholder="Website name (max 20 chars)" className="editmode" value={websiteName} onChange={e => handleNameChange(e.target.value)} onBlur={handleNameBlur} />
  <h4>Website description</h4>
  <textarea
@@ -998,18 +983,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  onChange={e => handleDescChange(e.target.value)}
  onBlur={handleDescBlur}
  />
- <p>Check your property name against available URLs so you can buy that domain and point it to your hosting server.</p>
+ <p>Check domain availability so you can point it to your hosting server.</p>
  <button
  onClick={() => {
  const rawName = websiteName.trim() || '';
  const name = rawName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
  const url = name
- ? `https://www.namecheap.com/domains/domain-checker/?domain=${encodeURIComponent(name.toLowerCase().replace(/\s+/g, ''))}.com`
- : 'https://www.namecheap.com';
+ ? `https://www.hostinger.com/domain-name-results?from=homepage&domain=${encodeURIComponent(name.toLowerCase().replace(/\s+/g, ''))}`
+ : 'https://www.hostinger.com';
  window.open(url, '_blank');
  }}
  >
- Launch Name Cheap
+ Check on Hostinger
  </button>
 <br />
 
@@ -1089,7 +1074,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <button
  className="h2 publish-btn"
  onClick={(e) => { e.stopPropagation(); handlePublish(e); }}
- disabled={!agreed}
+ disabled={!agreed || !websiteName.trim()}
  >
  PUBLISH MY SITE
  </button>
