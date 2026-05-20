@@ -808,27 +808,29 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   const loadConnectData = async () => {
-    if (connectData || connectLoading) return;
     setConnectLoading(true);
+    setConnectData(null); // Always clear stale data before re-fetching
     try {
       const session = await getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setConnectData(data);
-    } catch (err) { console.error(err); } finally { setConnectLoading(false); }
+    } catch (err) { console.error(err); setConnectData(null); } finally { setConnectLoading(false); }
   };
 
   const loadSubscriptionData = async () => {
     setSubLoading(true);
     try {
       const session = await getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription?action=get`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+      });
       const data = await res.json();
       if (res.ok && data.subscription) {
         setSubscriptionData(data.subscription);
-      } else if (res.ok && !data.subscription) {
-        // No active subscription — clear stale cached data
+      } else if (res.ok) {
         setSubscriptionData(null);
       }
     } catch (err) { console.error(err); } finally { setSubLoading(false); }
@@ -863,15 +865,34 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     } catch { alert('Payout failed. Please try again.'); } finally { setPayoutLoading(false); }
   };
 
-  const handleSubscribeCheckout = async (plan: 'starter' | 'growth' | 'pro') => {
+  const handleSubscribeCheckout = async (plan: 'starter' | 'pro' | 'agency') => {
     setCheckoutLoading(plan);
     try {
       const session = await getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'create_checkout', plan, return_url: window.location.href }) });
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'create_checkout', plan, hosting_choice: 'our', extras: [], email: user?.email, user_id: user?.id, return_url: window.location.href }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      window.location.href = data.url;
-    } catch { alert('Failed to start checkout. Please try again.'); } finally { setCheckoutLoading(null); }
+
+      if (data.trial_only) {
+        await refreshUser();
+        window.dispatchEvent(new CustomEvent('subscription-updated'));
+        setCheckoutLoading(null);
+        return;
+      }
+
+      if (!data.client_secret) throw new Error('No client secret returned');
+      setStripeClientSecret(data.client_secret);
+      setShowStripeModal(true);
+      if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
+    } catch (err) {
+      alert(`Failed to start checkout: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setCheckoutLoading(null);
+    }
   };
 
   const handleSave = async () => {
@@ -934,7 +955,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const hasStripeAccount = !!(connectData?.charges_enabled && connectData?.payouts_enabled);
   const hasWebsite = hostOnHostinger;
   const hasEmail = !!displayUser.email;
-  const hasSubscription = !!(subscriptionData && (subscriptionData.status === 'active' || subscriptionData.status === 'trialing'));
+  const hasSubscription = !!(subscriptionData && (subscriptionData.status === 'active' || subscriptionData.status === 'trialing' || subscriptionData.status === 'past_due'));
 
   return (
     <>

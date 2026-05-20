@@ -46,12 +46,24 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
 
     const { error } = await stripe.confirmPayment({
       elements,
-      clientSecret,
-      confirmParams: { return_url: window.location.origin + '?paid=true', redirect: 'if_required' },
+      confirmParams: { return_url: window.location.origin + '?paid=true' },
+      redirect: 'if_required',
     });
 
     setProcessing(false);
     if (error) {
+      console.error('[Stripe confirmPayment error]', error.code, error.type, error.message);
+
+      // Handle PaymentIntent in unexpected state (e.g. already confirmed, failed, etc.)
+      // On retry with the same clientSecret, Stripe returns 400 because the PI is no longer
+      // in a confirmable state. Request a fresh PaymentIntent from the edge function.
+      if (error.type === 'card_error' &&
+          (error.code === 'payment_intent_unexpect_state' || error.code === 'payment_intent_invalid_state')) {
+        // Call the parent to create a new checkout session and get a fresh clientSecret
+        onError('RETRY_NEEDED');
+        return;
+      }
+
       onError(error.message || 'Payment failed.');
     } else {
       onSuccess();
@@ -199,18 +211,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      });
 
      const data = await res.json();
-     if (data.client_secret) {
-       setStripeClientSecret(data.client_secret);
-       if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
-     } else if (data.trial_only) {
-       // Trial plan - no payment needed today, subscription is active
-       setShowStripeModal(false);
-       setStripeClientSecret('');
-       await refreshUser();
-       // Proceed to publish step - CheckoutForm.onSuccess handles site duplication
-     } else {
+     if (!data.client_secret) {
        setStripeError(data.error || data.message || 'Could not initialise payment.');
        setShowStripeModal(false);
+     } else {
+       setStripeClientSecret(data.client_secret);
+       if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
      }
    } catch {
      setStripeError('Could not connect to payment server.');
@@ -656,16 +662,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
      const data = await res.json();
 
-     if (data.trial_only) {
-       // Trial plan — no payment needed, subscription created. Proceed to duplication.
-       await refreshUser();
-       if (onComplete) {
-         onComplete({ bookingsEmail, bankChoice, designChoice, websiteName, websiteDesc, hostingChoice, planChoice, extras, scrapedData });
-       }
-       handleClose();
-       return;
-     }
-
      if (!data.client_secret) {
        setStripeError(data.error || 'Could not initialise payment. Please try again.');
        return;
@@ -1081,6 +1077,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  >
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
  ? '✓ Subscribed'
+ : user?.stripe_subscription_status === 'past_due'
+ ? 'Update Payment'
  : 'Setup payment'}
  </button>
  <br /><hr />
@@ -1163,7 +1161,50 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
  handleClose();
  }}
- onError={msg => setStripeError(msg)}
+ onError={async (msg) => {
+ if (msg === 'RETRY_NEEDED') {
+ setStripeError('Updating payment details...');
+ try {
+ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+ const activeExtras: string[] = [];
+ if (extras.seo) activeExtras.push('seo');
+ if (extras.ads) activeExtras.push('ads');
+ if (extras.analytics) activeExtras.push('analytics');
+ if (extras.social) activeExtras.push('social');
+ const res = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
+ method: 'POST',
+ headers: {
+ 'Content-Type': 'application/json',
+ 'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+ 'Apikey': supabaseAnonKey,
+ },
+ body: JSON.stringify({
+ action: 'create_checkout',
+ plan: planChoice,
+ hosting_choice: hostingChoice,
+ extras: activeExtras,
+ include_scrape: designChoice === 'airbnb',
+ email: user.email,
+ user_id: user.id,
+ return_url: window.location.origin + window.location.pathname,
+ }),
+ });
+ const data = await res.json();
+ if (data.client_secret) {
+ setStripeError('');
+ setStripeClientSecret(data.client_secret);
+ if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
+ } else {
+ setStripeError(data.error || data.message || 'Could not refresh payment. Please try again.');
+ }
+ } catch {
+ setStripeError('Could not connect to payment server.');
+ }
+ return;
+ }
+ setStripeError(msg);
+ }}
  monthlyTotal={monthlyTotal}
  />
  </Elements>

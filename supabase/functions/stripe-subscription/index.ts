@@ -8,17 +8,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// ── Pricing (must match the frontend pricing object exactly) ─────────────────
-// plans: starter=$10/mo (30-day trial), pro=$30/mo, agency=$150/mo
+// ── Pricing ───────────────────────────────────────────────────────────────────
+// plans: starter=$10/mo, pro=$30/mo, agency=$150/mo
 // hosting add-on (our server): $5/mo
 // extras (monthly): seo=$10, ads=$30, analytics=$20, social=$50
 // one-off: airbnb scrape=$10
-// Starter plan: first month free via 30-day trial — $0 charged today for subscription
+// All plans charge from day 1 — no free trials
 
-const PLANS: Record<string, { amount: number; name: string; trialDays: number }> = {
-  starter: { amount: 1000,  name: "Starter Plan", trialDays: 30 },
-  pro:     { amount: 3000,  name: "Pro Plan",      trialDays: 0  },
-  agency:  { amount: 15000, name: "Agency Plan",   trialDays: 0  },
+const PLANS: Record<string, { amount: number; name: string }> = {
+  starter: { amount: 1000,  name: "Starter Plan" },
+  pro:     { amount: 3000,  name: "Pro Plan"      },
+  agency:  { amount: 15000, name: "Agency Plan"   },
 };
 
 const HOSTING_ADDON = { amount: 500, name: "Hosting (our server)" };
@@ -177,39 +177,42 @@ Deno.serve(async (req: Request) => {
         ? existing.data[0].id
         : (await stripe.customers.create({ email, metadata: { user_id: user_id || "" } })).id;
 
-      // ── Create subscription with trial if starter plan ────────────────────
-      const subParams: Stripe.SubscriptionCreateParams = {
-        customer: customerId,
-        items: [{ price: await getOrCreateRecurringPrice(stripe, `propbook_plan_${plan}`, planCfg.amount, planCfg.name) }],
-        metadata: {
-          plan,
-          email,
-          user_id: user_id || "",
-          hosting_choice: hosting_choice || "own",
-          extras: extras.join(","),
-          include_scrape: include_scrape ? "true" : "false",
-        },
-        payment_behavior: "default_incomplete",
-        payment_settings: { save_default_payment_method: "on_subscription" },
-        expand: ["latest_invoice.payment_intent"],
-      };
+      // ── Check for existing incomplete subscription (idempotent retry) ────
+      // On retry, if the user already has an incomplete subscription for the same plan,
+      // reuse it and just create a fresh PaymentIntent. This avoids creating duplicate
+      // subscriptions each time the user retries a failed payment.
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stripe_subscription_id, stripe_subscription_status, stripe_subscription_plan')
+        .eq('id', user_id)
+        .maybeSingle();
 
-      if (planCfg.trialDays > 0) {
-        subParams.trial_period_days = planCfg.trialDays;
+      let subscription: Stripe.Subscription;
+
+      if (profile?.stripe_subscription_id) {
+        // Reuse existing subscription — check it's for the same plan and still incomplete
+        try {
+          const existingSub = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+          const existingPlan = (existingSub.metadata as Record<string, string>).plan || '';
+
+          if (existingPlan === plan && existingSub.status === 'incomplete') {
+            // Same plan, incomplete — reuse it and create a new PaymentIntent
+            subscription = existingSub;
+          } else if (existingSub.status === 'active' || existingSub.status === 'trialing') {
+            throw new Error('You already have an active subscription. Cancel it first to change plans.');
+          } else {
+            // Different plan or terminal state — create a fresh subscription
+            subscription = await createNewSubscription();
+          }
+        } catch (err: any) {
+          if (err.message?.startsWith('You already have')) throw err;
+          // Sub was deleted in Stripe but profile still has the ID — create fresh
+          subscription = await createNewSubscription();
+        }
+      } else {
+        // No existing subscription — create one
+        subscription = await createNewSubscription();
       }
-
-      if (hosting_choice === "our") {
-        const hostingPriceId = await getOrCreateRecurringPrice(stripe, "propbook_hosting_our", HOSTING_ADDON.amount, HOSTING_ADDON.name);
-        (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: hostingPriceId });
-      }
-
-      for (const extra of extras) {
-        if (!EXTRAS[extra]) continue;
-        const extPriceId = await getOrCreateRecurringPrice(stripe, `propbook_extra_${extra}`, EXTRAS[extra].amount, EXTRAS[extra].name);
-        (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: extPriceId });
-      }
-
-      const subscription = await stripe.subscriptions.create(subParams);
 
       // ── Save subscription ID to profile so UI can poll and show it ─────────
       try {
@@ -226,20 +229,45 @@ Deno.serve(async (req: Request) => {
         console.error('Failed to persist subscription ID to profile:', err);
       }
 
-      const invoice = subscription.latest_invoice as Stripe.Invoice;
+      // ── Helper: create a brand-new subscription ───────────────────────────
+      async function createNewSubscription(): Promise<Stripe.Subscription> {
+        const subParams: Stripe.SubscriptionCreateParams = {
+          customer: customerId,
+          items: [{ price: await getOrCreateRecurringPrice(stripe, `propbook_plan_${plan}`, planCfg.amount, planCfg.name) }],
+          metadata: {
+            plan,
+            email,
+            user_id: user_id || "",
+            hosting_choice: hosting_choice || "own",
+            extras: extras.join(","),
+            include_scrape: include_scrape ? "true" : "false",
+          },
+          payment_behavior: "default_incomplete",
+          payment_settings: { save_default_payment_method: "on_subscription" },
+          expand: ["latest_invoice.payment_intent"],
+        };
 
-      // ── $0 trial — Stripe auto-finalizes these immediately, no PaymentIntent needed ──
-      if (invoice.total === 0) {
-        return new Response(
-          JSON.stringify({ trial_only: true, subscription_id: subscription.id }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        if (hosting_choice === "our") {
+          const hostingPriceId = await getOrCreateRecurringPrice(stripe, "propbook_hosting_our", HOSTING_ADDON.amount, HOSTING_ADDON.name);
+          (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: hostingPriceId });
+        }
+
+        for (const extra of extras) {
+          if (!EXTRAS[extra]) continue;
+          const extPriceId = await getOrCreateRecurringPrice(stripe, `propbook_extra_${extra}`, EXTRAS[extra].amount, EXTRAS[extra].name);
+          (subParams.items as Stripe.SubscriptionCreateParams.Item[]).push({ price: extPriceId });
+        }
+
+        return stripe.subscriptions.create(subParams);
       }
 
-      // ── Get or create PaymentIntent ────────────────────────────────────────
+      const invoice = subscription.latest_invoice as Stripe.Invoice;
+
+// ── Get or create PaymentIntent ────────────────────────────────────────
       // Invoice states: draft (awaiting finalization) or finalized (already processed by Stripe).
       // For draft invoices: finalize first to get the PaymentIntent.
       // For already-finalized invoices: create a new PaymentIntent manually.
+      // On retry (subscription reused): always ensure we have a fresh PI that hasn't been confirmed.
       let paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
 
       if (invoice.status === 'draft') {
@@ -247,11 +275,11 @@ Deno.serve(async (req: Request) => {
         paymentIntent = (finalizedInvoice as Stripe.Invoice).payment_intent as Stripe.PaymentIntent | null;
       }
 
-      if (!paymentIntent) {
-        // Finalized invoice with no PaymentIntent (e.g. $0 trial that slipped through, or mixed
-        // trial+paid items) — create a PaymentIntent manually for whatever is outstanding.
+      if (!paymentIntent || paymentIntent.status !== 'requires_payment_method') {
+        // PaymentIntent already confirmed/used OR missing — create a fresh one manually
+        // This handles the retry case where the original PI was already confirmed (400 from Stripe)
         paymentIntent = await stripe.paymentIntents.create({
-          amount: invoice.total || 0,
+          amount: invoice.total || totalAmount,
           currency: "usd",
           customer: customerId,
           metadata: { subscription_id: subscription.id, invoice_id: invoice.id, plan, user_id: user_id || "" },
