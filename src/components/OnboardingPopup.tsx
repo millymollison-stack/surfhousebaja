@@ -26,66 +26,54 @@ const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 
 
 // ── Stripe CheckoutForm (must be inside <Elements> context) ─────────────────
-function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal, subscriptionId }: {
- clientSecret: string;
- onSuccess: () => void;
- onError: (msg: string) => void;
- monthlyTotal: number;
- subscriptionId?: string;
+function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
+  clientSecret: string;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+  monthlyTotal: number;
 }) {
- const stripe = useStripe();
- const elements = useElements();
- const [processing, setProcessing] = useState(false);
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault();
- if (!stripe || !elements) return;
- setProcessing(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setProcessing(true);
 
- let error;
+    const { error } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: { return_url: window.location.origin + '?paid=true' },
+    });
 
- if (subscriptionId) {
- // Legacy inline subscription flow (kept for fallback; primary flow now uses Stripe Checkout redirect)
- const result = await stripe.confirmCardSetup(clientSecret, { elements });
- error = result.error;
- } else {
- // One-time payment flow
- const result = await stripe.confirmPayment({
- elements,
- clientSecret,
- redirect: 'if_required',
- confirmParams: { return_url: window.location.origin + '?paid=true' },
- });
- error = result.error;
- }
+    setProcessing(false);
+    if (error) {
+      onError(error.message || 'Payment failed.');
+    } else {
+      onSuccess();
+    }
+  };
 
- setProcessing(false);
- if (error) {
- onError(error.message || 'Payment failed.');
- } else {
- onSuccess();
- }
- };
-
- return (
- <form onSubmit={handleSubmit} className="stripe-checkout-form">
- <div className="stripe-card-label">
- <div className="stripe-card-title">Card details</div>
- <p className="stripe-consent-note">By clicking Pay, you allow propbook.pro to charge your card for the amount shown, according to the terms of your subscription.</p>
- <div className="stripe-card-field">
- <PaymentElement options={{ layout: 'tabs' }} />
- </div>
- </div>
- <button
- type="submit"
- disabled={!stripe || processing}
- className="btn"
- style={{ width: '100%', fontSize: '1rem' }}
- >
- {processing ? 'Processing subscription...' : `Pay ${monthlyTotal === 0 ? 'Free today' : `$${monthlyTotal}`}`}
- </button>
- </form>
- );
+  return (
+    <form onSubmit={handleSubmit} className="stripe-checkout-form">
+      <div className="stripe-card-label">
+        <div className="stripe-card-title">Card details</div>
+        <p className="stripe-consent-note">By clicking Pay, you allow propbook.pro to charge your card for the amount shown, according to the terms of your subscription.</p>
+        <div className="stripe-card-field">
+          <PaymentElement options={{ layout: 'tabs' }} />
+        </div>
+      </div>
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        className="btn"
+        style={{ width: '100%', fontSize: '1rem' }}
+      >
+        {processing ? 'Processing subscription...' : `Pay ${monthlyTotal === 0 ? 'Free today' : `$${monthlyTotal}`}`}
+      </button>
+    </form>
+  );
 }
 
 export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange }: OnboardingPopupProps) {
@@ -207,8 +195,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      });
 
      const data = await res.json();
-     if (data.url) {
-       window.location.href = data.url;
+     if (data.client_secret) {
+       setStripeClientSecret(data.client_secret);
      } else {
        setStripeError(data.error || 'Could not initialise payment.');
        setShowStripeModal(false);
@@ -1167,7 +1155,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }}
  onError={msg => setStripeError(msg)}
  monthlyTotal={monthlyTotal}
- subscriptionId={stripeSubscriptionId}
  />
  </Elements>
  ) : (

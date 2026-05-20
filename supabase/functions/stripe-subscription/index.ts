@@ -250,15 +250,14 @@ Deno.serve(async (req: Request) => {
           ...(planCfg.trialDays > 0
             ? { trial_period_days: planCfg.trialDays }
             : {}),
-        // NOTE: one-time scrape fees must be handled via a separate flow
-        // (e.g. a follow-up Invoice or PaymentIntent after subscription creation)
         },
+        payment_method_configuration: 'config_based_on_plan',
       };
 
       const session = await stripe.checkout.sessions.create(sessionParams);
 
       return new Response(
-        JSON.stringify({ url: session.url, session_id: session.id }),
+        JSON.stringify({ client_secret: session.client_secret, session_id: session.id }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
