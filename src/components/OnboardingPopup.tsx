@@ -218,6 +218,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      const data = await res.json();
      console.log('[openStripeGateway] data:', data);
      if (data.url) {
+       sessionStorage.setItem('stripe_redirect_pending', '1');
+       console.log('[DEBUG] stripe_redirect_pending SET, href=' + data.url);
        window.location.href = data.url;
      } else {
        setStripeError(data.error || 'Payment failed. Please try again.');
@@ -348,6 +350,43 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
  return;
  }
+
+        const savedScraped = sessionStorage.getItem('popup_scraped_data');
+        if (savedScraped) {
+          try {
+            const parsed = JSON.parse(savedScraped);
+            setScrapedData(parsed);
+            if (parsed.title) setWebsiteName(parsed.title.slice(0, 20));
+            if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
+          } catch { /* ignore corrupt JSON */ }
+        }
+
+        // ── After restoring all form fields, handle post-Stripe success ──────────
+        if (sessionStorage.getItem('stripe_payment_done')) {
+          sessionStorage.removeItem('stripe_payment_done');
+          if (!isOpen) setIsOpen(true);
+          setShowCongrats(true);
+          const restoredName = sessionStorage.getItem('popup_website_name') || 'surfhousebaja';
+          if (onImported) {
+            onImported({ title: restoredName, description: sessionStorage.getItem('popup_website_desc') || '' });
+          }
+          return;
+        }
+
+
+ // Restore form field selections from sessionStorage (from before Stripe redirect)
+ const savedPlan = sessionStorage.getItem('popup_plan');
+ if (savedPlan) setPlanChoice(savedPlan);
+ const savedHosting = sessionStorage.getItem('popup_hosting');
+ if (savedHosting) setHostingChoice(savedHosting);
+ const savedDesign = sessionStorage.getItem('popup_design');
+ if (savedDesign) setDesignChoice(savedDesign);
+ const savedName = sessionStorage.getItem('popup_website_name');
+ if (savedName) setWebsiteName(savedName.slice(0, 20));
+ const savedDesc = sessionStorage.getItem('popup_website_desc');
+ if (savedDesc) setWebsiteDesc(savedDesc);
+ const savedExtras = sessionStorage.getItem('popup_extras_seo');
+ if (savedExtras) setExtras({ seo: savedExtras === 'true', ads: sessionStorage.getItem('popup_extras_ads') === 'true', analytics: sessionStorage.getItem('popup_extras_analytics') === 'true', social: sessionStorage.getItem('popup_extras_social') === 'true' });
 
  try {
  const { data, error } = await supabase
@@ -480,14 +519,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   if (!params.has('paid') || !params.has('session_id')) return;
+  console.log('[DEBUG ?paid handler] URL has ?paid=true, stripe_redirect_pending=' + !!sessionStorage.getItem('stripe_redirect_pending'));
 
   const sessionId = params.get('session_id')!;
 
   // Clear URL params without reload
   window.history.replaceState({}, '', window.location.pathname);
-
-  // Auto-open popup if not already open
-  if (!isOpen) setIsOpen(true);
+  console.log('[DEBUG ?paid handler] Cleared URL, setting stripe_payment_done=1');
+  sessionStorage.removeItem('stripe_redirect_pending');
+  sessionStorage.setItem('stripe_payment_done', '1');
 
   setStripeProcessing(true);
 
@@ -519,22 +559,29 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         // Mark payment done so popup shows success state on remount
         sessionStorage.setItem('stripe_payment_done', '1');
 
+        // ── 1. Update profile with subscription data ───────────────────────────────
         if (sessionData.subscription_id) {
           await supabase
             .from('profiles')
             .update({
               stripe_subscription_id: sessionData.subscription_id,
-              stripe_subscription_status: 'active',
+              stripe_subscription_status: sessionData.sub_status || 'active',
             })
             .eq('id', session.user.id);
         }
 
-        await saveToSupabase();
+        // ── 2. Refresh auth store so useAuth().user has fresh subscription ───────
         await refreshUser();
-        // Do NOT call onComplete here — that triggers site duplication.
-        // Site duplication only happens when user clicks Publish Site in sidebar.
+
+        // ── 3. Tell sidebar to reload subscription data immediately ──────────────
+        // Pass the full subscription data directly so sidebar doesn't need to re-fetch
+        window.dispatchEvent(new CustomEvent('subscription-updated', {
+          detail: { ...sessionData },
+        }));
+
+        // ── 4. Show success state in popup (no page refresh, no redirect) ───────
+        sessionStorage.setItem('stripe_payment_done', '1');
         setShowCongrats(true);
-        window.dispatchEvent(new CustomEvent('subscription-updated'));
       } else {
         setStripeError('Payment was not completed. Please try again.');
       }
@@ -673,7 +720,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      }
 
      // Redirect to Stripe Checkout hosted page
-       sessionStorage.setItem('popup_plan', planChoice);
+     sessionStorage.setItem('popup_plan', planChoice);
      sessionStorage.setItem('popup_hosting', hostingChoice);
      sessionStorage.setItem('popup_design', designChoice);
      sessionStorage.setItem('popup_extras_seo', extras.seo ? 'true' : 'false');
@@ -682,6 +729,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('popup_extras_social', extras.social ? 'true' : 'false');
      sessionStorage.setItem('popup_website_name', websiteName);
      sessionStorage.setItem('popup_website_desc', websiteDesc);
+     // Persist scraped data so it survives the Stripe redirect remount
+     if (scrapedData) {
+       sessionStorage.setItem('popup_scraped_data', JSON.stringify(scrapedData));
+     }
+     console.log('[DEBUG] About to redirect to: ' + data.url);
      window.location.href = data.url;
    } catch {
      setStripeError('Could not connect to payment server. Please try again.');

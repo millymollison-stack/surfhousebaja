@@ -859,9 +859,26 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (user) setContactFields({ full_name: user.full_name || '', email: user.email || '', phone_number: user.phone_number || '' });
   }, [user]);
 
-  // Listen for subscription-updated event dispatched by CheckoutForm after payment succeeds
+  // Listen for subscription-updated event dispatched after payment succeeds.
+  // Receives full subscription data directly from the event detail — no re-fetch needed.
   useEffect(() => {
-    const handleSubUpdated = () => { loadSubscriptionData(); };
+    const handleSubUpdated = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.subscription_id) {
+        setSubscriptionData({
+          id: detail.subscription_id,
+          status: detail.sub_status || detail.status || 'active',
+          plan: detail.plan || 'starter',
+          amount: detail.amount || 0,
+          interval: detail.interval || 'month',
+          current_period_end: detail.current_period_end || 0,
+          cancel_at_period_end: detail.cancel_at_period_end || false,
+        });
+      } else {
+        // Fallback: re-fetch from API
+        loadSubscriptionData();
+      }
+    };
     window.addEventListener('subscription-updated', handleSubUpdated);
     return () => window.removeEventListener('subscription-updated', handleSubUpdated);
   }, []);
@@ -885,14 +902,24 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const loadConnectData = async () => {
     setConnectLoading(true);
-    setConnectData(null); // Always clear stale data before re-fetching
+    setConnectData(null);
+    console.log('[Banking] loadConnectData called');
     try {
       const session = await getSession();
+      console.log('[Banking] session obtained, calling stripe-connect...');
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
+      console.log('[Banking] stripe-connect res.status=' + res.status);
       const data = await res.json();
+      console.log('[Banking] stripe-connect data:', JSON.stringify(data));
       if (!res.ok) throw new Error(data.error);
       setConnectData(data);
-    } catch (err) { console.error(err); setConnectData(null); } finally { setConnectLoading(false); }
+    } catch (err) {
+      console.error('[Banking] loadConnectData error:', err);
+      setConnectData(null);
+    } finally {
+      console.log('[Banking] loadConnectData done, connectLoading=false');
+      setConnectLoading(false);
+    }
   };
 
   const loadSubscriptionData = async () => {
