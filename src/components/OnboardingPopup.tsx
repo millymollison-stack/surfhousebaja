@@ -1085,7 +1085,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  : user?.stripe_subscription_status === 'past_due'
  ? 'Update Payment'
  : `Subscribe to ${planChoice === 'starter' ? 'Starter $10' : planChoice === 'pro' ? 'Pro $30' : 'Agency $150'}`}
- <br /><hr />
+ : `Subscribe to ${planChoice === 'starter' ? 'Starter $10' : planChoice === 'pro' ? 'Pro $30' : 'Agency $150'}`}</button>
 
  {/* Publish */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>7. Publish your site</h1>
