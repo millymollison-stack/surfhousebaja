@@ -209,10 +209,17 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
-         return_url: window.location.origin + window.location.pathname,
+         return_url: window.location.origin + window.location.pathname + '?paid=true',
        }),
      });
      console.log('[openStripeGateway] response:', res.status, res.ok);
+     const data = await res.json();
+     console.log('[openStripeGateway] data:', data);
+     if (data.url) {
+       window.location.href = data.url;
+     } else {
+       setStripeError(data.error || 'Payment failed. Please try again.');
+     }
    } catch(e) {
      console.error('[openStripeGateway] error:', e);
      setStripeError('Could not connect to payment server.');
@@ -653,7 +660,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
-         return_url: window.location.origin + window.location.pathname,
+         return_url: window.location.origin + window.location.pathname + '?paid=true',
        }),
      });
 
@@ -1191,7 +1198,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  include_scrape: designChoice === 'airbnb',
  email: user.email,
  user_id: user.id,
- return_url: window.location.origin + window.location.pathname,
+ return_url: window.location.origin + window.location.pathname + '?paid=true',
  }),
  });
  const data = await res.json();
