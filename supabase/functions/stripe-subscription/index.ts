@@ -297,6 +297,118 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── create_checkout_session ──────────────────────────────────────────────
+    if (action === 'create_checkout_session') {
+      const {
+        plan,
+        hosting_choice,
+        extras = [],
+        include_scrape = false,
+        email,
+        user_id,
+        return_url,
+      } = body;
+
+      if (!PLANS[plan]) throw new Error(`Invalid plan: ${plan}`);
+      if (!email) throw new Error('email is required');
+      if (!user_id) throw new Error('user_id is required');
+
+      const planCfg = PLANS[plan];
+
+      // Build line items for the Checkout Session
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [{
+        price_data: {
+          currency: 'usd',
+          product_data: { name: planCfg.name + ' Plan' },
+          unit_amount: planCfg.amount,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      }];
+
+      if (hosting_choice === 'our') {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { name: 'Hosting (our server)' },
+            unit_amount: HOSTING_ADDON.amount,
+            recurring: { interval: 'month' },
+          },
+          quantity: 1,
+        });
+      }
+
+      for (const extra of extras) {
+        if (!EXTRAS[extra]) continue;
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { name: EXTRAS[extra].name },
+            unit_amount: EXTRAS[extra].amount,
+            recurring: { interval: 'month' },
+          },
+          quantity: 1,
+        });
+      }
+
+      // Find or create Stripe customer
+      const existing = await stripe.customers.list({ email, limit: 1 });
+      const customerId = existing.data.length > 0
+        ? existing.data[0].id
+        : (await stripe.customers.create({ email, metadata: { user_id: user_id || '' } })).id;
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        line_items: lineItems,
+        success_url: `${return_url}?paid=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${return_url}?canceled=true`,
+        customer: customerId,
+        metadata: {
+          user_id: user_id || '',
+          plan,
+          hosting_choice: hosting_choice || 'own',
+          extras: extras.join(','),
+          include_scrape: include_scrape ? 'true' : 'false',
+        },
+        subscription_data: {
+          metadata: {
+            user_id: user_id || '',
+            plan,
+            hosting_choice: hosting_choice || 'own',
+            extras: extras.join(','),
+          },
+        },
+        allow_promotion_codes: true,
+        billing_address_collection: 'auto',
+      });
+
+      return new Response(
+        JSON.stringify({ url: session.url, session_id: session.id }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── get_session ──────────────────────────────────────────────────────────
+    if (action === 'get_session') {
+      const { session_id } = body;
+      if (!session_id) throw new Error('session_id required');
+
+      const session = await stripe.checkout.sessions.retrieve(session_id, {
+        expand: ['subscription'],
+      });
+
+      return new Response(
+        JSON.stringify({
+          status: session.status,
+          subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
+          customer_email: session.customer_email,
+          amount_total: session.amount_total,
+          customer_id: session.customer,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // ── cancel_subscription ──────────────────────────────────────────────────
     if (action === "cancel_subscription") {
       const authHeader = req.headers.get("Authorization");

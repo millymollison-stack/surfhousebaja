@@ -488,17 +488,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         scrapedProperty={scrapedProperty}
         scrapedImages={scrapedImages}
         onSiteNameChange={onSiteNameChange}
-        onComplete={async (data) => {
-          console.log('[Home] Payment complete, duplicating site...');
-          try {
-            const { siteUrl } = await duplicateSiteAfterPayment(data);
-            console.log('[Home] Site created at:', siteUrl);
-            alert(`Your site is being built!\nLive at: ${siteUrl}\n\nYou'll receive an email once it's ready.`);
-          } catch (err) {
-            console.error('[Home] Site duplication failed:', err);
-            alert('Site setup encountered an issue. Please contact support with your payment confirmation.');
-          }
-        }}
+        onComplete={undefined}
       />
     </div>
   );

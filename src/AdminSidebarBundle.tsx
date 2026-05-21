@@ -589,9 +589,9 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
 
 const SERVICE_LIST: { key: ServiceKey; label: string; price: string }[] = [
   { key: 'aiSeo', label: 'AI SEO', price: '$10 p/m' },
-  { key: 'marketing', label: 'Marketing', price: '$10 p/m' },
-  { key: 'advertising', label: 'Advertising', price: '$20 p/m' },
-  { key: 'analytics', label: 'Analytics', price: '$10 p/m' },
+  { key: 'marketing', label: 'Marketing', price: '$30 p/m' },
+  { key: 'advertising', label: 'Advertising', price: '$30 p/m' },
+  { key: 'analytics', label: 'Analytics', price: '$20 p/m' },
   { key: 'influencers', label: 'Influencers', price: '$50 p/m' },
   { key: 'social', label: 'Social', price: '$50 p/m' },
 ];
@@ -611,14 +611,14 @@ function ServicesSection({ services, onToggle }: { services: Record<ServiceKey, 
 }
 
 const PLANS = [
-  { key: 'starter' as const, name: 'Starter', price: 29, features: ['1 property listing', 'Direct booking calendar', 'Guest messaging', 'Basic analytics'] },
-  { key: 'growth' as const, name: 'Growth', price: 79, features: ['Up to 3 properties', 'Everything in Starter', 'AI SEO tools', 'Marketing toolkit'], popular: true },
-  { key: 'pro' as const, name: 'Pro', price: 149, features: ['Unlimited properties', 'Everything in Growth', 'Influencer network', 'Priority support'] },
+  { key: 'starter' as const, name: 'Starter', price: 10, features: ['1 property listing', 'Direct booking calendar', 'Guest messaging', 'Basic analytics'] },
+  { key: 'pro' as const, name: 'Pro', price: 30, features: ['Up to 3 properties', 'Everything in Starter', 'AI SEO tools', 'Marketing toolkit'], popular: true },
+  { key: 'agency' as const, name: 'Agency', price: 150, features: ['Unlimited properties', 'Everything in Pro', 'Influencer network', 'Priority support'] },
 ];
 
 function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscribe }: {
   subscription: SubscriptionData | null; loading: boolean;
-  checkoutLoading: string | null; onSubscribe: (plan: 'starter' | 'growth' | 'pro') => void;
+  checkoutLoading: string | null; onSubscribe: (plan: 'starter' | 'pro' | 'agency') => void;
 }) {
   if (loading && !subscription) return <Loader />;
   if (subscription?.status === 'active' || subscription?.status === 'trialing') {
@@ -869,25 +869,21 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setCheckoutLoading(plan);
     try {
       const session = await getSession();
+
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
-        body: JSON.stringify({ action: 'create_checkout', plan, hosting_choice: 'our', extras: [], email: user?.email, user_id: user?.id, return_url: window.location.href }),
+        body: JSON.stringify({ action: 'create_checkout_session', plan, hosting_choice: 'our', extras: [], email: user?.email, user_id: user?.id, return_url: window.location.href }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      if (data.trial_only) {
-        await refreshUser();
-        window.dispatchEvent(new CustomEvent('subscription-updated'));
-        setCheckoutLoading(null);
-        return;
+      if (data.url) {
+        // Redirect to Stripe Checkout hosted page
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
-
-      if (!data.client_secret) throw new Error('No client secret returned');
-      setStripeClientSecret(data.client_secret);
-      setShowStripeModal(true);
-      if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
     } catch (err) {
       alert(`Failed to start checkout: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
@@ -929,11 +925,13 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   const toggleSection = (section: Section) => {
+    console.log('[AdminSidebar] toggleSection called:', section);
     if (section === 'bookings') { onClose(); navigate('/admin'); return; }
     const next = openSection === section ? null : section;
+    console.log('[AdminSidebar] openSection next:', next);
     setOpenSection(next);
     if (next === 'banking') loadConnectData();
-    if (next === 'subscription') loadSubscriptionData();
+    if (next === 'subscription') { console.log('[AdminSidebar] loading subscription data...'); loadSubscriptionData(); }
   };
 
   const navItems: { key: Section; label: string }[] = [

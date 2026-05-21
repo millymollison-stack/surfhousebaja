@@ -175,7 +175,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      return;
    }
    setStripeError('');
-   setShowStripeModal(true);
 
    // Save form data before redirecting to Stripe so we can restore it on return
    await saveToSupabase();
@@ -184,7 +183,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-     // Build the extras list so the edge fn can add them as line items
      const activeExtras: string[] = [];
      if (extras.seo) activeExtras.push('seo');
      if (extras.ads) activeExtras.push('ads');
@@ -199,7 +197,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          'Apikey': supabaseAnonKey,
        },
        body: JSON.stringify({
-         action: 'create_checkout',
+         action: 'create_checkout_session',
          plan: planChoice,
          hosting_choice: hostingChoice,
          extras: activeExtras,
@@ -211,16 +209,14 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      });
 
      const data = await res.json();
-     if (!data.client_secret) {
-       setStripeError(data.error || data.message || 'Could not initialise payment.');
-       setShowStripeModal(false);
+     if (!data.url) {
+       setStripeError(data.error || 'Could not initialise payment.');
      } else {
-       setStripeClientSecret(data.client_secret);
-       if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
+       // Redirect to Stripe Checkout hosted page
+       window.location.href = data.url;
      }
    } catch {
      setStripeError('Could not connect to payment server.');
-     setShowStripeModal(false);
    }
  };
 
@@ -230,6 +226,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [stripeSubscriptionId, setStripeSubscriptionId] = useState('');
  const [showCongrats, setShowCongrats] = useState(false);
  const [congratsUrl, setCongratsUrl] = useState('');
+ const [stripeProcessing, setStripeProcessing] = useState(false);
 
  // Stripe payment element ref
  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
@@ -244,8 +241,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const scrapeFee = designChoice === 'airbnb' ? pricing.scrape : 0;
 
  const fontOptions = FONT_OPTIONS;
- // First month free for Starter plan
- const TRIAL_CREDIT = planChoice === 'starter' ? (pricing.plans.starter || 0) : 0;
+ // First month free credit for Starter plan — stored in cents so it matches pricing.plans values
+ const TRIAL_CREDIT = planChoice === 'starter' ? (pricing.plans.starter * 100) : 0;
 
  // Load saved font accent on mount
  useEffect(() => {
@@ -264,7 +261,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  + (extras.social ? pricing.extras.social : 0);
 
  // Amount shown in banner (after trial credit for Starter)
- const displayedTotal = scrapeFee + Math.max(0, monthlyTotal - TRIAL_CREDIT);
+ const displayedTotal = scrapeFee + Math.max(0, monthlyTotal - (TRIAL_CREDIT / 100));
  const hasPlan = !!planChoice;
  const hasScrape = designChoice === 'airbnb';
 
@@ -470,78 +467,77 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
- // Handle return from Stripe Checkout - ?subscription=success in URL
+ // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
  useEffect(() => {
- const params = new URLSearchParams(window.location.search);
- if (params.get('subscription') !== 'success') return;
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('paid') || !params.has('session_id')) return;
 
- // Clear param from URL without reload
- window.history.replaceState({}, '', window.location.pathname);
+  const sessionId = params.get('session_id')!;
 
- if (!user) {
- // User not loaded yet - open popup so auth gate shows sign-in prompt
- setIsOpen(true);
- return;
- }
+  // Clear URL params without reload
+  window.history.replaceState({}, '', window.location.pathname);
 
- (async () => {
- try {
- // Restore saved onboarding data for this user
- const { data: saved } = await supabase
- .from('onboarding_data')
- .select('*')
- .eq('user_id', user.id)
- .maybeSingle();
+  // Auto-open popup if not already open
+  if (!isOpen) setIsOpen(true);
 
- if (saved) {
- // Restore extras - stored as jsonb, default all false if missing
- const savedExtras = saved.extras && typeof saved.extras === 'object'
- ? saved.extras
- : { seo: false, ads: false, analytics: false, social: false };
+  setStripeProcessing(true);
 
- // Restore scraped data from saved columns if an Airbnb import was done
- const restoredScrapedData = saved.design_choice === 'airbnb' && saved.scraped_title
- ? {
- title: saved.scraped_title || '',
- location: saved.scraped_location || '',
- description: saved.scraped_description || '',
- hero_image: saved.scraped_hero_image || '',
- images: saved.scraped_images || [],
- guests: saved.scraped_guests ? Number(saved.scraped_guests) : null,
- bedrooms: null,
- beds: null,
- baths: null,
- rating: saved.scraped_rating ? Number(saved.scraped_rating) : null,
- reviews: saved.scraped_reviews ? Number(saved.scraped_reviews) : null,
- host_name: null,
- price: '',
- }
- : null;
+  (async () => {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
- const result = await duplicateSiteAfterPayment({
- userId: user.id,
- email: user.email || '',
- bookingsEmail: saved.bookings_email || '',
- websiteName: saved.property_name || '',
- websiteDesc: saved.property_desc || saved.property_description || '',
- planChoice: (saved.plan_choice as 'starter' | 'pro' | 'agency') || 'starter',
- hostingChoice: (saved.hosting_choice as 'our' | 'own') || 'our',
- extras: savedExtras,
- scrapedData: restoredScrapedData,
- designChoice: saved.design_choice || '',
- bankChoice: saved.bank_choice || '',
- });
- if (result.siteUrl) {
- setCongratsUrl(result.siteUrl);
- }
- }
- } catch (e) {
- console.warn('Site creation after checkout failed:', e);
- }
- setShowCongrats(true);
- setIsOpen(true);
- })();
- }, [user]);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setStripeError('Please sign in to complete your subscription.');
+        setStripeProcessing(false);
+        return;
+      }
+
+      const sessionRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'Apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({ action: 'get_session', session_id: sessionId }),
+      });
+
+      const sessionData = await sessionRes.json();
+
+      if (sessionData.status === 'complete') {
+        // Mark payment done so popup shows success state on remount
+        sessionStorage.setItem('stripe_payment_done', '1');
+
+        if (sessionData.subscription_id) {
+          await supabase
+            .from('profiles')
+            .update({
+              stripe_subscription_id: sessionData.subscription_id,
+              stripe_subscription_status: 'active',
+              checkout_session_id: sessionId,
+            })
+            .eq('id', session.user.id);
+        }
+
+        await saveToSupabase();
+        await refreshUser();
+        // Do NOT call onComplete here — that triggers site duplication.
+        // Site duplication only happens when user clicks Publish Site in sidebar.
+        setShowCongrats(true);
+        window.dispatchEvent(new CustomEvent('subscription-updated'));
+      } else {
+        setStripeError('Payment was not completed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Post-Stripe-Checkout error:', err);
+      setStripeError('Something went wrong after payment. Please refresh and check your subscription status.');
+    } finally {
+      setStripeProcessing(false);
+    }
+  })();
+ }, []); // intentionally empty — fires once on mount when URL has ?paid=true
 
 
  // Save or update onboarding data in Supabase
@@ -630,6 +626,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    }
    setStripeError('');
    await saveToSupabase();
+   setStripeProcessing(true);
 
    try {
      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -649,7 +646,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          'Apikey': supabaseAnonKey,
        },
        body: JSON.stringify({
-         action: 'create_checkout',
+         action: 'create_checkout_session',
          plan: planChoice,
          hosting_choice: hostingChoice,
          extras: activeExtras,
@@ -662,15 +659,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
      const data = await res.json();
 
-     if (!data.client_secret) {
+     if (!data.url) {
        setStripeError(data.error || 'Could not initialise payment. Please try again.');
        return;
      }
 
-     // Show the embedded Stripe modal with the client_secret
-     setStripeClientSecret(data.client_secret);
-     setShowStripeModal(true);
-     if (data.subscription_id) setStripeSubscriptionId(data.subscription_id);
+     // Redirect to Stripe Checkout hosted page
+     window.location.href = data.url;
    } catch {
      setStripeError('Could not connect to payment server. Please try again.');
    }
@@ -1031,15 +1026,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <ul>
  <li>
  <input type="radio" name="plan" id="5-1" checked={planChoice === 'starter'} onChange={() => setPlanChoice('starter')} />
- <label htmlFor="5-1">Host - Free 1st month then $10</label>
+ <label htmlFor="5-1">Starter — Free 1st month then $10/mo</label>
  </li>
  <li>
  <input type="radio" name="plan" id="5-2" checked={planChoice === 'pro'} onChange={() => setPlanChoice('pro')} />
- <label htmlFor="5-2">Super Host - $40 p/m</label>
+ <label htmlFor="5-2">Pro — $30/mo</label>
  </li>
  <li>
  <input type="radio" name="plan" id="5-3" checked={planChoice === 'agency'} onChange={() => setPlanChoice('agency')} />
- <label htmlFor="5-3">Manager - $150 p/m</label>
+ <label htmlFor="5-3">Agency — $150/mo</label>
  </li>
  </ul>
  <br /><hr />
@@ -1096,9 +1091,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <button
  className="h2 publish-btn"
  onClick={(e) => { e.stopPropagation(); handlePublish(e); }}
- disabled={!agreed || !websiteName.trim()}
+ disabled={!agreed || !websiteName.trim() || stripeProcessing}
  >
- PUBLISH MY SITE
+   {stripeProcessing ? 'REDIRECTING...' : 'PUBLISH MY SITE'}
  </button>
 
  {/* Fixed bottom total banner */}

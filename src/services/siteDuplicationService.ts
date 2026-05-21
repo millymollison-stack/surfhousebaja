@@ -19,6 +19,7 @@ import { supabase } from '../lib/supabase';
 
 export interface NewSiteData {
   email: string;
+  userId: string;
   bookingsEmail: string;
   websiteName: string;
   websiteDesc: string;
@@ -65,7 +66,7 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
 }> {
   const slug = createSlug(data.websiteName);
 
-  // 2a. Create property record
+  // 2a. Create property record FIRST
   const { data: propertyRecord, error: propertyError } = await supabase
     .from('properties')
     .insert({
@@ -81,7 +82,6 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
       hero_image: data.scrapedData?.hero_image || '',
       images: data.scrapedData?.images || [],
       status: 'draft', // not live until site is built
-      owner_id: propertyId,
     })
     .select('id')
     .single();
@@ -89,16 +89,23 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
   if (propertyError) throw new Error(`Property insert failed: ${propertyError.message}`);
   const propertyId = propertyRecord.id;
 
-  // 2b. Create profile/user record — including services (extras)
+  // 2b. Update property with owner_id now that we have the ID
+  await supabase
+    .from('properties')
+    .update({ owner_id: propertyId })
+    .eq('id', propertyId);
+
+  // 2c. Create profile record — id is the actual auth user ID, owner_id links to property
   const { error: profileError } = await supabase
     .from('profiles')
     .insert({
-      id: propertyId, // profile id matches property id for linking
+      id: data.userId, // auth user ID from Supabase auth
       email: data.email,
       full_name: data.websiteName,
       booking_email: data.bookingsEmail || data.email,
       user_type: 'admin',
       stripe_plan: data.planChoice,
+      owner_id: propertyId,
       // Wire extras (services) from onboarding
       services_ai_seo: data.extras?.seo ?? false,
       services_marketing: data.extras?.ads ?? false,
@@ -111,15 +118,11 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
 
   if (profileError) console.warn('Profile insert error:', profileError.message);
 
-  // 2c. Create bookings table for this property (future use — empty for now)
-  // Bookings table already exists — just link to property
-  // (no action needed here — bookings are created at runtime when guests book)
-
-  // 2d. Save onboarding data with property link
+  // 2d. Save onboarding data with property link — user_id is the auth user ID
   await supabase
     .from('onboarding_data')
     .upsert({
-      user_id: propertyId,
+      user_id: data.userId,
       property_name: data.websiteName,
       property_desc: data.websiteDesc,
       design_choice: data.designChoice,
