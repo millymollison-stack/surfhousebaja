@@ -1079,14 +1079,14 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <p>Input your card details with our 3rd-party, secure payment partner.</p>
  <button
  className="btn"
- onClick={() => { openStripeGateway() }} >
+ onClick={() => { openStripeGateway() }}>
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
  ? `\u2713 Subscribed to \${planChoice === 'starter' ? 'Starter' : planChoice === 'pro' ? 'Pro' : 'Agency'}`
  : user?.stripe_subscription_status === 'past_due'
  ? 'Update Payment'
  : `Subscribe to \${planChoice === 'starter' ? 'Starter $10' : planChoice === 'pro' ? 'Pro $30' : 'Agency $150'}`}
  </button>
- {/* Publish */}
+
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>7. Publish your site</h1>
  <p>After onboarding you can open your site on your phone or desktop browser. You can finish customizing it by adding photos, editing text, and manage incoming bookings at your convenience.</p>
  <ul>
