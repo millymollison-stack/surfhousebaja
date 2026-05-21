@@ -699,7 +699,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   {(user || accountCreated) ? (
    <div style={{ background: 'rgba(80,180,100,0.12)', border: '1px solid rgba(80,180,100,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
      {accountCreated && !user ? (
-       <strong style={{color: '#2a9d4e'}}>\u2713 Account created \u2014 welcome!</strong>
+       <strong style={{color: '#2a9d4e'}}>✓ Account created — welcome!</strong>
      ) : user ? (
        <><strong>{user.full_name || user.email}</strong></>
      ) : null}
@@ -1081,10 +1081,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  className="btn"
  onClick={() => { openStripeGateway() }}>
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
- ? `\u2713 Subscribed to \${planChoice === 'starter' ? 'Starter' : planChoice === 'pro' ? 'Pro' : 'Agency'}`
+ ? `✓ Subscribed to ${planChoice === 'starter' ? 'Starter' : planChoice === 'pro' ? 'Pro' : 'Agency'}`
  : user?.stripe_subscription_status === 'past_due'
  ? 'Update Payment'
- : `Subscribe to \${planChoice === 'starter' ? 'Starter $10' : planChoice === 'pro' ? 'Pro $30' : 'Agency $150'}`}
+ : `Subscribe to ${planChoice === 'starter' ? 'Starter $10' : planChoice === 'pro' ? 'Pro $30' : 'Agency $150'}`}
  </button>
 
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>7. Publish your site</h1>
