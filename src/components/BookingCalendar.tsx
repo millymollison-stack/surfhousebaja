@@ -283,8 +283,6 @@ export function BookingCalendar({
     setGuestCount(1);
     setSpecialRequests('');
     setBookingDates(null);
-
-    window.location.reload();
   };
 
   const handlePaymentError = (error: string) => {
@@ -313,7 +311,6 @@ export function BookingCalendar({
 
       if (blockError) throw blockError;
 
-      window.location.reload();
     } catch (err) {
       console.error('Failed to block dates:', err);
       setError('Failed to block dates. Please try again.');

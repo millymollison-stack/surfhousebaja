@@ -805,6 +805,13 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       loadConnectData();
       loadSubscriptionData();
     }
+
+    // Also re-load Connect data when returning from Stripe Connect onboarding
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('connect_return')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      loadConnectData();
+    }
   }, [isOpen, user]);
 
   const loadData = async () => {
@@ -946,7 +953,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
-        body: JSON.stringify({ action: 'create_onboarding_session', return_url: window.location.href }),
+        body: JSON.stringify({ action: 'create_onboarding_session', return_url: window.location.href + (window.location.search ? '&' : '?') + 'connect_return=1' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
