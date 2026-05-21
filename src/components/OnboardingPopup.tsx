@@ -148,6 +148,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    try {
      const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
      if (error) throw error;
+     setAccountCreated(false);
    } catch (e: any) {
      setAuthError(e.message || 'Could not sign in. Check your credentials.');
    } finally {
