@@ -628,7 +628,7 @@ function PublishSiteSection({ subscriptionData, property }: { subscriptionData: 
     if (!user || !property) return;
     setPublishing(true);
     try {
-      const { duplicateSiteAfterPayment } = await import('../services/siteDuplicationService');
+      const { duplicateSiteAfterPayment } = await import('./services/siteDuplicationService');
       const data = {
         userId: user.id,
         propertyId: property.id,
