@@ -664,6 +664,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      }
 
      // Redirect to Stripe Checkout hosted page
+       sessionStorage.setItem('popup_plan', planChoice);
+     sessionStorage.setItem('popup_hosting', hostingChoice);
+     sessionStorage.setItem('popup_design', designChoice);
+     sessionStorage.setItem('popup_extras_seo', extras.seo ? 'true' : 'false');
+     sessionStorage.setItem('popup_extras_ads', extras.ads ? 'true' : 'false');
+     sessionStorage.setItem('popup_extras_analytics', extras.analytics ? 'true' : 'false');
+     sessionStorage.setItem('popup_extras_social', extras.social ? 'true' : 'false');
+     sessionStorage.setItem('popup_website_name', websiteName);
+     sessionStorage.setItem('popup_website_desc', websiteDesc);
      window.location.href = data.url;
    } catch {
      setStripeError('Could not connect to payment server. Please try again.');
@@ -1070,13 +1079,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <p>Input your card details with our 3rd-party, secure payment partner.</p>
  <button
  className="btn"
- onClick={() => { alert("Button clicked! user=" + !!user + " plan=" + planChoice); console.log("[SetupPayment] clicked"); openStripeGateway(); }} >
+ onClick={() => { openStripeGateway() }} >
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
- ? '✓ Subscribed'
+ ? `\u2713 Subscribed to ${planChoice === 'starter' ? 'Starter' : planChoice === 'pro' ? 'Pro' : 'Agency'}`
  : user?.stripe_subscription_status === 'past_due'
  ? 'Update Payment'
- : 'Setup payment'}
- </button>
+ : `Subscribe to ${planChoice === 'starter' ? 'Starter $10' : planChoice === 'pro' ? 'Pro $30' : 'Agency $150'}`}
  <br /><hr />
 
  {/* Publish */}
@@ -1092,7 +1100,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <button
  className="h2 publish-btn"
  onClick={(e) => { e.stopPropagation(); handlePublish(e); }}
- disabled={!agreed || !websiteName.trim() || stripeProcessing || !user?.stripe_subscription_status || (user.stripe_subscription_status !== "active" && user.stripe_subscription_status !== "trialing")}
+ disabled={!agreed || !websiteName.trim() || stripeProcessing}
  >
    {stripeProcessing ? 'REDIRECTING...' : 'PUBLISH MY SITE'}
  </button>

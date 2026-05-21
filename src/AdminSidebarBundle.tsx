@@ -616,6 +616,82 @@ const PLANS = [
   { key: 'agency' as const, name: 'Agency', price: 150, features: ['Unlimited properties', 'Everything in Pro', 'Influencer network', 'Priority support'] },
 ];
 
+function PublishSiteSection({ subscriptionData, property }: { subscriptionData: SubscriptionData | null; property: Property | null }) {
+  const { user } = useAuth();
+  const [publishing, setPublishing] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+
+  const isActive = subscriptionData?.status === 'active' || subscriptionData?.status === 'trialing';
+  const hasSite = !!(property?.site_url);
+
+  const handlePublish = async () => {
+    if (!user || !property) return;
+    setPublishing(true);
+    try {
+      const { duplicateSiteAfterPayment } = await import('../services/siteDuplicationService');
+      const data = {
+        userId: user.id,
+        propertyId: property.id,
+        email: user.email,
+        planChoice: (sessionStorage.getItem('popup_plan') || 'starter') as 'starter' | 'pro' | 'agency',
+        hostingChoice: (sessionStorage.getItem('popup_hosting') || 'our') as 'own' | 'our',
+        designChoice: (sessionStorage.getItem('popup_design') || 'minimal') as 'airbnb' | 'minimal' | 'modern',
+        websiteName: sessionStorage.getItem('popup_website_name') || user.full_name || 'My Property',
+        websiteDesc: sessionStorage.getItem('popup_website_desc') || '',
+        bookingsEmail: user.email,
+        extras: {
+          seo: sessionStorage.getItem('popup_extras_seo') === 'true',
+          ads: sessionStorage.getItem('popup_extras_ads') === 'true',
+          analytics: sessionStorage.getItem('popup_extras_analytics') === 'true',
+          social: sessionStorage.getItem('popup_extras_social') === 'true',
+        },
+      };
+      const { siteUrl } = await duplicateSiteAfterPayment(data);
+      setPublishedUrl(siteUrl);
+    } catch (err) {
+      console.error('Publish failed:', err);
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  if (hasSite) {
+    return (
+      <div>
+        <div className="py-3">
+          <h4 className="sb-h4-grey">Your Site</h4>
+          <a href={property.site_url} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-blue-600 hover:underline flex items-center gap-1">
+            {property.site_url} <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isActive) {
+    return (
+      <div>
+        <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-500">
+          Subscribe to a plan to publish your site.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="sb-sub-desc text-sm text-gray-600 mb-3">Your property is set up. Ready to go live?</p>
+      <button
+        onClick={handlePublish}
+        disabled={publishing}
+        className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 text-sm"
+      >
+        {publishing ? 'Publishing...' : 'Publish Site'}
+      </button>
+    </div>
+  );
+}
+
 function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscribe }: {
   subscription: SubscriptionData | null; loading: boolean;
   checkoutLoading: string | null; onSubscribe: (plan: 'starter' | 'pro' | 'agency') => void;
@@ -936,7 +1012,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const navItems: { key: Section; label: string }[] = [
     { key: 'property', label: 'Property' },
-    { key: 'website', label: 'Website' },
+    { key: 'publish', label: 'Publish' },
     { key: 'contact', label: 'Contact' },
     { key: 'banking', label: 'Banking' },
     { key: 'services', label: 'Services' },
@@ -1050,7 +1126,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {openSection === key && (
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'website' && <WebsiteSection hostOnHostinger={hostOnHostinger} setHostOnHostinger={setHostOnHostinger} devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} folderPath={property?.folder_path} siteUrl={property?.site_url} websiteName={property?.name} />}
+                    {key === 'publish' && <PublishSiteSection subscriptionData={subscriptionData} property={property} />}
+                    {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection balance={balance} connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}
