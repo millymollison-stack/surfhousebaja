@@ -817,7 +817,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setBookingsLoading(true);
     try {
       const [bookingsRes, imagesRes, propRes, profileRes] = await Promise.all([
-        supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user', user.id).order('created_at', { ascending: false }),
+        supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('property_images').select('id'),
         supabase.from('properties').select('*').limit(1).maybeSingle(),
         supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social').eq('id', user.id).maybeSingle(),
@@ -1140,7 +1140,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
           {/* Sign out */}
           <div className="flex justify-center">
-            <button onClick={async () => { await signOut(); navigate('/auth'); }} className="sidebar-signout">
+            <button onClick={async () => { await signOut(); navigate('/'); }} className="sidebar-signout">
               <LogOut className="h-4 w-4" /><span>Sign Out</span>
             </button>
           </div>

@@ -127,6 +127,81 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log(`Checkout session completed: ${session.id}, customer: ${session.customer}, subscription: ${session.subscription}`);
+
+        if (!session.subscription) {
+          console.log("No subscription in checkout session, skipping profile update");
+          break;
+        }
+
+        // Look up the user by customer ID or email
+        let userId: string | null = null;
+
+        if (session.customer) {
+          // Find profile with matching stripe_customer_id
+          const { data: profileByCustomer } = await supabase
+            .from("profiles")
+            .select("id, email")
+            .eq("stripe_customer_id", session.customer as string)
+            .maybeSingle();
+
+          if (profileByCustomer) {
+            userId = profileByCustomer.id;
+            console.log(`Found profile by customer ID ${session.customer}: ${userId}`);
+          }
+        }
+
+        // Fallback: look up by email from session
+        if (!userId && session.customer_details?.email) {
+          const { data: profileByEmail } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("email", session.customer_details.email.toLowerCase())
+            .maybeSingle();
+
+          if (profileByEmail) {
+            userId = profileByEmail.id;
+            console.log(`Found profile by email ${session.customer_details.email}: ${userId}`);
+          }
+        }
+
+        if (!userId) {
+          console.error(`Could not find profile for checkout session ${session.id}`);
+          break;
+        }
+
+        // Retrieve full subscription details
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        const plan = subscription.metadata?.plan || "starter";
+        const planAmount = subscription.items.data[0]?.price?.unit_amount || 0;
+
+        const updateData: Record<string, any> = {
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: subscription.id,
+          stripe_subscription_status: subscription.status === "active" || subscription.status === "trialing" ? "active" : subscription.status,
+          stripe_subscription_plan: plan,
+          stripe_subscription_amount: planAmount,
+          stripe_subscription_interval: subscription.items.data[0]?.price?.recurring?.interval || "month",
+          stripe_subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        };
+
+        console.log(`Updating profile ${userId} with:`, JSON.stringify(updateData));
+
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update(updateData)
+          .eq("id", userId);
+
+        if (updateError) {
+          console.error(`Failed to update profile for checkout session ${session.id}:`, updateError);
+        } else {
+          console.log(`Profile updated successfully for user ${userId}`);
+        }
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }

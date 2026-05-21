@@ -130,6 +130,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          role: 'user',
        }, { onConflict: 'id' });
        setAccountCreated(true);
+       await refreshUser();
      }
    } catch (e: any) {
      setAuthError(e.message || 'Could not create account.');
@@ -148,6 +149,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    try {
      const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
      if (error) throw error;
+     await refreshUser();
+     setAccountCreated(false);
    } catch (e: any) {
      setAuthError(e.message || 'Could not sign in. Check your credentials.');
    } finally {
@@ -522,7 +525,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
             .update({
               stripe_subscription_id: sessionData.subscription_id,
               stripe_subscription_status: 'active',
-              checkout_session_id: sessionId,
             })
             .eq('id', session.user.id);
         }
@@ -1228,7 +1230,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Subscription set up */}
  {showCongrats && (
- <div className="stripe-modal-backdrop" onClick={() => { setShowCongrats(false); handleClose(); }}>
+ <div className="stripe-modal-backdrop" onClick={() => { setShowCongrats(false); }}>
  <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
  <h1 style={{ marginBottom: '12px' }}>Subscription Set Up!</h1>
@@ -1236,7 +1238,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  Your plan is active. Click <strong>Publish Site</strong> in the sidebar when you're ready to launch.
  </p>
  <button
- onClick={() => { setShowCongrats(false); handleClose(); }}
+ onClick={() => { setShowCongrats(false); }}
  style={{ marginTop: '20px', background: '#C47756', border: 'none', color: '#fff', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
  >
  Got it
