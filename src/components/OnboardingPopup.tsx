@@ -167,6 +167,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [agreed, setAgreed] = useState(false);
  const [stripeError, setStripeError] = useState('');
  const openStripeGateway = async () => {
+  console.log('[openStripeGateway] running...');
   console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
    if (!user) {
      setStripeError('Please sign in or create an account above first.');
@@ -191,6 +192,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      if (extras.analytics) activeExtras.push('analytics');
      if (extras.social) activeExtras.push('social');
 
+     console.log('[openStripeGateway] calling edge function...');
      const res = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
        method: 'POST',
        headers: {
@@ -209,15 +211,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          return_url: window.location.origin + window.location.pathname,
        }),
      });
-
-     const data = await res.json();
-     if (!data.url) {
-       setStripeError(data.error || 'Could not initialise payment.');
-     } else {
-       // Redirect to Stripe Checkout hosted page
-       window.location.href = data.url;
-     }
-   } catch {
+     console.log('[openStripeGateway] response:', res.status, res.ok);
+   } catch(e) {
+     console.error('[openStripeGateway] error:', e);
      setStripeError('Could not connect to payment server.');
    }
  };
