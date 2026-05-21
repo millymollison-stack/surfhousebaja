@@ -129,6 +129,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          phone_number: authPhone,
          role: 'user',
        }, { onConflict: 'id' });
+       setAccountCreated(true);
      }
    } catch (e: any) {
      setAuthError(e.message || 'Could not create account.');
@@ -227,6 +228,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [showCongrats, setShowCongrats] = useState(false);
  const [congratsUrl, setCongratsUrl] = useState('');
  const [stripeProcessing, setStripeProcessing] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
 
  // Stripe payment element ref
  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
@@ -688,9 +690,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Sign Up */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Sign Up</h1>
- {user ? (
+  {(user || accountCreated) ? (
    <div style={{ background: 'rgba(80,180,100,0.12)', border: '1px solid rgba(80,180,100,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
-     Signed in as <strong>{user.full_name || user.email}</strong>
+     {accountCreated && !user ? (
+       <strong style={{color: '#2a9d4e'}}>\u2713 Account created \u2014 welcome!</strong>
+     ) : user ? (
+       <><strong>{user.full_name || user.email}</strong></>
+     ) : null}
    </div>
  ) : (
    <>
@@ -1091,7 +1097,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <button
  className="h2 publish-btn"
  onClick={(e) => { e.stopPropagation(); handlePublish(e); }}
- disabled={!agreed || !websiteName.trim() || stripeProcessing}
+ disabled={!agreed || !websiteName.trim() || stripeProcessing || !user?.stripe_subscription_status || (user.stripe_subscription_status !== "active" && user.stripe_subscription_status !== "trialing")}
  >
    {stripeProcessing ? 'REDIRECTING...' : 'PUBLISH MY SITE'}
  </button>
