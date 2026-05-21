@@ -37,13 +37,24 @@ Deno.serve(async (req: Request) => {
     // GET — return connect account data + balance for the user's property
     if (req.method === "GET") {
       // Find the property owned by this user
+      // First try property, then fall back to profile
       const { data: property } = await supabase
         .from("properties")
         .select("id, stripe_account_id, stripe_account_status")
         .eq("owner_id", user.id)
         .maybeSingle();
 
-      const accountId = property?.stripe_account_id;
+      let accountId = property?.stripe_account_id;
+
+      // Fallback: check profile if no property-level account
+      if (!accountId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("stripe_account_id")
+          .eq("id", user.id)
+          .maybeSingle();
+        accountId = profile?.stripe_account_id || null;
+      }
 
       if (!accountId) {
         return new Response(JSON.stringify({ account: null }), {
