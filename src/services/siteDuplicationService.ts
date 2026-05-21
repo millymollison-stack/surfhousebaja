@@ -54,8 +54,9 @@ export interface NewSiteData {
 // STEP 1 — Read template.html from the src/public template folder
 // ─────────────────────────────────────────────
 export async function loadTemplateHtml(): Promise<string> {
-  const res = await fetch('/template/Airbnb Import Template/template.html');
-  if (!res.ok) throw new Error('Failed to load template.html');
+  // Template is in public/template/template.html (copied from src/template/Airbnb Import Template/)
+  const res = await fetch('/template/template.html');
+  if (!res.ok) throw new Error(`Failed to load template.html: ${res.status}`);
   return res.text();
 }
 

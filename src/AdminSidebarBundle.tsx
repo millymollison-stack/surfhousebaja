@@ -627,17 +627,20 @@ function PublishSiteSection({ subscriptionData, property, connectData }: {
   const [error, setError] = useState<string | null>(null);
 
   const isActive = subscriptionData?.status === 'active' || subscriptionData?.status === 'trialing';
-  const hasSite = !!(property?.site_url || siteUrl);
+  const hasSite = !!(property?.site_url || siteUrl || phase === 'saved' || phase === 'live');
 
   // ── Button 1: Save Site — generates HTML + creates all records ──
   const handleSaveSite = async () => {
-    if (!user) return;
+    if (!user) { setError('Not logged in'); return; }
+    if (!isActive) { setError('No active subscription — please subscribe first'); return; }
     setError(null);
     setPhase('saving');
+    console.log('[SaveSite] Starting, isActive=', isActive, 'userId=', user.id);
     try {
       const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml } = await import('./services/siteDuplicationService');
       const scrapedRaw = sessionStorage.getItem('popup_scraped_data');
       const scrapedData = scrapedRaw ? JSON.parse(scrapedRaw) : null;
+      console.log('[SaveSite] scrapedData:', scrapedData ? 'present' : 'null', 'websiteName:', sessionStorage.getItem('popup_website_name'));
       const data = {
         email: user.email,
         userId: user.id,
@@ -657,16 +660,20 @@ function PublishSiteSection({ subscriptionData, property, connectData }: {
         scrapedData,
         bankChoice: '',
       };
-      // Generate HTML client-side (needs access to /public template file)
+      // Generate HTML client-side
+      console.log('[SaveSite] Loading template...');
       const template = await loadTemplateHtml();
+      console.log('[SaveSite] Template loaded, length=', template.length);
       const html = generateSiteHtml(template, data);
-      // Store generated HTML in sessionStorage for Go Live button
       sessionStorage.setItem('popup_generated_html', html);
       // Create DB records
+      console.log('[SaveSite] Creating records...');
       const result = await createNewSiteRecords(data);
+      console.log('[SaveSite] Done:', result);
       setSiteUrl(result.siteUrl);
       setPhase('saved');
     } catch (err: any) {
+      console.error('[SaveSite] ERROR:', err);
       setError(err.message || 'Save failed');
       setPhase('idle');
     }
@@ -695,14 +702,20 @@ function PublishSiteSection({ subscriptionData, property, connectData }: {
   };
 
   // ── Render ──────────────────────────────────────────
-  if (hasSite && phase !== 'live') {
+  // hasSite = user already has a live site (from a previous session)
+  const displayUrl = property?.site_url || siteUrl || null;
+  if (hasSite && phase !== 'live' && phase !== 'saved') {
     return (
       <div>
         <div className="py-3">
           <h4 className="sb-h4-grey">Your Site</h4>
-          <a href={siteUrl || property?.site_url} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-blue-600 hover:underline flex items-center gap-1">
-            {siteUrl || property?.site_url} <ExternalLink className="h-4 w-4" />
-          </a>
+          {displayUrl ? (
+            <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-blue-600 hover:underline flex items-center gap-1">
+              {displayUrl} <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : (
+            <p className="text-base text-gray-500">Saved — click Go Live to publish</p>
+          )}
         </div>
       </div>
     );
@@ -728,6 +741,7 @@ function PublishSiteSection({ subscriptionData, property, connectData }: {
         <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-500">
           Subscribe to a plan to publish your site.
         </div>
+        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
       </div>
     );
   }
@@ -735,7 +749,7 @@ function PublishSiteSection({ subscriptionData, property, connectData }: {
   return (
     <div>
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-      {phase === 'idle' && (
+      {phase === 'idle' && isActive && (
         <>
           <p className="sb-sub-desc text-sm text-gray-600 mb-3">Set up your property, then save it before going live.</p>
           <button
@@ -745,6 +759,11 @@ function PublishSiteSection({ subscriptionData, property, connectData }: {
             Save Site
           </button>
         </>
+      )}
+      {phase === 'idle' && !isActive && (
+        <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-500">
+          Subscribe to a plan to publish your site.
+        </div>
       )}
       {phase === 'saving' && (
         <button disabled className="w-full bg-gray-400 text-white font-semibold px-4 py-2.5 rounded-lg text-sm cursor-not-allowed">
@@ -870,33 +889,32 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [devUpdates, setDevUpdates] = useState(true);
   const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: true, marketing: true, advertising: true, analytics: true, influencers: true, social: true });
 
-  // Reset data each time sidebar opens to prevent stale-loader bug
+  // Reset + reload all data whenever sidebar opens or user changes.
+  // dataKey forces a new "batch" on each open to discard any stale responses.
   const [dataKey, setDataKey] = useState(0);
   useEffect(() => {
-    if (!isOpen) return;
-    // Always clear Stripe/connect/subscription state on open — prevents stale data
-    // from a previous user's session leaking into the current one
+    if (!isOpen || !user) return;
+    // Clear stale data on open
     setConnectData(null);
     setSubscriptionData(null);
-    setDataKey(k => k + 1);
-  }, [isOpen]);
-
-  // Load all data whenever user is available
-  useEffect(() => {
-    if (!user) return;
-    loadData();
+    setBookings([]);
+    setNextBooking(null);
+    const key = dataKey + 1;
+    setDataKey(key);
+    // Load everything fresh
+    loadData(key);
     loadConnectData();
     loadSubscriptionData();
+    // Handle Stripe Connect return
     const params = new URLSearchParams(window.location.search);
     if (params.get('connect_return')) {
       window.history.replaceState({}, '', window.location.pathname);
       loadConnectData();
     }
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadData = async () => {
+  const loadData = async (key: number) => {
     if (!user) return;
-    const key = dataKey; // capture current dataKey to detect stale calls
     // Reset booking/nextbooking state so loader shows while re-fetching
     setBookings([]);
     setNextBooking(null);
@@ -946,11 +964,13 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (user) setContactFields({ full_name: user.full_name || '', email: user.email || '', phone_number: user.phone_number || '' });
   }, [user]);
 
-  // Listen for subscription-updated event dispatched after payment succeeds.
-  // Receives full subscription data directly from the event detail — no re-fetch needed.
+  // Listen for subscription-updated event from OnboardingPopup after payment succeeds.
+  // Also fires on mount to re-sync subscription after Stripe return (even if sidebar
+  // was already open when the event was dispatched).
   useEffect(() => {
     const handleSubUpdated = (e: Event) => {
       const detail = (e as CustomEvent).detail;
+      console.log('[Banking] subscription-updated event received:', JSON.stringify(detail));
       if (detail?.subscription_id) {
         setSubscriptionData({
           id: detail.subscription_id,
@@ -961,14 +981,13 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           current_period_end: detail.current_period_end || 0,
           cancel_at_period_end: detail.cancel_at_period_end || false,
         });
-      } else {
-        // Fallback: re-fetch from API
-        loadSubscriptionData();
       }
+      // Always re-fetch from API to get authoritative data
+      loadSubscriptionData();
     };
     window.addEventListener('subscription-updated', handleSubUpdated);
     return () => window.removeEventListener('subscription-updated', handleSubUpdated);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveServices = async (updated: Record<ServiceKey, boolean>) => {
     if (!user) return;
