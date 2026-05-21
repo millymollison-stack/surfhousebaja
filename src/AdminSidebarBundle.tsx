@@ -1034,6 +1034,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           })
           .eq('id', session.user.id)
           .then(({ error }) => { if (error) console.error('[Banking] Failed to update stripe_account_status:', error); });
+        // Broadcast to popup so it can use the account ID for site publishing
+        window.dispatchEvent(new CustomEvent('stripe-connect-updated', { detail: { account_id: data.account_id } }));
       }
     } catch (err) {
       console.error('[Banking] loadConnectData error:', err);
@@ -1276,7 +1278,6 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
                     {key === 'publish' && <PublishSiteSection subscriptionData={subscriptionData} property={property} connectData={connectData} />}
-                    {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection balance={balance} connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}

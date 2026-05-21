@@ -237,9 +237,19 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [showCongrats, setShowCongrats] = useState(false);
  const [congratsUrl, setCongratsUrl] = useState('');
  const [stripeProcessing, setStripeProcessing] = useState(false);
-  const [accountCreated, setAccountCreated] = useState(false);
+ const [accountCreated, setAccountCreated] = useState(false);
+ const [popupConnectAccountId, setPopupConnectAccountId] = useState<string | null>(null);
+ const [savingSite, setSavingSite] = useState(false);
 
- // Stripe payment element ref
+ // ── Listen for Stripe Connect account ID broadcast from sidebar ─────────────
+ useEffect(() => {
+   const handler = (e: Event) => {
+     const d = (e as CustomEvent).detail;
+     if (d?.account_id) setPopupConnectAccountId(d.account_id);
+   };
+   window.addEventListener('stripe-connect-updated', handler);
+   return () => window.removeEventListener('stripe-connect-updated', handler);
+ }, []);
  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
  // Payment calculator
@@ -573,6 +583,22 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         // ── 2. Refresh auth store so useAuth().user has fresh subscription ───────
         await refreshUser();
 
+        // ── 2b. Fetch Stripe Connect account ID from profile so site publishing works on mobile ──
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('stripe_account_id, stripe_account_status')
+            .eq('id', user.id)
+            .single();
+          if (profile?.stripe_account_id) {
+            setPopupConnectAccountId(profile.stripe_account_id);
+            // Also tell sidebar so it can update
+            window.dispatchEvent(new CustomEvent('stripe-connect-updated', {
+              detail: { account_id: profile.stripe_account_id, charges_enabled: profile.stripe_account_status === 'active' },
+            }));
+          }
+        }
+
         // ── 3. Tell sidebar to reload subscription data immediately ──────────────
         // Pass the full subscription data directly so sidebar doesn't need to re-fetch
         window.dispatchEvent(new CustomEvent('subscription-updated', {
@@ -667,6 +693,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
  };
  const handlePublish = async (_e?: React.MouseEvent) => {
+   // If user already has an active subscription, save the site directly (no Stripe redirect)
+   if (user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing') {
+     await handleSaveSiteInPopup();
+     return;
+   }
    if (!user) {
      setStripeError('Please sign in or create an account first.');
      return;
@@ -737,6 +768,43 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      window.location.href = data.url;
    } catch {
      setStripeError('Could not connect to payment server. Please try again.');
+   }
+ };
+
+ const handleSaveSiteInPopup = async () => {
+   if (!user) return;
+   setSavingSite(true);
+   try {
+     const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml } = await import('../services/siteDuplicationService');
+     const scrapedRaw = sessionStorage.getItem('popup_scraped_data');
+     const scrapedData = scrapedRaw ? JSON.parse(scrapedRaw) : null;
+     const data = {
+       email: user.email,
+       userId: user.id,
+       userStripeAccountId: popupConnectAccountId || null,
+       bookingsEmail: user.email,
+       websiteName: websiteName || user.full_name || 'My Property',
+       websiteDesc: websiteDesc || '',
+       planChoice: planChoice as 'starter' | 'pro' | 'agency',
+       hostingChoice: hostingChoice as 'our' | 'own',
+       designChoice: designChoice,
+       extras: { seo: extras.seo, ads: extras.ads, analytics: extras.analytics, social: extras.social },
+       scrapedData,
+       bankChoice: bankChoice,
+     };
+     const template = await loadTemplateHtml();
+     const html = generateSiteHtml(template, data);
+     sessionStorage.setItem('popup_generated_html', html);
+     const result = await createNewSiteRecords(data);
+     sessionStorage.setItem('popup_site_url', result.siteUrl);
+     sessionStorage.setItem('popup_site_phase', 'saved');
+     setCongratsUrl(result.siteUrl);
+     setShowCongrats(true);
+     setSavingSite(false);
+   } catch (err) {
+     console.error('[PopupSaveSite] error:', err);
+     setStripeError('Failed to save site. Check DevTools console.');
+     setSavingSite(false);
    }
  };
 
@@ -1162,7 +1230,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  onClick={(e) => { e.stopPropagation(); handlePublish(e); }}
  disabled={!agreed || !websiteName.trim() || stripeProcessing}
  >
-   {stripeProcessing ? 'REDIRECTING...' : 'PUBLISH MY SITE'}
+   {(user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing')
+     ? (stripeProcessing ? 'SAVING...' : 'PUBLISH MY SITE')
+     : (stripeProcessing ? 'REDIRECTING...' : 'PUBLISH MY SITE')}
  </button>
 
  {/* Fixed bottom total banner */}
@@ -1286,15 +1356,48 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
  <h1 style={{ marginBottom: '12px' }}>Subscription Set Up!</h1>
- <p style={{ color: '#aaa', marginBottom: '24px', lineHeight: 1.6 }}>
- Your plan is active. Click <strong>Publish Site</strong> in the sidebar when you're ready to launch.
+ {congratsUrl ? (
+ <>
+ <p style={{ color: '#aaa', marginBottom: '20px', lineHeight: 1.6 }}>
+ Your site is saved! Visit it below.
  </p>
+ <a href={congratsUrl} target="_blank" rel="noopener noreferrer"
+ style={{ display: 'inline-block', marginBottom: '16px', color: '#C47756', fontWeight: 600, textDecoration: 'underline', fontSize: '1rem' }}>
+ {congratsUrl}
+ </a>
+ <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
  <button
  onClick={() => { setShowCongrats(false); }}
- style={{ marginTop: '20px', background: '#C47756', border: 'none', color: '#fff', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+ style={{ background: '#C47756', border: 'none', color: '#fff', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
  >
- Got it
+ Done
  </button>
+ </div>
+ </>
+ ) : savingSite ? (
+ <>
+ <p style={{ color: '#aaa', marginBottom: '20px', lineHeight: 1.6 }}>Creating your site records...</p>
+ <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}><div className="stripe-loading"><div className="spinner-ring" /></div></div>
+ </>
+ ) : (
+ <>
+ <p style={{ color: '#aaa', marginBottom: '24px', lineHeight: 1.6 }}>
+ Your plan is active! Click below to save your property site now.
+ </p>
+ <button
+ onClick={handleSaveSiteInPopup}
+ style={{ marginTop: '8px', background: '#C47756', border: 'none', color: '#fff', padding: '14px 32px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem', width: '100%' }}
+ >
+ Save My Site
+ </button>
+ <button
+ onClick={() => { setShowCongrats(false); }}
+ style={{ marginTop: '12px', background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '0.875rem' }}
+ >
+ Skip for now
+ </button>
+ </>
+ )}
  </div>
  </div>
  )}

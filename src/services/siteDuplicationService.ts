@@ -16,7 +16,7 @@
  * Hostinger SSH: u805830916@82.29.86.252 port 65002
  */
 
-import { supabase } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabase';
 import { createSlug } from './slugService';
 
 export interface ScrapedData {
@@ -89,7 +89,8 @@ export function generateSiteHtml(template: string, data: NewSiteData): string {
 }
 
 // ─────────────────────────────────────────────
-// STEP 3a — Create Supabase records (Button 1: Save Site)
+// STEP 3a — Create Supabase records via Edge Function (Button 1: Save Site)
+// Routes through the edge function to use service role key server-side
 // ─────────────────────────────────────────────
 export async function createNewSiteRecords(data: NewSiteData): Promise<{
   propertyId: string;
@@ -98,82 +99,46 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
 }> {
   const slug = createSlug(data.websiteName);
 
-  // Create property record
-  const { data: propertyRecord, error: propertyError } = await supabase
-    .from('properties')
-    .insert({
-      title: data.scrapedData?.title || data.websiteName,
-      slug,
-      description: data.scrapedData?.description || data.websiteDesc,
-      location: data.scrapedData?.location || '',
-      max_guests: data.scrapedData?.guests || 8,
-      bedrooms: data.scrapedData?.bedrooms || 2,
-      beds: data.scrapedData?.beds || 3,
-      baths: data.scrapedData?.baths || 1,
-      price_per_night: data.scrapedData?.price
-        ? parseFloat(data.scrapedData.price.replace(/[^0-9.]/g, ''))
-        : 150,
-      hero_image: data.scrapedData?.hero_image || '',
-      images: data.scrapedData?.images || [],
-      // Wire Stripe Connect account so booking payments route correctly
-      stripe_account_id: data.userStripeAccountId || null,
-      stripe_account_status: data.userStripeAccountId ? 'active' : null,
-      owner_id: data.userId,
-      status: 'draft',
-    })
-    .select('id')
-    .single();
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
-  if (propertyError) throw new Error(`Property insert failed: ${propertyError.message}`);
-  const propertyId = propertyRecord.id;
-
-  // Upsert profile with property link
-  await supabase
-    .from('profiles')
-    .upsert({
-      id: data.userId,
-      email: data.email,
-      full_name: data.websiteName,
-      booking_email: data.bookingsEmail || data.email,
-      user_type: 'admin',
-      stripe_plan: data.planChoice,
-      owner_id: propertyId,
-      services_ai_seo: data.extras?.seo ?? false,
-      services_marketing: data.extras?.ads ?? false,
-      services_advertising: data.extras?.ads ?? false,
-      services_analytics: data.extras?.analytics ?? false,
-      services_influencers: false,
-      services_social: data.extras?.social ?? false,
+  // Call the save-site-records edge function (server-side, uses service role key)
+  console.log('[createNewSiteRecords] Calling edge function, URL:', `${supabaseUrl}/functions/v1/save-site-records`);
+  let res;
+  try {
+    res = await fetch(`${supabaseUrl}/functions/v1/save-site-records`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        title: data.scrapedData?.title || data.websiteName,
+        slug,
+        description: data.scrapedData?.description || data.websiteDesc,
+        location: data.scrapedData?.location || '',
+        maxGuests: data.scrapedData?.guests || 8,
+        bedrooms: data.scrapedData?.bedrooms || 2,
+        beds: data.scrapedData?.beds || 3,
+        baths: data.scrapedData?.baths || 1,
+        pricePerNight: data.scrapedData?.price
+          ? parseFloat(data.scrapedData.price.replace(/[^0-9.]/g, ''))
+          : 150,
+        heroImage: data.scrapedData?.hero_image || '',
+        images: data.scrapedData?.images || [],
+        stripeAccountId: data.userStripeAccountId || null,
+        stripeAccountStatus: data.userStripeAccountId ? 'active' : null,
+      }),
     });
-
-  // Save full onboarding data with property link
-  await supabase
-    .from('onboarding_data')
-    .upsert({
-      user_id: data.userId,
-      property_name: data.websiteName,
-      property_desc: data.websiteDesc,
-      airbnb_url: data.scrapedData?.title ? '(scraped)' : '',
-      design_choice: data.designChoice,
-      hosting_choice: data.hostingChoice,
-      plan_choice: data.planChoice,
-      email: data.email,
-      bookings_email: data.bookingsEmail,
-      property_id: propertyId,
-      slug,
-      hero_image: data.scrapedData?.hero_image || '',
-      images: data.scrapedData?.images || [],
-      guests: data.scrapedData?.guests || null,
-      bedrooms: data.scrapedData?.bedrooms || null,
-      beds: data.scrapedData?.beds || null,
-      baths: data.scrapedData?.baths || null,
-      rating: data.scrapedData?.rating || null,
-      reviews: data.scrapedData?.reviews || null,
-      host_name: data.scrapedData?.host_name || null,
-      price: data.scrapedData?.price || null,
-      created_at: new Date().toISOString(),
-    });
-
+    const result = await res.json();
+    console.log('[createNewSiteRecords] Edge function response:', res.status, result);
+    if (!res.ok || result.error) {
+      throw new Error(`Property insert failed: ${result.error || res.statusText}`);
+    }
+    const { propertyId } = result;
+    return { propertyId, siteUrl: `https://propbook.pro/props/${slug}`, slug };
+  } catch (err) {
+    console.error('[createNewSiteRecords] Error:', err);
+    throw err;
   return { propertyId, siteUrl: `https://propbook.pro/props/${slug}`, slug };
 }
 
