@@ -616,54 +616,108 @@ const PLANS = [
   { key: 'agency' as const, name: 'Agency', price: 150, features: ['Unlimited properties', 'Everything in Pro', 'Influencer network', 'Priority support'] },
 ];
 
-function PublishSiteSection({ subscriptionData, property }: { subscriptionData: SubscriptionData | null; property: Property | null }) {
+function PublishSiteSection({ subscriptionData, property, connectData }: {
+  subscriptionData: SubscriptionData | null;
+  property: Property | null;
+  connectData: any;
+}) {
   const { user } = useAuth();
-  const [publishing, setPublishing] = useState(false);
-  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'idle' | 'saving' | 'saved' | 'going_live' | 'live'>('idle');
+  const [siteUrl, setSiteUrl] = useState<string | null>(property?.site_url || null);
+  const [error, setError] = useState<string | null>(null);
 
   const isActive = subscriptionData?.status === 'active' || subscriptionData?.status === 'trialing';
-  const hasSite = !!(property?.site_url);
+  const hasSite = !!(property?.site_url || siteUrl);
 
-  const handlePublish = async () => {
-    if (!user || !property) return;
-    setPublishing(true);
+  // ── Button 1: Save Site — generates HTML + creates all records ──
+  const handleSaveSite = async () => {
+    if (!user) return;
+    setError(null);
+    setPhase('saving');
     try {
-      const { duplicateSiteAfterPayment } = await import('./services/siteDuplicationService');
+      const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml } = await import('./services/siteDuplicationService');
+      const scrapedRaw = sessionStorage.getItem('popup_scraped_data');
+      const scrapedData = scrapedRaw ? JSON.parse(scrapedRaw) : null;
       const data = {
-        userId: user.id,
-        propertyId: property.id,
         email: user.email,
-        planChoice: (sessionStorage.getItem('popup_plan') || 'starter') as 'starter' | 'pro' | 'agency',
-        hostingChoice: (sessionStorage.getItem('popup_hosting') || 'our') as 'own' | 'our',
-        designChoice: (sessionStorage.getItem('popup_design') || 'minimal') as 'airbnb' | 'minimal' | 'modern',
+        userId: user.id,
+        userStripeAccountId: connectData?.account_id || null,
+        bookingsEmail: user.email,
         websiteName: sessionStorage.getItem('popup_website_name') || user.full_name || 'My Property',
         websiteDesc: sessionStorage.getItem('popup_website_desc') || '',
-        bookingsEmail: user.email,
+        planChoice: (sessionStorage.getItem('popup_plan') || 'starter') as 'starter' | 'pro' | 'agency',
+        hostingChoice: (sessionStorage.getItem('popup_hosting') || 'our') as 'our' | 'own',
+        designChoice: (sessionStorage.getItem('popup_design') || 'minimal') as string,
         extras: {
           seo: sessionStorage.getItem('popup_extras_seo') === 'true',
           ads: sessionStorage.getItem('popup_extras_ads') === 'true',
           analytics: sessionStorage.getItem('popup_extras_analytics') === 'true',
           social: sessionStorage.getItem('popup_extras_social') === 'true',
         },
+        scrapedData,
+        bankChoice: '',
       };
-      const { siteUrl } = await duplicateSiteAfterPayment(data);
-      setPublishedUrl(siteUrl);
-    } catch (err) {
-      console.error('Publish failed:', err);
-    } finally {
-      setPublishing(false);
+      // Generate HTML client-side (needs access to /public template file)
+      const template = await loadTemplateHtml();
+      const html = generateSiteHtml(template, data);
+      // Store generated HTML in sessionStorage for Go Live button
+      sessionStorage.setItem('popup_generated_html', html);
+      // Create DB records
+      const result = await createNewSiteRecords(data);
+      setSiteUrl(result.siteUrl);
+      setPhase('saved');
+    } catch (err: any) {
+      setError(err.message || 'Save failed');
+      setPhase('idle');
     }
   };
 
-  if (hasSite) {
+  // ── Button 2: Go Live — pushes pre-generated HTML to Hostinger ──
+  const handleGoLive = async () => {
+    if (!user) return;
+    setError(null);
+    setPhase('going_live');
+    try {
+      const { goLiveSite } = await import('./services/siteDuplicationService');
+      const propId = property?.id;
+      if (!propId) throw new Error('No property — click "Save Site" first');
+      const slug = property?.slug || siteUrl?.split('/props/')[1] || '';
+      const html = sessionStorage.getItem('popup_generated_html');
+      if (!html) throw new Error('No HTML found — click "Save Site" first');
+      const url = await goLiveSite(propId, slug, html);
+      setSiteUrl(url);
+      sessionStorage.removeItem('popup_generated_html');
+      setPhase('live');
+    } catch (err: any) {
+      setError(err.message || 'Go live failed');
+      setPhase('saved');
+    }
+  };
+
+  // ── Render ──────────────────────────────────────────
+  if (hasSite && phase !== 'live') {
     return (
       <div>
         <div className="py-3">
           <h4 className="sb-h4-grey">Your Site</h4>
-          <a href={property.site_url} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-blue-600 hover:underline flex items-center gap-1">
-            {property.site_url} <ExternalLink className="h-4 w-4" />
+          <a href={siteUrl || property?.site_url} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-blue-600 hover:underline flex items-center gap-1">
+            {siteUrl || property?.site_url} <ExternalLink className="h-4 w-4" />
           </a>
         </div>
+      </div>
+    );
+  }
+
+  if (phase === 'live') {
+    return (
+      <div>
+        <div className="py-3">
+          <h4 className="sb-h4-grey">Your Site</h4>
+          <a href={siteUrl!} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-blue-600 hover:underline flex items-center gap-1">
+            {siteUrl} <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
+        <p className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 mt-2">Site is live! 🎉</p>
       </div>
     );
   }
@@ -680,14 +734,39 @@ function PublishSiteSection({ subscriptionData, property }: { subscriptionData: 
 
   return (
     <div>
-      <p className="sb-sub-desc text-sm text-gray-600 mb-3">Your property is set up. Ready to go live?</p>
-      <button
-        onClick={handlePublish}
-        disabled={publishing}
-        className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 text-sm"
-      >
-        {publishing ? 'Publishing...' : 'Publish Site'}
-      </button>
+      {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+      {phase === 'idle' && (
+        <>
+          <p className="sb-sub-desc text-sm text-gray-600 mb-3">Set up your property, then save it before going live.</p>
+          <button
+            onClick={handleSaveSite}
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm mb-2"
+          >
+            Save Site
+          </button>
+        </>
+      )}
+      {phase === 'saving' && (
+        <button disabled className="w-full bg-gray-400 text-white font-semibold px-4 py-2.5 rounded-lg text-sm cursor-not-allowed">
+          Saving...
+        </button>
+      )}
+      {phase === 'saved' && (
+        <>
+          <p className="text-sm text-green-700 mb-2 flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Site saved — ready to go live!</p>
+          <button
+            onClick={handleGoLive}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2.5 rounded-lg transition-colors text-sm"
+          >
+            Go Live 🚀
+          </button>
+        </>
+      )}
+      {phase === 'going_live' && (
+        <button disabled className="w-full bg-green-500 text-white font-semibold px-4 py-2.5 rounded-lg text-sm cursor-not-allowed">
+          Deploying to Hostinger...
+        </button>
+      )}
     </div>
   );
 }
@@ -800,19 +879,20 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setConnectData(null);
     setSubscriptionData(null);
     setDataKey(k => k + 1);
-    if (user) {
-      loadData();
-      loadConnectData();
-      loadSubscriptionData();
-    }
+  }, [isOpen]);
 
-    // Also re-load Connect data when returning from Stripe Connect onboarding
+  // Load all data whenever user is available
+  useEffect(() => {
+    if (!user) return;
+    loadData();
+    loadConnectData();
+    loadSubscriptionData();
     const params = new URLSearchParams(window.location.search);
     if (params.get('connect_return')) {
       window.history.replaceState({}, '', window.location.pathname);
       loadConnectData();
     }
-  }, [isOpen, user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     if (!user) return;
@@ -902,6 +982,10 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   const getSession = async () => {
+    // Use getUser() not getSession() — getSession() can return null immediately after
+    // page hard-refresh before auth state rehydrates from storage/API
+    const { data: { user: authUser }, error } = await supabase.auth.getUser();
+    if (error || !authUser) throw new Error('No session');
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('No session');
     return session;
@@ -920,6 +1004,18 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       console.log('[Banking] stripe-connect data:', JSON.stringify(data));
       if (!res.ok) throw new Error(data.error);
       setConnectData(data);
+
+      // Persist the fresh Stripe Connect status to profiles so create-payment-intent
+      // can correctly route booking payments without needing to re-fetch from Stripe
+      if (data?.account_id && session) {
+        supabase
+          .from('profiles')
+          .update({
+            stripe_account_status: data.charges_enabled ? 'active' : 'pending',
+          })
+          .eq('id', session.user.id)
+          .then(({ error }) => { if (error) console.error('[Banking] Failed to update stripe_account_status:', error); });
+      }
     } catch (err) {
       console.error('[Banking] loadConnectData error:', err);
       setConnectData(null);
@@ -1160,7 +1256,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {openSection === key && (
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'publish' && <PublishSiteSection subscriptionData={subscriptionData} property={property} />}
+                    {key === 'publish' && <PublishSiteSection subscriptionData={subscriptionData} property={property} connectData={connectData} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection balance={balance} connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}

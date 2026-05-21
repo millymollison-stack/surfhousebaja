@@ -1,63 +1,94 @@
 /**
  * SiteDuplicationService — creates a new customer site after Stripe payment
  *
- * Flow:
- * 1. Stripe payment succeeds (in OnboardingPopup)
- * 2. onComplete fires with all onboarding data
- * 3. This service:
- *    a. Creates new Supabase records (property, profile, bookings)
- *    b. Creates a slug from the site name
- *    c. SFTPs to Hostinger and copies template dist/ → /props/{slug}/
- *    d. Updates Supabase with the new site URL
- *    e. Sends confirmation email via Resend
+ * TWO-BUTTON PUBLISH FLOW:
  *
- * Hostinger SFTP: sftp.u805930916@82.29.86.252 (port 22)
- * Supabase property row + credentials stored per customer
+ *  Button 1 — "Save Site"
+ *    → createNewSiteRecords() — creates property + profile + onboarding records
+ *    → status: 'draft', site_url: null — NOT live yet
+ *    → Stripe Connect account wired to property so booking payments route correctly
+ *
+ *  Button 2 — "Go Live"
+ *    → generateSiteHtml() — replaces {{PLACEHOLDER}} tokens with scraped data
+ *    → rsyncToHostinger() — copies generated HTML to Hostinger /props/{slug}/
+ *    → marks property status: 'active', site_url set — site is now live
+ *
+ * Hostinger SSH: u805830916@82.29.86.252 port 65002
  */
 
 import { supabase } from '../lib/supabase';
+import { createSlug } from './slugService';
+
+export interface ScrapedData {
+  title: string;
+  location: string;
+  description: string;
+  hero_image: string;
+  images: string[];
+  guests: number | null;
+  bedrooms: number | null;
+  beds: number | null;
+  baths: number | null;
+  rating: number | null;
+  reviews: number | null;
+  host_name: string | null;
+  price: string;
+}
 
 export interface NewSiteData {
   email: string;
   userId: string;
+  userStripeAccountId?: string;
   bookingsEmail: string;
   websiteName: string;
   websiteDesc: string;
   planChoice: 'starter' | 'pro' | 'agency';
   hostingChoice: 'our' | 'own';
   extras: { seo: boolean; ads: boolean; analytics: boolean; social: boolean };
-  scrapedData: {
-    title: string;
-    location: string;
-    description: string;
-    hero_image: string;
-    images: string[];
-    guests: number | null;
-    bedrooms: number | null;
-    beds: number | null;
-    baths: number | null;
-    rating: number | null;
-    reviews: number | null;
-    host_name: string | null;
-    price: string;
-  } | null;
+  scrapedData: ScrapedData | null;
   designChoice: string;
   bankChoice: string;
 }
 
 // ─────────────────────────────────────────────
-// STEP 1 — Create slug from website name
+// STEP 1 — Read template.html from the src/public template folder
 // ─────────────────────────────────────────────
-function createSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 30) || 'site';
+export async function loadTemplateHtml(): Promise<string> {
+  const res = await fetch('/template/Airbnb Import Template/template.html');
+  if (!res.ok) throw new Error('Failed to load template.html');
+  return res.text();
 }
 
 // ─────────────────────────────────────────────
-// STEP 2 — Create Supabase records for new site
+// STEP 2 — Generate HTML by replacing placeholders
+// ─────────────────────────────────────────────
+export function generateSiteHtml(template: string, data: NewSiteData): string {
+  const s = data.scrapedData;
+  const price = s?.price ? s.price.replace(/[^0-9.]/g, '') : '150';
+  const heroImage = s?.hero_image || '/template/surfhousebaja-main.jpg';
+  const images = s?.images?.length
+    ? s.images.map((img: string) => `<img src="${img}" alt="${s.title}" loading="lazy" />`).join('\n')
+    : `<img src="${heroImage}" alt="${s?.title || data.websiteName}" loading="lazy" />`;
+
+  return template
+    .replace(/\{\{BRAND_NAME\}\}/g, data.websiteName)
+    .replace(/\{\{TITLE\}\}/g, s?.title || data.websiteName)
+    .replace(/\{\{LOCATION\}\}/g, s?.location || '')
+    .replace(/\{\{PRICE\}\}/g, price)
+    .replace(/\{\{DESCRIPTION\}\}/g, s?.description || data.websiteDesc)
+    .replace(/\{\{HERO_IMAGE\}\}/g, heroImage)
+    .replace(/\{\{IMAGES\}\}/g, images)
+    .replace(/\{\{REVIEW_COUNT\}\}/g, String(s?.reviews ?? 0))
+    .replace(/\{\{GUESTS\}\}/g, String(s?.guests ?? 8))
+    .replace(/\{\{BEDROOMS\}\}/g, String(s?.bedrooms ?? 2))
+    .replace(/\{\{BEDS\}\}/g, String(s?.beds ?? 3))
+    .replace(/\{\{BATHS\}\}/g, String(s?.baths ?? 1))
+    .replace(/\{\{RATING\}\}/g, String(s?.rating ?? '4.8'))
+    .replace(/\{\{HOST_NAME\}\}/g, s?.host_name || 'Property Manager');
+}
+
+// ─────────────────────────────────────────────
+// STEP 3a — Create Supabase records (Button 1: Save Site)
 // ─────────────────────────────────────────────
 export async function createNewSiteRecords(data: NewSiteData): Promise<{
   propertyId: string;
@@ -66,7 +97,7 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
 }> {
   const slug = createSlug(data.websiteName);
 
-  // 2a. Create property record FIRST
+  // Create property record
   const { data: propertyRecord, error: propertyError } = await supabase
     .from('properties')
     .insert({
@@ -78,10 +109,16 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
       bedrooms: data.scrapedData?.bedrooms || 2,
       beds: data.scrapedData?.beds || 3,
       baths: data.scrapedData?.baths || 1,
-      price_per_night: data.scrapedData?.price ? parseFloat(data.scrapedData.price.replace(/[^0-9.]/g, '')) : 150,
+      price_per_night: data.scrapedData?.price
+        ? parseFloat(data.scrapedData.price.replace(/[^0-9.]/g, ''))
+        : 150,
       hero_image: data.scrapedData?.hero_image || '',
       images: data.scrapedData?.images || [],
-      status: 'draft', // not live until site is built
+      // Wire Stripe Connect account so booking payments route correctly
+      stripe_account_id: data.userStripeAccountId || null,
+      stripe_account_status: data.userStripeAccountId ? 'active' : null,
+      owner_id: data.userId,
+      status: 'draft',
     })
     .select('id')
     .single();
@@ -89,42 +126,33 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
   if (propertyError) throw new Error(`Property insert failed: ${propertyError.message}`);
   const propertyId = propertyRecord.id;
 
-  // 2b. Update property with owner_id now that we have the ID
+  // Upsert profile with property link
   await supabase
-    .from('properties')
-    .update({ owner_id: propertyId })
-    .eq('id', propertyId);
-
-  // 2c. Create profile record — id is the actual auth user ID, owner_id links to property
-  const { error: profileError } = await supabase
     .from('profiles')
-    .insert({
-      id: data.userId, // auth user ID from Supabase auth
+    .upsert({
+      id: data.userId,
       email: data.email,
       full_name: data.websiteName,
       booking_email: data.bookingsEmail || data.email,
       user_type: 'admin',
       stripe_plan: data.planChoice,
       owner_id: propertyId,
-      // Wire extras (services) from onboarding
       services_ai_seo: data.extras?.seo ?? false,
       services_marketing: data.extras?.ads ?? false,
       services_advertising: data.extras?.ads ?? false,
       services_analytics: data.extras?.analytics ?? false,
       services_influencers: false,
       services_social: data.extras?.social ?? false,
-      created_at: new Date().toISOString(),
     });
 
-  if (profileError) console.warn('Profile insert error:', profileError.message);
-
-  // 2d. Save onboarding data with property link — user_id is the auth user ID
+  // Save full onboarding data with property link
   await supabase
     .from('onboarding_data')
     .upsert({
       user_id: data.userId,
       property_name: data.websiteName,
       property_desc: data.websiteDesc,
+      airbnb_url: data.scrapedData?.title ? '(scraped)' : '',
       design_choice: data.designChoice,
       hosting_choice: data.hostingChoice,
       plan_choice: data.planChoice,
@@ -132,39 +160,82 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
       bookings_email: data.bookingsEmail,
       property_id: propertyId,
       slug,
+      hero_image: data.scrapedData?.hero_image || '',
+      images: data.scrapedData?.images || [],
+      guests: data.scrapedData?.guests || null,
+      bedrooms: data.scrapedData?.bedrooms || null,
+      beds: data.scrapedData?.beds || null,
+      baths: data.scrapedData?.baths || null,
+      rating: data.scrapedData?.rating || null,
+      reviews: data.scrapedData?.reviews || null,
+      host_name: data.scrapedData?.host_name || null,
+      price: data.scrapedData?.price || null,
       created_at: new Date().toISOString(),
     });
 
-  const siteUrl = `https://www.propbook.pro/props/${slug}`;
-
-  return { propertyId, siteUrl, slug };
+  return { propertyId, siteUrl: `https://propbook.pro/props/${slug}`, slug };
 }
 
 // ─────────────────────────────────────────────
-// STEP 3 — Mark site as active
-// No file copy needed — site is rendered dynamically from Supabase
+// STEP 3b — Push HTML to Hostinger + activate site (Button 2: Go Live)
+// html is pre-generated by Button 1 and passed in directly
 // ─────────────────────────────────────────────
-export async function buildSiteOnHostinger(slug: string, propertyId: string): Promise<void> {
-  // Mark as active — Supabase data now powers the site at /props/{slug}
+export async function goLiveSite(propertyId: string, slug: string, html: string): Promise<string> {
+
+  // Create directory on Hostinger via SSH
+  const hostingerDir = `/home/u805830916/domains/propbook.pro/public_html/props/${slug}`;
+
+  const mkdirRes = await new Promise<string>((resolve, reject) => {
+    const { exec } = require('child_process');
+    const cmd = `sshpass -p 'Clawbot12!' ssh -o StrictHostKeyChecking=no -p 65002 u805830916@82.29.86.252 "mkdir -p '${hostingerDir}' && echo DIR_OK"`;
+    exec(cmd, (err: Error | null, stdout: string, stderr: string) => {
+      if (err) reject(new Error(`mkdir SSH failed: ${stderr || err.message}`));
+      else resolve(stdout.trim());
+    });
+  });
+  console.log('[goLive] mkdir:', mkdirRes);
+
+  // Write index.html via SFTP pipe
+  const sftpCmd = `sshpass -p 'Clawbot12!' sftp -o StrictHostKeyChecking=no -P 65002 u805830916@82.29.86.252 <<'SFTP_EOF'\nput /dev/stdin "${hostingerDir}/index.html"\nbye\nSFTP_EOF`;
+
+  await new Promise<void>((resolve, reject) => {
+    const { exec: exec2 } = require('child_process');
+    const p = exec2(sftpCmd);
+    if (!p.stdin) { reject(new Error('No stdin')); return; }
+    p.stdin.write(html, (err: Error | null) => {
+      if (err) { reject(err); return; }
+      p.stdin.end();
+    });
+    let stderr = '';
+    p.stderr?.on('data', (d: string) => (stderr += d));
+    p.on('close', (code: number) => {
+      if (code !== 0) reject(new Error(`SFTP write failed: ${stderr}`));
+      else resolve();
+    });
+  });
+  console.log('[goLive] HTML written');
+
+  // Mark site as active in Supabase
   await supabase
     .from('properties')
     .update({
+      status: 'active',
       site_url: `https://propbook.pro/props/${slug}`,
       server_ip: '82.29.86.252',
-      folder_path: `/public_html/props/${slug}`,
-      status: 'active',
+      folder_path: hostingerDir,
     })
     .eq('id', propertyId);
 
-  console.log(`Site activated: https://propbook.pro/props/${slug}`);
+  console.log(`[goLive] Site live: https://propbook.pro/props/${slug}`);
+  return `https://propbook.pro/props/${slug}`;
 }
 
 // ─────────────────────────────────────────────
-// STEP 4 — Send confirmation email via Resend
+// STEP 4 — Send confirmation email
 // ─────────────────────────────────────────────
 export async function sendNewSiteEmail(data: NewSiteData, siteUrl: string): Promise<void> {
   try {
-    const { error: fnError } = await supabase.functions.invoke('send-booking-email', {
+    await supabase.functions.invoke('send-booking-email', {
       body: {
         type: 'new_site_created',
         user: { email: data.email, full_name: data.websiteName },
@@ -173,34 +244,10 @@ export async function sendNewSiteEmail(data: NewSiteData, siteUrl: string): Prom
         adminEmail: data.bookingsEmail || data.email,
         adminName: data.websiteName,
         siteUrl,
-        message: `Your property site is being built and will be live at: ${siteUrl}`,
+        message: `Your site is live at: ${siteUrl}`,
       },
     });
-    if (fnError) console.warn('Confirmation email failed:', fnError);
   } catch (err) {
     console.warn('Confirmation email error:', err);
-  }
-}
-
-// ─────────────────────────────────────────────
-// STEP 5 — Main orchestration function
-// Call this from OnboardingPopup's onComplete
-// ─────────────────────────────────────────────
-export async function duplicateSiteAfterPayment(data: NewSiteData): Promise<{ siteUrl: string; propertyId: string }> {
-  try {
-    // 1. Create Supabase records
-    const { propertyId, siteUrl, slug } = await createNewSiteRecords(data);
-
-    // 2. Trigger site build on Hostinger
-    await buildSiteOnHostinger(slug, propertyId);
-
-    // 3. Send confirmation email
-    await sendNewSiteEmail(data, siteUrl);
-
-    console.log(`Site duplication complete: ${siteUrl}`);
-    return { siteUrl, propertyId };
-  } catch (err) {
-    console.error('Site duplication failed:', err);
-    throw err;
   }
 }
