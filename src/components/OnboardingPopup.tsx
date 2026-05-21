@@ -167,6 +167,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [agreed, setAgreed] = useState(false);
  const [stripeError, setStripeError] = useState('');
  const openStripeGateway = async () => {
+  console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
    if (!user) {
      setStripeError('Please sign in or create an account above first.');
      return;
@@ -1073,9 +1074,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <p>Input your card details with our 3rd-party, secure payment partner.</p>
  <button
  className="btn"
- onClick={openStripeGateway}
- disabled={!!user?.stripe_subscription_status && (user.stripe_subscription_status === 'active' || user.stripe_subscription_status === 'trialing')}
- >
+ onClick={() => { alert("Button clicked! user=" + !!user + " plan=" + planChoice); console.log("[SetupPayment] clicked"); openStripeGateway(); }} >
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
  ? '✓ Subscribed'
  : user?.stripe_subscription_status === 'past_due'
