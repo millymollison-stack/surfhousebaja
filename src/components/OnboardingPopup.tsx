@@ -130,6 +130,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          role: 'user',
        }, { onConflict: 'id' });
        setAccountCreated(true);
+       await refreshUser();
      }
    } catch (e: any) {
      setAuthError(e.message || 'Could not create account.');
