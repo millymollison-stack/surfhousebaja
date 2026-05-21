@@ -707,7 +707,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   {(user || accountCreated) ? (
    <div style={{ background: 'rgba(80,180,100,0.12)', border: '1px solid rgba(80,180,100,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
      {accountCreated && !user ? (
-       <strong style={{color: '#2a9d4e'}}>✓ Account created — welcome!</strong>
+       <strong style={{color: '#2a9d4e'}}>✓ Account created — welcome, {authFullName || authEmail.split('@')[0]}!</strong>
      ) : user ? (
        <><strong>{user.full_name || user.email}</strong></>
      ) : null}
