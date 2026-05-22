@@ -19,6 +19,7 @@ export interface OnboardingPopupProps {
  scrapedProperty?: any | null;
  onSiteNameChange?: (name: string) => void;
  scrapedImages?: any[];
+ onOpenSidebar?: () => void;
 }
 
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
@@ -92,7 +93,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
   );
 }
 
-export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange }: OnboardingPopupProps) {
+export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange, onOpenSidebar }: OnboardingPopupProps) {
  const { user, refreshUser } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
@@ -799,9 +800,24 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      const result = await createNewSiteRecords(data);
      sessionStorage.setItem('popup_site_url', result.siteUrl);
      sessionStorage.setItem('popup_site_phase', 'saved');
-     setCongratsUrl(result.siteUrl);
-     setShowCongrats(true);
+
+     // ── Close the onboarding popup, show quick success toast, open sidebar after 3s ──
      setSavingSite(false);
+     setIsOpen(false);
+     setCongratsUrl(result.siteUrl);
+
+     // Flash "Your site is saved" banner for 2 seconds
+     setShowCongrats(true);
+     setTimeout(() => {
+       setShowCongrats(false);
+       // After success banner fades, open the admin sidebar so they can see their data
+       if (onOpenSidebar) onOpenSidebar();
+     }, 3000);
+
+     // Fallback: also open sidebar after 5s even if something goes wrong
+     setTimeout(() => {
+       if (onOpenSidebar) onOpenSidebar();
+     }, 5000);
    } catch (err) {
      console.error('[PopupSaveSite] error:', err);
      setStripeError('Failed to save site. Check DevTools console.');
@@ -1351,65 +1367,29 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  )}
 
- {/* Site saved — ready to go live */}
- {showCongrats && (
- <div className="stripe-modal-backdrop" onClick={() => { setShowCongrats(false); }}>
- <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
- <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
- <h1 style={{ marginBottom: '12px' }}>Your site is saved!</h1>
- {congratsUrl ? (
- <>
- <p style={{ color: '#aaa', marginBottom: '20px', lineHeight: 1.6 }}>
- Your property site is ready. Push it live to Hostinger now.
- </p>
- <a href={congratsUrl} target="_blank" rel="noopener noreferrer"
- style={{ display: 'inline-block', marginBottom: '16px', color: '#C47756', fontWeight: 600, textDecoration: 'underline', fontSize: '1rem' }}>
- {congratsUrl}
- </a>
- <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
- <button
- onClick={() => {
-   // Trigger Go Live — use the phase state to kick off "Go Live" flow
-   if (onComplete) onComplete({ siteUrl: congratsUrl, phase: 'go_live' });
-   setShowCongrats(false);
+ {/* Quick success banner — 2 second auto-dismiss */}
+ {showCongrats && congratsUrl && (
+ <div
+ style={{
+ position: 'fixed',
+ top: '24px',
+ left: '50%',
+ transform: 'translateX(-50%)',
+ zIndex: 99999,
+ background: '#1a1a1a',
+ border: '1px solid #333',
+ borderRadius: '12px',
+ padding: '16px 28px',
+ textAlign: 'center',
+ boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+ minWidth: '320px',
  }}
- style={{ background: '#C47756', border: 'none', color: '#fff', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}
  >
- Go Live →
- </button>
- <button
- onClick={() => { setShowCongrats(false); }}
- style={{ background: 'transparent', border: '1px solid #555', color: '#aaa', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
- >
- Done
- </button>
- </div>
- </>
- ) : savingSite ? (
- <>
- <p style={{ color: '#aaa', marginBottom: '20px', lineHeight: 1.6 }}>Creating your site records...</p>
- <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}><div className="stripe-loading"><div className="spinner-ring" /></div></div>
- </>
- ) : (
- <>
- <p style={{ color: '#aaa', marginBottom: '24px', lineHeight: 1.6 }}>
- Your plan is active! Click below to save your property site now.
+ <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
+ <p style={{ color: '#fff', fontWeight: 600, fontSize: '1rem', margin: '0 0 4px 0' }}>
+ Your site "{websiteName || 'Your property'}" is successfully set up
  </p>
- <button
- onClick={handleSaveSiteInPopup}
- style={{ marginTop: '8px', background: '#C47756', border: 'none', color: '#fff', padding: '14px 32px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem', width: '100%' }}
- >
- Save My Site
- </button>
- <button
- onClick={() => { setShowCongrats(false); }}
- style={{ marginTop: '12px', background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '0.875rem' }}
- >
- Skip for now
- </button>
- </>
- )}
- </div>
+ <p style={{ color: '#888', fontSize: '0.8rem', margin: 0 }}>Opening sidebar…</p>
  </div>
  )}
 

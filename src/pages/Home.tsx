@@ -15,7 +15,7 @@ import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 
 const SURF_HOUSE_BAJA_ID = 'efa8d280-afee-4971-9145-d591740f484d';
 
-export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void; onSiteNameChange?: (name: string) => void }) {
+export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange, onOpenSidebar }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void; onSiteNameChange?: (name: string) => void; onOpenSidebar?: () => void }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [backgroundImages, setBackgroundImages] = useState<PropertyImage[]>([]);
@@ -489,6 +489,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         scrapedImages={scrapedImages}
         onSiteNameChange={onSiteNameChange}
         onComplete={undefined}
+        onOpenSidebar={onOpenSidebar}
       />
     </div>
   );

@@ -120,9 +120,8 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
       <footer className="bg-gray-50 border-t">
         {isEditing ? null : (
           <div className="redbanner">
-            <p className="text-base sm:text-lg font-medium">
-              Book Direct, No Airbnb Fees, Chat with Host.
-            </p>
+            {/* TODO: restore booking callout once Go Live is wired */}
+            {/* <p className="text-base sm:text-lg font-medium">Book Direct, No Airbnb Fees, Chat with Host.</p> */}
           </div>
         )}
         <div className={`copyright-footer${isEditing ?? false ? '' : ' footer-pad-top'}`}>
