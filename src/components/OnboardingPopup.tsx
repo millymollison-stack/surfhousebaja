@@ -212,7 +212,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
-         return_url: window.location.origin + window.location.pathname + '?paid=true',
+         return_url: window.location.origin + window.location.pathname + '?paid=true&tab=' + myTabId,
        }),
      });
      console.log('[openStripeGateway] response:', res.status, res.ok);
@@ -533,13 +533,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   if (!params.has('paid') || !params.has('session_id')) return;
   console.log('[DEBUG ?paid handler] URL has ?paid=true, myTabId=' + myTabId + ', stripe_redirect_initiated=' + sessionStorage.getItem('stripe_redirect_initiated'));
 
-  // Only handle ?paid=true in the tab that initiated the redirect
-  if (sessionStorage.getItem('stripe_redirect_initiated') !== myTabId) {
-    console.log('[DEBUG ?paid handler] NOT my tab (' + myTabId + '), ignoring');
+  // Only handle ?paid=true in the tab that initiated the redirect.
+  // We pass myTabId through the return_url query param so it's preserved across
+  // the page-unload/redirect/reload cycle (React state is lost on redirect).
+  const redirectTabId = params.get('tab');
+  if (redirectTabId !== myTabId) {
+    console.log('[DEBUG ?paid handler] NOT my tab (' + myTabId + ' vs redirect tab ' + redirectTabId + '), ignoring');
     window.history.replaceState({}, '', window.location.pathname);
     return;
   }
-  sessionStorage.removeItem('stripe_redirect_initiated');
 
   const sessionId = params.get('session_id')!;
 
@@ -748,7 +750,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
-         return_url: window.location.origin + window.location.pathname + '?paid=true',
+         return_url: window.location.origin + window.location.pathname + '?paid=true&tab=' + myTabId,
        }),
      });
 
