@@ -776,8 +776,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    setSavingSite(true);
    try {
      const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml } = await import('../services/siteDuplicationService');
-     const scrapedRaw = sessionStorage.getItem('popup_scraped_data');
-     const scrapedData = scrapedRaw ? JSON.parse(scrapedRaw) : null;
+     // Use popup's live scrapedData state (freshest — set when parent passes scrapedProperty)
+     // Don't rely on sessionStorage which may be empty/stale
      const data = {
        email: user.email,
        userId: user.id,
@@ -789,7 +789,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        hostingChoice: hostingChoice as 'our' | 'own',
        designChoice: designChoice,
        extras: { seo: extras.seo, ads: extras.ads, analytics: extras.analytics, social: extras.social },
-       scrapedData,
+       // Use the React state scrapedData — it's always fresher than sessionStorage
+       scrapedData: scrapedData || null,
        bankChoice: bankChoice,
      };
      const template = await loadTemplateHtml();
@@ -1350,16 +1351,16 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  )}
 
- {/* Subscription set up */}
+ {/* Site saved — ready to go live */}
  {showCongrats && (
  <div className="stripe-modal-backdrop" onClick={() => { setShowCongrats(false); }}>
  <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px' }} onClick={e => e.stopPropagation()}>
  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>✅</div>
- <h1 style={{ marginBottom: '12px' }}>Subscription Set Up!</h1>
+ <h1 style={{ marginBottom: '12px' }}>Your site is saved!</h1>
  {congratsUrl ? (
  <>
  <p style={{ color: '#aaa', marginBottom: '20px', lineHeight: 1.6 }}>
- Your site is saved! Visit it below.
+ Your property site is ready. Push it live to Hostinger now.
  </p>
  <a href={congratsUrl} target="_blank" rel="noopener noreferrer"
  style={{ display: 'inline-block', marginBottom: '16px', color: '#C47756', fontWeight: 600, textDecoration: 'underline', fontSize: '1rem' }}>
@@ -1367,8 +1368,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </a>
  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '12px' }}>
  <button
+ onClick={() => {
+   // Trigger Go Live — use the phase state to kick off "Go Live" flow
+   if (onComplete) onComplete({ siteUrl: congratsUrl, phase: 'go_live' });
+   setShowCongrats(false);
+ }}
+ style={{ background: '#C47756', border: 'none', color: '#fff', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem' }}
+ >
+ Go Live →
+ </button>
+ <button
  onClick={() => { setShowCongrats(false); }}
- style={{ background: '#C47756', border: 'none', color: '#fff', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+ style={{ background: 'transparent', border: '1px solid #555', color: '#aaa', padding: '12px 28px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
  >
  Done
  </button>

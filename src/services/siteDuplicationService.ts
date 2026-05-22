@@ -127,6 +127,7 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
         images: data.scrapedData?.images || [],
         stripeAccountId: data.userStripeAccountId || null,
         stripeAccountStatus: data.userStripeAccountId ? 'active' : null,
+        userId: data.userId,
       }),
     });
     const result = await res.json();

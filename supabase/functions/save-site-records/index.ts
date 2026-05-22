@@ -39,7 +39,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const { title, slug, description, location, maxGuests, bedrooms, beds, baths,
-            pricePerNight, heroImage, images, stripeAccountId, stripeAccountStatus } = body;
+            pricePerNight, heroImage, images, stripeAccountId, stripeAccountStatus,
+            userId } = body;
 
     console.log("[save-site-records] Inserting property:", title, slug);
 
@@ -67,6 +68,34 @@ Deno.serve(async (req: Request) => {
     if (propertyError) {
       console.error("[save-site-records] propertyError:", propertyError);
       throw new Error(`Property insert failed: ${propertyError.message}`);
+    }
+
+    console.log("[save-site-records] Property created:", propertyRecord.id);
+
+    // Also upsert onboarding_data so Home.tsx doesn't get duplicate-key errors on re-import
+    const { error: onboardingError } = await supabase
+      .from("onboarding_data")
+      .upsert(
+        {
+          user_id: userId || null,
+          property_name: title || "Untitled Property",
+          property_desc: description || "",
+          slug,
+          hero_image: heroImage || "",
+          images: images || [],
+          bedrooms: bedrooms ? String(bedrooms) : null,
+          beds: beds ? String(beds) : null,
+          baths: baths ? String(baths) : null,
+          guests: maxGuests ? String(maxGuests) : null,
+          price: pricePerNight ? String(pricePerNight) : null,
+          property_id: propertyRecord.id,
+        },
+        { onConflict: "slug" }
+      );
+
+    if (onboardingError) {
+      console.warn("[save-site-records] onboarding_data upsert warning:", onboardingError.message);
+      // Non-fatal — property was created successfully
     }
 
     console.log("[save-site-records] Success! propertyId:", propertyRecord.id);
