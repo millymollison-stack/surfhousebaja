@@ -801,23 +801,16 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('popup_site_url', result.siteUrl);
      sessionStorage.setItem('popup_site_phase', 'saved');
 
-     // ── Close the onboarding popup, show quick success toast, open sidebar after 3s ──
+     // ── Open the admin sidebar immediately so they can see their data ──
+     if (onOpenSidebar) onOpenSidebar();
+
+     // Flash "Your site is saved" banner for 2 seconds, then auto-close it
      setSavingSite(false);
      setIsOpen(false);
-     setCongratsUrl(result.siteUrl);
-
-     // Flash "Your site is saved" banner for 2 seconds
      setShowCongrats(true);
      setTimeout(() => {
        setShowCongrats(false);
-       // After success banner fades, open the admin sidebar so they can see their data
-       if (onOpenSidebar) onOpenSidebar();
-     }, 3000);
-
-     // Fallback: also open sidebar after 5s even if something goes wrong
-     setTimeout(() => {
-       if (onOpenSidebar) onOpenSidebar();
-     }, 5000);
+     }, 2000);
    } catch (err) {
      console.error('[PopupSaveSite] error:', err);
      setStripeError('Failed to save site. Check DevTools console.');

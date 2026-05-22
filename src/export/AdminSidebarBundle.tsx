@@ -795,7 +795,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }),
         supabase.from('property_images').select('id'),
         supabase.from('properties').select('*').limit(1).maybeSingle(),
-        supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(),
       ]);
 
       if (key !== dataKey) return; // stale response, discard
@@ -861,6 +861,18 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       setConnectData(data);
     } catch (err) { console.error(err); } finally { setConnectLoading(false); }
   };
+
+  // Listen for Stripe Connect account ID broadcast from OnboardingPopup / payment success
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d?.account_id) {
+        setConnectData(prev => prev ? { ...prev, account_id: d.account_id, charges_enabled: d.charges_enabled } : prev);
+      }
+    };
+    window.addEventListener('stripe-connect-updated', handler);
+    return () => window.removeEventListener('stripe-connect-updated', handler);
+  }, []);
 
   // Auto-refresh Stripe connect data when returning from Stripe onboarding
   useEffect(() => {

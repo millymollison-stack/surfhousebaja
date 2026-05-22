@@ -129,7 +129,7 @@ export const useAuth = create<AuthState>((set) => ({
       if (session?.user) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('*, stripe_account_id, stripe_account_status')
           .eq('id', session.user.id);
         console.log('[refreshUser] profileError:', profileError);
         console.log('[refreshUser] profile stripe_subscription_status:', profile?.[0]?.stripe_subscription_status);

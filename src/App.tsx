@@ -13,6 +13,7 @@ import { loadFontAccent } from './lib/fontAccent';
 import { loadBrandColor } from './lib/brandColor';
 import { Onboarding } from './pages/Onboarding';
 import { CustomerSite } from './pages/CustomerSite';
+import { Casablanca1 } from './pages/Casablanca1';
 import PaymentPage from './pages/PaymentPage';
 import { SaasAdminDashboard } from './pages/SaasAdminDashboard';
 
@@ -90,6 +91,7 @@ function AppContent() {
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/pay/:bookingId" element={<PaymentPage />} />
           <Route path="/props/:slug" element={<CustomerSite />} />
+          <Route path="/props/Casablanca1" element={<Casablanca1 />} />
           <Route path="/saas-admin" element={user?.role === 'saas_admin' ? <SaasAdminDashboard /> : <Navigate to="/" replace />} />
         </Routes>
       </Layout>
