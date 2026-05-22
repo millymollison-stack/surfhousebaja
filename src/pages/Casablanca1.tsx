@@ -9,7 +9,6 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { BookingCalendar } from '../components/BookingCalendar';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
-import './CustomerSite.css';
 
 export function Casablanca1() {
   const [property, setProperty] = useState<Property | null>(null);
@@ -19,13 +18,35 @@ export function Casablanca1() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Hardcoded demo data — used when no sessionStorage scraped data exists
+  const DEMO_DATA = {
+    title: 'Casablanca1',
+    location: 'Ensenada, Mexico',
+    description: 'Beautiful beachfront property with stunning ocean views. Steps from the beach, perfect for surfers and families alike.',
+    price: '150',
+    hero_image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+      'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80',
+      'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80',
+      'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=80',
+    ],
+    guests: 8,
+    bedrooms: 3,
+    beds: 4,
+    baths: 2,
+  };
+
   // Stored scraped data from sessionStorage (set during publish flow)
-  const [scrapedTitle] = useState(() => sessionStorage.getItem('popup_website_name') || 'Casablanca1');
-  const [scrapedDesc] = useState(() => sessionStorage.getItem('popup_website_desc') || '');
+  const [scrapedTitle] = useState(() => sessionStorage.getItem('popup_website_name') || null);
+  const [scrapedDesc] = useState(() => sessionStorage.getItem('popup_website_desc') || null);
   const [scrapedData] = useState<any>(() => {
     const raw = sessionStorage.getItem('popup_scraped_data');
     return raw ? JSON.parse(raw) : null;
   });
+
+  // Active data source: scraped session data takes priority, else demo
+  const activeData = scrapedData || DEMO_DATA;
 
   useEffect(() => {
     async function loadData() {
@@ -62,18 +83,18 @@ export function Casablanca1() {
             .eq('property_id', propData.id);
           setBlockedDates(blkData || []);
         } else {
-          // Build a synthetic property from scraped session data
+          // Build a synthetic property from scraped session data or demo fallback
           const synthetic: Property = {
             id: 'casablanca1-test',
             slug: 'casablanca1',
-            name: scrapedData?.title || scrapedTitle || 'Casablanca1',
-            description: scrapedData?.description || scrapedDesc || 'Beautiful property with stunning views.',
-            location: scrapedData?.location || 'Ensenada, Mexico',
-            price_per_night: parseFloat((scrapedData?.price || '150').replace(/[^0-9.]/g, '')) || 150,
-            max_guests: scrapedData?.guests || 8,
-            bedrooms: scrapedData?.bedrooms || 3,
-            beds: scrapedData?.beds || 4,
-            baths: scrapedData?.baths || 2,
+            name: activeData.title,
+            description: activeData.description,
+            location: activeData.location,
+            price_per_night: parseFloat((activeData.price || '150').replace(/[^0-9.]/g, '')) || 150,
+            max_guests: activeData.guests,
+            bedrooms: activeData.bedrooms,
+            beds: activeData.beds,
+            baths: activeData.baths,
             amenities: '',
             user_id: '',
             created_at: new Date().toISOString(),
@@ -81,9 +102,9 @@ export function Casablanca1() {
           };
           setProperty(synthetic);
 
-          // Build images from scraped data
-          if (scrapedData?.images?.length) {
-            setImages(scrapedData.images.map((url: string, i: number) => ({
+          // Build images from scraped data or demo fallback
+          if (activeData.images?.length) {
+            setImages(activeData.images.map((url: string, i: number) => ({
               id: `img-${i}`,
               property_id: 'casablanca1-test',
               url,
@@ -91,11 +112,11 @@ export function Casablanca1() {
               is_featured: i === 0,
               is_background: false,
             })));
-          } else if (scrapedData?.hero_image) {
+          } else if (activeData.hero_image) {
             setImages([{
               id: 'hero',
               property_id: 'casablanca1-test',
-              url: scrapedData.hero_image,
+              url: activeData.hero_image,
               position: 0,
               is_featured: true,
               is_background: false,
@@ -137,7 +158,7 @@ export function Casablanca1() {
     );
   }
 
-  const heroImage = images[0]?.url || scrapedData?.hero_image || '/template/surfhousebaja-main.jpg';
+  const heroImage = images[0]?.url || activeData.hero_image || '/template/surfhousebaja-main.jpg';
   const galleryImages = images.slice(1);
 
   return (

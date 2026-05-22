@@ -90,8 +90,8 @@ function AppContent() {
           <Route path="/property-admin" element={user ? <PropertyAdmin /> : <Navigate to="/login" replace />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/pay/:bookingId" element={<PaymentPage />} />
-          <Route path="/props/:slug" element={<CustomerSite />} />
           <Route path="/props/Casablanca1" element={<Casablanca1 />} />
+          <Route path="/props/:slug" element={<CustomerSite />} />
           <Route path="/saas-admin" element={user?.role === 'saas_admin' ? <SaasAdminDashboard /> : <Navigate to="/" replace />} />
         </Routes>
       </Layout>
