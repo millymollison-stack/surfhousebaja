@@ -219,8 +219,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      const data = await res.json();
      console.log('[openStripeGateway] data:', data);
      if (data.url) {
-       sessionStorage.setItem('stripe_redirect_pending', '1');
-       console.log('[DEBUG] stripe_redirect_pending SET, href=' + data.url);
+       sessionStorage.setItem('stripe_redirect_initiated', myTabId);
+       console.log('[DEBUG] stripe_redirect_initiated SET=' + myTabId + ', href=' + data.url);
        window.location.href = data.url;
      } else {
        setStripeError(data.error || 'Payment failed. Please try again.');
@@ -524,20 +524,28 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  setShowStripeConnectSuccess(true);
  }, []);
 
+ const [myTabId] = useState(() => Math.random().toString(36).slice(2, 10));
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
  // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
  useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   if (!params.has('paid') || !params.has('session_id')) return;
-  console.log('[DEBUG ?paid handler] URL has ?paid=true, stripe_redirect_pending=' + !!sessionStorage.getItem('stripe_redirect_pending'));
+  console.log('[DEBUG ?paid handler] URL has ?paid=true, myTabId=' + myTabId + ', stripe_redirect_initiated=' + sessionStorage.getItem('stripe_redirect_initiated'));
+
+  // Only handle ?paid=true in the tab that initiated the redirect
+  if (sessionStorage.getItem('stripe_redirect_initiated') !== myTabId) {
+    console.log('[DEBUG ?paid handler] NOT my tab (' + myTabId + '), ignoring');
+    window.history.replaceState({}, '', window.location.pathname);
+    return;
+  }
+  sessionStorage.removeItem('stripe_redirect_initiated');
 
   const sessionId = params.get('session_id')!;
 
-  // Clear URL params without reload
+  // Clear params from URL without reload
   window.history.replaceState({}, '', window.location.pathname);
-  console.log('[DEBUG ?paid handler] Cleared URL, setting stripe_payment_done=1');
-  sessionStorage.removeItem('stripe_redirect_pending');
+  console.log('[DEBUG ?paid handler] Cleared URL, myTabId=' + myTabId);
   sessionStorage.setItem('stripe_payment_done', '1');
 
   setStripeProcessing(true);
