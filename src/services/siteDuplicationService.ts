@@ -139,7 +139,7 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
   } catch (err) {
     console.error('[createNewSiteRecords] Error:', err);
     throw err;
-  return { propertyId, siteUrl: `https://propbook.pro/props/${slug}`, slug };
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -182,7 +182,7 @@ export async function goLiveSite(propertyId: string, slug: string, html: string)
   console.log('[goLive] HTML written');
 
   // Mark site as active in Supabase
-  await supabase
+  await supabaseAdmin
     .from('properties')
     .update({
       status: 'active',
