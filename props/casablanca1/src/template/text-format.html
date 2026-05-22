@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Format - Style Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style id="editable-styles">
+        /* ============================================
+           EDITABLE CSS SECTION - Modify styles here!
+           ============================================ */
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .section {
+            padding: 60px 24px;
+            margin-bottom: 2px;
+        }
+        
+        .section-dark {
+            background: #0a0a0a;
+        }
+        
+        .section-light {
+            background: #f5f5f5;
+        }
+        
+        .section-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 400;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .h2 {
+            font-size: 1.1rem;
+            text-decoration: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #fff;
+            background: #8B0000;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 8px 0;
+        }
+        
+        .h3 {
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            font-weight: 300;
+            font-style: normal;
+            text-transform: capitalize;
+            line-height: 1.5;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .h4 {
+            font-size: 0.8rem;
+            line-height: 1.5;
+            text-transform: capitalize;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 20px;
+        }
+        
+        .h5 {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 30px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #8B0000;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 8px 0;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            padding: 12px 16px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 300px;
+            margin: 8px 0;
+        }
+        
+        .section-light input[type="text"],
+        .section-light input[type="email"],
+        .section-light input[type="password"] {
+            background: white;
+            border: 1px solid #ddd;
+            color: #333;
+        }
+        
+        ul {
+            text-align: left;
+            max-width: 400px;
+            margin: 20px auto;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .section-light ul {
+            color: #333;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .pricing-card {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 16px;
+            display: inline-block;
+            text-align: left;
+            min-width: 200px;
+        }
+        
+        .section-light .pricing-card {
+            background: white;
+            border: 1px solid #ddd;
+        }
+        
+        .callout-section {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin: 40px 0;
+        }
+        
+        .callout-item {
+            text-align: center;
+        }
+        
+        .hero-text {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .section-light .hero-text {
+            color: #333;
+        }
+        
+        .icon-placeholder {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        
+        .section-light .icon-placeholder {
+            background: #eee;
+        }
+        
+        /* Hero section */
+        .hero-section {
+            background: url('http://localhost:5173/hero-bg.jpg') center/cover no-repeat;
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+        }
+        
+        .hero-content {
+            position: relative;
+            top: 100px;
+            max-width: 500px;
+            width: 84%;
+            z-index: 1;
+            padding: clamp(24px, 5vw, 50px) clamp(16px, 3vw, 32px);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            border-radius: 12px;
+        }
+        
+        /* Edit toggle button */
+        #edit-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px 20px;
+            background: #C47756;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        #css-editor {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            padding: 40px;
+            overflow: auto;
+        }
+        
+        #css-editor.visible {
+            display: block;
+        }
+        
+        .editor-container {
+            display: flex;
+            gap: 20px;
+            height: 80vh;
+        }
+        
+        .editor-panel {
+            flex: 1;
+        }
+        
+        .editor-panel h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .editor-panel textarea {
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        
+        .editor-panel.html-panel textarea {
+            color: #ff0;
+        }
+        
+        #css-editor button {
+            margin-top: 16px;
+            padding: 12px 24px;
+            background: #22c55e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 12px;
+        }
+        
+        #css-editor button.cancel {
+            background: #666;
+        }
+        
+        @media (max-width: 540px) {
+            .h1, .h2, .h3 {
+                font-size: 1.7rem;
+            }
+            .h4 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="edit-toggle" onclick="toggleEditor()">Edit CSS & HTML</button>
+    
+    <!-- CSS & HTML Editor Overlay -->
+    <div id="css-editor">
+        <div class="editor-container">
+            <div class="editor-panel">
+                <h2>Edit CSS</h2>
+                <textarea id="css-input"></textarea>
+            </div>
+            <div class="editor-panel html-panel">
+                <h2>Edit HTML</h2>
+                <textarea id="html-input"></textarea>
+            </div>
+        </div>
+        <br>
+        <button onclick="applyChanges()">Apply Changes</button>
+        <button class="cancel" onclick="toggleEditor()">Cancel</button>
+    </div>
+
+    <!-- PAGE CONTENT START -->
+    <div id="page-content">
+    
+    <!-- P1 -->
+    <div class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="h1">Your property deserves its own website.</h1>
+            <h3 class="h3">And you deserve to avoid competing on the same platform as every other host in your area.</h3>
+            <button class="h2">GET YOUR OWN SITE</button>
+            <h3 class="h3">Stand out from the crowd with your own vacation property booking website.</h3>
+            <h3 class="h3">View an example site to see exactly what you'll get.</h3>
+        </div>
+    </div>
+
+    <!-- P2 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Hosting isn't what it used to be—so we built our own simple, beautiful short-term rental booking site.</h1>
+            <h3 class="h3">We turned our business around, and now we're offering it to other smart hosts.</h3>
+            <h3 class="h3">It's time to take control.</h3>
+            <h3 class="h3">No Airbnb Fees</h3>
+            <h4 class="h4">Keep 100% of your booking revenue. Pay your own taxes.</h4>
+            <h3 class="h3">No Competing Listings</h3>
+            <h4 class="h4">Shine in your own space—no more clicks to cheaper options.</h4>
+            <h3 class="h3">Easy Management</h3>
+            <h4 class="h4">Simple calendar, review control, emailed booking requests.</h4>
+            <h3 class="h3">Your Own Brand</h3>
+            <h4 class="h4">Custom domains, logos, photos, and descriptions.</h4>
+            <h3 class="h3">Secure Payments</h3>
+            <h4 class="h4">Stripe payments with instant payouts to Venmo, PayPal, or your bank.</h4>
+            <h3 class="h3">No Call Center</h3>
+            <h4 class="h4">Your property, your guests, your direct relationships.</h4>
+            <h3 class="h3">Now let us build your gorgeous, custom site that reflects your property's personality—and gets you paid your way.</h3>
+        </div>
+    </div>
+
+    <!-- P3 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Your property is unique. Your website should be too.</h1>
+            <p style="color: rgba(255,255,255,0.6); margin-top: 40px;">[4-5 example site previews here]</p>
+        </div>
+    </div>
+
+    <!-- P4 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Create your own website in 3 simple steps.</h1>
+            <button class="h2">GET YOUR OWN SITE NOW</button>
+            <h3 class="h3">1. Paste Airbnb URL</h3>
+            <h4 class="h4">Paste your Airbnb listing link to auto-import photos and property details.</h4>
+            <h3 class="h3">2. Input Bank Details</h3>
+            <h4 class="h4">Connect your payout account. We support Venmo, PayPal, and direct bank transfers.</h4>
+            <h3 class="h3">3. Optimize and Publish</h3>
+            <h4 class="h4">Edit your listing, customize branding, and go live. Your site is ready!</h4>
+        </div>
+    </div>
+
+    <!-- P5 -->
+    <div class="section section-light">
+        <div class="section-content">
+            <h3 class="h3" style="color: #333;">Paste your Airbnb profile link here for an instant site preview.</h3>
+            <input type="text" placeholder="Airbnb Profile URL">
+            <h4 class="h4" style="color: #666;">Airbnb Profile URL</h4>
+            <button class="h2" style="background: #22c55e;">GET PREVIEW</button>
+            <h3 class="h3" style="color: #333;">Ready to build your full site and publish?</h3>
+            <button class="h2">GET YOUR OWN SITE NOW</button>
+        </div>
+    </div>
+
+    <!-- P6 -->
+    <div class="section section-dark">
+        <div class="section-content">
+            <h1 class="h1">Hosts are going independent—you can too.</h1>
+            <h3 class="h3">Generate your fully branded booking website in minutes. Get an off-platform presence optimized for AI search.</h3>
+            <div class="callout-section">
+                <div class="callout-item">
+                    <div class="icon-placeholder">📊</div>
+                    <div class="hero-text">94%</div>
+                    <h4 class="h4">Occupancy Rates</h4>
+                </div>
+                <div class="callout-item">
+                    <div class="icon-placeholder">👍</div>
+                    <div class="hero-text">4.9*</div>
+                    <h4 class="h4">Guest Satisfaction</h4>
+                </div>
+                <div class="callout-item">
+                    <div class="icon-placeholder">📊</div>
+                    <div class="hero-text">96%</div>
+                    <h4 class="h4">Host Satisfaction</h4>
+                </div>
+            </div>
+            <h3 class="h3">You don't need a platform. You need a presence.</h3>
+        </div>
+    </div>
+
+    <!-- P7 -->
+    <div class="section section-light">
+        <div class="section-content">
+            <h1 class="h1" style="color: #333;">Simple Pricing Plans</h1>
+            <h3 class="h3" style="color: #333;">Auto-pay monthly while your site works for you. Cancel anytime.</h3>
+            <div>
+                <div class="pricing-card">
+                    <h1 class="h1" style="color: #333; font-size: 1.2rem;">Starter</h1>
+                    <h3 class="h3" style="color: #333;">$10/mo (1st month free)</h3>
+                    <h4 class="h4" style="color: #666;">1 Property</h4>
+                    <h4 class="h4" style="color: #666;">Custom Website</h4>
+                    <h4 class="h4" style="color: #666;">Budget Hosting</h4>
+                    <h4 class="h4" style="color: #666;">Email Support</h4>
+                </div>
+                <div class="pricing-card">
+                    <h1 class="h1" style="color: #333; font-size: 1.2rem;">Pro</h1>
+                    <h3 class="h3" style="color: #333;">$30/mo</h3>
+                    <h4 class="h4" style="color: #666;">Everything in Starter +</h4>
+                    <h4 class="h4" style="color: #666;">5 Properties</h4>
+                    <h4 class="h4" style="color: #666;">Custom Domain</h4>
+                    <h4 class="h4" style="color: #666;">Priority Support</h4>
+                </div>
+                <div class="pricing-card">
+                    <h1 class="h1" style="color: #333; font-size: 1.2rem;">Agency</h1>
+                    <h3 class="h3" style="color: #333;">$150/mo</h3>
+                    <h4 class="h4" style="color: #666;">Everything in Starter & Pro +</h4>
+                    <h4 class="h4" style="color: #666;">50 Properties</h4>
+                    <h4 class="h4" style="color: #666;">White Label Service</h4>
+                    <h4 class="h4" style="color: #666;">Dedicated Support</h4>
+                </div>
+            </div>
+            <div class="pricing-card" style="margin-top: 20px;">
+                <h1 class="h1" style="color: #333; font-size: 1.2rem;">Extras</h1>
+                <h3 class="h3" style="color: #333;">$100/mo</h3>
+                <h4 class="h4" style="color: #666;">AI SEO</h4>
+                <h4 class="h4" style="color: #666;">Ads & Marketing</h4>
+                <h4 class="h4" style="color: #666;">Analytics</h4>
+                <h4 class="h4" style="color: #666;">Social Media Support</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- P8 -->
+    <div class="section section-dark" style="background: #C47756;">
+        <div class="section-content">
+            <h1 class="h1">Ready to Get Started?</h1>
+            <h3 class="h3">Join hundreds of properties—our friends' listings and new vacation rental hosts—earning more while doing less.</h3>
+            <button class="h2">BUILD YOUR SITE NOW</button>
+            <h5 class="h5">OffAirbnb.Pro - Create Your Own Vacation Rental Website © 2026</h5>
+        </div>
+    </div>
+
+    <!-- P9 -->
+    <div class="section section-dark">
+        <div class="section-content" style="text-align: left; max-width: 600px;">
+            <h1 class="h1">Create your site</h1>
+            <h3 class="h3">Build your own site using these key endpoints. You can edit everything later from your site's dashboard.</h3>
+            
+            <h1 class="h1" style="font-size: 1.2rem; margin-top: 40px;">Sign in and create your admin account</h1>
+            <input type="email" placeholder="Email">
+            <h4 class="h4">Email</h4>
+            <input type="password" placeholder="Password">
+            <h4 class="h4">Password</h4>
+            <ul>
+                <li>Choose admin account</li>
+            </ul>
+            <input type="email" placeholder="Booking notifications email">
+            <h4 class="h4">Email to send booking notifications to</h4>
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">[Off‑page process: Email verification]</p>
+            
+            <h3 class="h3" style="margin-top: 40px;">Sign in (popup)</h3>
+            <input type="email" placeholder="Email">
+            <h4 class="h4">Email</h4>
+            <input type="password" placeholder="Password">
+            <h4 class="h4">Password</h4>
+            
+            <h3 class="h3" style="margin-top: 40px;">Once you've selected your endpoints, you'll receive a hosted website that you can open on your phone or desktop browser to add photos, edit text, and manage bookings at your convenience.</h3>
+            
+            <h3 class="h3" style="margin-top: 30px;">Choose which options to auto‑populate in that template now.</h3>
+            
+            <h3 class="h3">1. Choose your preferred payout method</h3>
+            <ul>
+                <li>Bank</li>
+                <li>Venmo</li>
+                <li>PayPal</li>
+            </ul>
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">[3rd‑party popup: Secure popup for 3rd‑party payment integration]</p>
+            
+            <h3 class="h3" style="margin-top: 30px;">2. Design your website</h3>
+            <ul>
+                <li>Manual photo and text upload – Free</li>
+                <li>Airbnb profile import – $10</li>
+            </ul>
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">[Color picker: Pick your brand color]</p>
+            
+            <h3 class="h3" style="margin-top: 30px;">3. Name your property</h3>
+            <input type="text" placeholder="Website name">
+            <h4 class="h4">Website name</h4>
+            <input type="text" placeholder="Website description">
+            <h4 class="h4">Website description</h4>
+            <h3 class="h3">Check your property name against available URLs so you can buy that domain and point it to your hosting server.</h3>
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">[3rd‑party popup: Integrate namecheap for domain name check]</p>
+            
+            <h3 class="h3" style="margin-top: 30px;">4. Hosting (where your website is stored)</h3>
+            <ul>
+                <li>Your own server – Free</li>
+                <li>Published to the server we use with a subdomain URL – $5 per month</li>
+            </ul>
+            
+            <h3 class="h3" style="margin-top: 30px;">Subscription plan</h3>
+            <ul>
+                <li>Starter – $10, 1st month free</li>
+                <li>Professional – $30</li>
+                <li>Agency – $150</li>
+            </ul>
+            
+            <h3 class="h3" style="margin-top: 30px;">5. Checkout total</h3>
+            <h3 class="h3">Total: [calculated amount]</h3>
+            
+            <h3 class="h3" style="margin-top: 30px;">5. Payment credentials</h3>
+            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">[3rd‑party popup: Secure payment credentials entry]</p>
+            
+            <h3 class="h3" style="margin-top: 30px;">6. Optional extras<br>Select these options now and get a 25% discount when they become available.</h3>
+            <ul>
+                <li>AI SEO – $10</li>
+                <li>Ads & Marketing – $40 per month</li>
+                <li>Analytics – $20 per month</li>
+                <li>Social Media Support – $50 per month</li>
+            </ul>
+            
+            <h3 class="h3" style="margin-top: 30px;">7. Publish your site</h3>
+            <h3 class="h3">Click to agree to our Terms & Conditions and launch your very own short‑term rental booking site. Congratulations!</h3>
+            <button class="h2">PUBLISH MY SITE</button>
+        </div>
+    </div>
+    
+    </div>
+    <!-- PAGE CONTENT END -->
+
+    <script>
+        // Initialize textareas with current CSS and HTML
+        const styleElement = document.getElementById('editable-styles');
+        const cssInput = document.getElementById('css-input');
+        const htmlInput = document.getElementById('html-input');
+        const pageContent = document.getElementById('page-content');
+        
+        cssInput.value = styleElement.textContent;
+        htmlInput.value = pageContent.innerHTML;
+        
+        function toggleEditor() {
+            document.getElementById('css-editor').classList.toggle('visible');
+        }
+        
+        function applyChanges() {
+            const newCSS = cssInput.value;
+            const newHTML = htmlInput.value;
+            styleElement.textContent = newCSS;
+            pageContent.innerHTML = newHTML;
+            toggleEditor();
+        }
+        
+        // Close editor on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('css-editor').classList.remove('visible');
+            }
+        });
+    </script>
+</body>
+</html>

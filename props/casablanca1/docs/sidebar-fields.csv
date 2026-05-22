@@ -1,0 +1,27 @@
+Sidebar Fields — Offairbnb SaaS
+
+SECTION,FIELD,ADMIN (New Site Admin),GUEST,SaaS Admin,EDITABLE?,NOTES
+Site,Site URL,Offairbnb.com/Newsite,offairbnb.pro/newsite,Offairbnb.com,No,Read-only
+Site,Subhost / Own Domain,Yes — Enter DNS for own URL (editable field),Hidden,Yes — Edit DNS list for sites + Dev/Live/Push update,Yes (custom_domain field for admin only),SaaS admin sees dev sandbox + live site + push button
+Profile,Full Name,Yes,Yes,Yes,Yes,
+Profile,Email,Yes,Yes,Yes,Yes,
+Profile,Password,Yes,Yes,Yes,Yes,View mode shows ••••••••
+Profile,Phone,Yes,Yes,Yes,Yes,
+Property,Address,Yes (full edit),Address only (read),Yes (full edit),Yes (admin/saas_admin),Guest sees address read-only
+Property,Photos,Yes,No,Yes,Yes (button),Admin/SaaS admin only
+Property,Text,Yes,No,Yes,Yes (button),Admin/SaaS admin only
+Payout Account,Account Details,Yes — collapsible panel,Hidden,Yes,Yes (Stripe Account ID),New Site Admin: collapsible View Payouts panel
+Payout Account,Show History,Yes — link to Stripe dashboard,Hidden,Yes,No,
+Payout Account,Current Balance,Yes ($0.00),Hidden,Platform Balance ($0.00),No,
+Payout Account,Withdraw,Yes (button),Hidden,Yes (button),No,
+Guest Payments,2% Processing Fee,No,No,Yes,No,SaaS Admin only
+Guest Payments,Balance,No,No,Yes,No,SaaS Admin only
+Guest Payments,Withdrawals,No,No,Yes,No,SaaS Admin only
+Services,Marketing,Yes,No,No,No,New Site Admin only
+Services,Social,Yes,No,No,No,New Site Admin only
+Services,Ads,Yes,No,No,No,New Site Admin only
+Services,Analytics,Yes,No,No,No,New Site Admin only
+Services,Placeholder,No,No,Yes,No,"SaaS Admin: "Add tools here when developed""
+Bookings,All Bookings view,Yes (all property bookings),No,Yes (all bookings),No,SaaS Admin sees all, Admin sees all property, Guest sees own only
+Bookings,Pending/History,Yes,Pending/Contact,View data,No,
+Subscription,Payment / Billing History,Yes (Billing History),Yes (Billing History),Yes (Payment History),No,

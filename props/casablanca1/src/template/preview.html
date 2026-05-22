@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview - Vacation Rental Website</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #C47756;
+            --primary-dark: #a85f40;
+            --text-light: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.7);
+            --bg-card: rgba(255, 255, 255, 0.35);
+        }
+        
+        html { scroll-behavior: smooth; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.5;
+            color: var(--text-light);
+            background: #0a0a0a;
+        }
+
+        /* ===================== UPLOAD SECTION ===================== */
+        .upload-section {
+            background: #0a0a0a;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 24px;
+        }
+        
+        .preview-container {
+            position: relative;
+            top: auto;
+            z-index: 10;
+            max-width: 450px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 25px 20px 15px 20px;
+            text-align: center;
+        }
+        
+        .preview-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: nowrap;
+            justify-content: center;
+        }
+        
+        .preview-input {
+            flex: 1;
+            min-width: 200px;
+            max-width: 200px;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+            backdrop-filter: blur(8px);
+        }
+        
+        .preview-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .preview-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .preview-btn {
+            padding: 14px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .preview-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* ===================== PREVIEW SECTION ===================== */
+        .preview-section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 20px;
+        }
+        
+        .embedded-laptop {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            background: #1a1a1a;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+        }
+        
+        .el-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('hero-bg.jpg') center/cover no-repeat;
+            opacity: 0.3;
+        }
+        
+        .el-nav {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .el-nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .el-nav-icon {
+            font-size: 1.2rem;
+            color: white;
+        }
+        
+        .el-nav-brand {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .el-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .el-nav-link {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+        }
+        
+        .el-nav-cta {
+            padding: 6px 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .el-content {
+            position: relative;
+            padding: 40px 24px;
+            text-align: center;
+        }
+        
+        .el-title {
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 12px;
+        }
+        
+        .el-description {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 20px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .el-price-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        
+        .el-price {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .el-price span {
+            font-size: 0.9rem;
+            font-weight: 400;
+            opacity: 0.8;
+        }
+        
+        .el-details {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .el-detail {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .el-bottom {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        
+        .el-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .el-rating-text {
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .el-reviews {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+        }
+        
+        .el-book-btn {
+            padding: 10px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- UPLOAD SECTION -->
+    <section class="upload-section">
+        <h1 style="font-family: 'Inter', sans-serif; font-size: clamp(1.2rem, 2.7vw, 1.65rem); font-weight: 400; text-transform: uppercase; margin-bottom: 24px; color: rgba(255, 255, 255, 0.85);">Post your property photo to see it in the layout below.</h1>
+        <div class="preview-container">
+            <div class="preview-input-group">
+                <input type="text" class="preview-input" placeholder="Upload property">
+                <button class="preview-btn">View It</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- PREVIEW SECTION -->
+    <section class="preview-section">
+        <!-- Embedded Laptop Page -->
+        <div class="embedded-laptop">
+            <div class="el-bg"></div>
+            <nav class="el-nav">
+                <div class="el-nav-logo">
+                    <span class="el-nav-icon">◈</span>
+                    <span class="el-nav-brand">LuxSpace.Pro</span>
+                </div>
+                <div class="el-nav-links">
+                    <a href="#" class="el-nav-link">Sign in</a>
+                    <button class="el-nav-cta">Sign up</button>
+                </div>
+            </nav>
+            <div class="el-content">
+                <h1 class="el-title">Your Luxury City Retreat</h1>
+                <p class="el-description">Elegant, ultra-comfy New York city apartment with plush interiors, premium amenities, and sweeping skyline views. Perfect for your next city vacation.</p>
+                <div class="el-price-row">
+                    <div class="el-price">$250 <span>/ night</span></div>
+                </div>
+                <div class="el-details">
+                    <div class="el-detail"><span>3 Beds</span></div>
+                    <div class="el-detail"><span>2 Baths</span></div>
+                    <div class="el-detail"><span>6 Guests</span></div>
+                    <div class="el-detail"><span>Fast WiFi</span></div>
+                </div>
+            </div>
+            <div class="el-bottom">
+                <div class="el-rating">
+                    <span class="el-rating-text">★★★★★ 4.97</span>
+                    <span class="el-reviews">(128 reviews)</span>
+                </div>
+                <button class="el-book-btn">Book Now</button>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Airbnb Import Template - Data Storage
+
+## Listing 1: *Bubble Room
+- URL: https://www.airbnb.com/rooms/770977353146978466
+- Hero Image URL: https://a0.muscache.com/im/pictures/hosting/Hosting-U3RheVN1cHBseUxpc3Rpbmc6NzcwOTc3MzUzMTQ2OTc4NDY2/original/3ce594db-3c7a-459d-a78e-9773c45b8403.jpeg
+- Local File: bubble-room.jpg
+- Price: (requires date selection - not scraped)
+- Title: *Bubble Room
+- Location: Private room in dome in Mexico
+- Details: 2 guests, 1 bedroom, 1 bed, 1 private bath
+- Reviews: 130
+- Rating: 4.76
+
+## Listing 2: @surfhousebaja
+- URL: https://www.airbnb.com/rooms/1569039869816457609
+- Hero Image URL: (to be scraped)
+- Local File: surfhousebaja-main.jpg
+- Price: $350
+- Title: @surfhousebaja
+- Location: Ejido Mesa de San Jacinto, Mexico
+- Details: 8 guests, 4 bedrooms, 4 beds, 1 bath
+- Reviews: 1
+- Rating: 5
