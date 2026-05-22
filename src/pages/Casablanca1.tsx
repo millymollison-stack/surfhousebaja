@@ -5,7 +5,6 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { BookingCalendar } from '../components/BookingCalendar';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
@@ -18,7 +17,6 @@ export function Casablanca1() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Hardcoded demo data — used when no sessionStorage scraped data exists
   const DEMO_DATA = {
     title: 'Casablanca1',
     location: 'Ensenada, Mexico',
@@ -37,28 +35,23 @@ export function Casablanca1() {
     baths: 2,
   };
 
-  // Stored scraped data from sessionStorage (set during publish flow)
-  const [scrapedTitle] = useState(() => sessionStorage.getItem('popup_website_name') || null);
-  const [scrapedDesc] = useState(() => sessionStorage.getItem('popup_website_desc') || null);
   const [scrapedData] = useState<any>(() => {
     const raw = sessionStorage.getItem('popup_scraped_data');
     return raw ? JSON.parse(raw) : null;
   });
 
-  // Active data source: scraped session data takes priority, else demo
   const activeData = scrapedData || DEMO_DATA;
 
   useEffect(() => {
     async function loadData() {
       try {
-        // Load property by slug 'casablanca1' from Supabase
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('*')
           .eq('slug', 'casablanca1')
           .maybeSingle();
 
-        if (propError) console.warn('No DB property found for casablanca1, using scraped data');
+        if (propError) console.warn('No DB property found, using demo data:', propError.message);
 
         if (propData) {
           setProperty(propData);
@@ -83,7 +76,6 @@ export function Casablanca1() {
             .eq('property_id', propData.id);
           setBlockedDates(blkData || []);
         } else {
-          // Build a synthetic property from scraped session data or demo fallback
           const synthetic: Property = {
             id: 'casablanca1-test',
             slug: 'casablanca1',
@@ -102,7 +94,6 @@ export function Casablanca1() {
           };
           setProperty(synthetic);
 
-          // Build images from scraped data or demo fallback
           if (activeData.images?.length) {
             setImages(activeData.images.map((url: string, i: number) => ({
               id: `img-${i}`,
@@ -163,7 +154,6 @@ export function Casablanca1() {
 
   return (
     <div className="customer-site">
-      {/* Hero */}
       <div className="cs-hero" style={{ backgroundImage: `url(${heroImage})` }}>
         <div className="cs-hero-overlay">
           <h1 className="cs-title" style={{ fontFamily: 'var(--font-accent, Playfair Display)' }}>
@@ -175,26 +165,23 @@ export function Casablanca1() {
         </div>
       </div>
 
-      {/* Body */}
       <div className="cs-body">
         <div className="cs-main">
           <div className="cs-section">
             <h2>About this place</h2>
-            <p>{property.description || scrapedDesc || 'A beautiful property with stunning views.'}</p>
+            <p>{property.description || 'A beautiful property with stunning views.'}</p>
           </div>
 
-          {/* Property Details */}
           <div className="cs-section">
             <h2>Details</h2>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.95rem', color: '#555' }}>
               {property.max_guests && <span>👤 Up to {property.max_guests} guests</span>}
               {property.bedrooms && <span>🛏️ {property.bedrooms} bedrooms</span>}
               {property.beds && <span>🛁 {property.beds} beds</span>}
-              {property.beds && <span>🚿 {property.baths} baths</span>}
+              {property.baths && <span>🚿 {property.baths} baths</span>}
             </div>
           </div>
 
-          {/* Gallery */}
           {galleryImages.length > 0 && (
             <div className="cs-section">
               <h2>Gallery</h2>
@@ -206,7 +193,6 @@ export function Casablanca1() {
             </div>
           )}
 
-          {/* Booking Calendar */}
           <div className="cs-section">
             <h2>Availability</h2>
             <BookingCalendar
@@ -224,7 +210,6 @@ export function Casablanca1() {
           </div>
         </div>
 
-        {/* Booking Sidebar */}
         <div className="cs-sidebar">
           <div className="cs-booking-card">
             <div className="cs-price">

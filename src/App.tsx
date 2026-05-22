@@ -60,6 +60,10 @@ function AppContent() {
     initialize();
     loadBrandColor();
     loadFontAccent();
+    // Clear stale onboarding session data so it doesn't override nav title
+    sessionStorage.removeItem('popup_website_name');
+    sessionStorage.removeItem('popup_website_desc');
+    sessionStorage.removeItem('popup_scraped_data');
   }, [initialize]);
 
   const handleSaveAll = async () => {
