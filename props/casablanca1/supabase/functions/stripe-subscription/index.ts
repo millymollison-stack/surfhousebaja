@@ -63,6 +63,26 @@ Deno.serve(async (req: Request) => {
           : sub.status === "past_due"
           ? "past_due"
           : "inactive";
+        // Extract plan, amount, interval, period_end for the UI
+        const item = sub.items.data[0];
+        const price = item?.price;
+        return new Response(
+          JSON.stringify({
+            status: sess.status,
+            subscription_id: sess.subscription,
+            customer_id: sess.customer,
+            sub_status: subStatus,
+            amount_total: sess.amount_total,
+            customer_email: sess.customer_details?.email,
+            // SubscriptionData fields for the sidebar UI
+            plan: price?.nickname || price?.lookup_key || (price?.unit_amount === 15000 ? 'agency' : price?.unit_amount === 3000 ? 'pro' : 'starter'),
+            amount: price?.unit_amount || 0,
+            interval: price?.recurring?.interval || 'month',
+            current_period_end: sub.current_period_end,
+            cancel_at_period_end: sub.cancel_at_period_end,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       return new Response(

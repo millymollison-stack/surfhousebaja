@@ -4,65 +4,88 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: "2023-10-16",
+    });
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !user) throw new Error("Unauthorized");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      throw new Error("Unauthorized");
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || profile.role !== "admin") {
+      throw new Error("Unauthorized: Admin access required");
+    }
 
     const { bookingId } = await req.json();
-    if (!bookingId) throw new Error("bookingId is required");
 
-    // Load booking and verify ownership (admin can refund any booking)
+    if (!bookingId) {
+      throw new Error("Missing required parameter: bookingId");
+    }
+
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
-      .select("*, property:properties(stripe_account_id)")
+      .select("*")
       .eq("id", bookingId)
       .maybeSingle();
 
-    if (bookingError || !booking) throw new Error("Booking not found");
-    if (booking.payment_status !== "paid") {
-      throw new Error("Cannot refund a booking that has not been paid");
+    if (bookingError || !booking) {
+      throw new Error("Booking not found");
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-
-    // Find the payment intent for this booking
     if (!booking.stripe_payment_intent_id) {
       throw new Error("No payment intent found for this booking");
     }
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id);
-
-    if (!paymentIntent.latest_charge) {
-      throw new Error("No charge found on this payment intent");
+    if (booking.payment_status === "refunded") {
+      throw new Error("This booking has already been refunded");
     }
 
-    const chargeId = paymentIntent.latest_charge as string;
-    const refund = await stripe.refunds.create({ charge: chargeId });
+    if (booking.payment_status !== "paid") {
+      throw new Error("Cannot refund a booking that has not been paid");
+    }
 
-    // Update booking status
-    await supabase
+    const refund = await stripe.refunds.create({
+      payment_intent: booking.stripe_payment_intent_id,
+      reason: "requested_by_customer",
+    });
+
+    const { error: updateError } = await supabase
       .from("bookings")
       .update({
         payment_status: "refunded",
@@ -71,15 +94,34 @@ Deno.serve(async (req: Request) => {
       })
       .eq("id", bookingId);
 
+    if (updateError) {
+      throw new Error(`Failed to update booking: ${updateError.message}`);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, refund_id: refund.id }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: true,
+        refundId: refund.id,
+        amount: refund.amount,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
     );
   } catch (error) {
-    console.error("process-refund error:", error.message);
+    console.error("Error processing refund:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
     );
   }
 });

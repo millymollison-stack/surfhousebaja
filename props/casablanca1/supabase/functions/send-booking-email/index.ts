@@ -1,247 +1,211 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
-interface BookingEmailRequest {
-  type: 'booking_request' | 'booking_pending' | 'booking_approved' | 'booking_confirmed' | 'booking_denied';
-  booking: {
-    id?: string;
-    start_date: string;
-    end_date: string;
-    guest_count: number;
-    total_price: number;
-    special_requests?: string;
-  };
-  user: {
-    id: string;
-    email: string;
-    full_name: string | null;
-    phone_number: string | null;
-  };
-  property: {
-    id: string;
-    title: string;
-  };
-  adminEmail: string;
-  adminName: string;
-  adminPhone?: string;
-  denialReason?: string;
-}
-
-async function sendEmail(to: string, subject: string, html: string) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({
-      from: 'Surf House Baja <hello@updates.mollisondavid.com>',
-      to: [to],
-      subject,
-      html,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Resend error:', error);
-    throw new Error(`Failed to send email: ${error}`);
-  }
-
-  return response.json();
-}
-
-function getEmailContent(data: BookingEmailRequest): { subject: string; html: string } {
-  const { type, booking, user, property, adminName, denialReason } = data;
-  const guestName = user.full_name || 'Guest';
-  const siteUrl = 'https://src-sigma-fawn.vercel.app';
-  const paymentLink = `${siteUrl}/pay/${booking.id || 'placeholder'}`;
-  
-  // Booking request - sent to ADMIN
-  if (type === 'booking_request') {
-    return {
-      subject: `New Booking Request - ${property.title}`,
-      html: `
-        <h1>New Booking Request</h1>
-        <p>You have a new booking request for <strong>${property.title}</strong>.</p>
-        
-        <h2>Guest Details</h2>
-        <ul>
-          <li><strong>Name:</strong> ${guestName}</li>
-          <li><strong>Email:</strong> ${user.email}</li>
-          <li><strong>Phone:</strong> ${user.phone_number || 'Not provided'}</li>
-        </ul>
-        
-        <h2>Booking Details</h2>
-        <ul>
-          <li><strong>Check-in:</strong> ${booking.start_date}</li>
-          <li><strong>Check-out:</strong> ${booking.end_date}</li>
-          <li><strong>Guests:</strong> ${booking.guest_count}</li>
-          <li><strong>Total Price:</strong> $${booking.total_price}</li>
-        </ul>
-        
-        ${booking.special_requests ? `<h2>Special Requests</h2><p>${booking.special_requests}</p>` : ''}
-        
-        <p>Log in to your admin dashboard to approve or deny this booking.</p>
-      `,
-    };
-  }
-
-  // Booking pending - sent to GUEST when they submit
-  if (type === 'booking_pending') {
-    return {
-      subject: `[PENDING] Booking Request Received - ${property.title}`,
-      html: `
-        <h1>Booking Request Received!</h1>
-        <p>Hi ${guestName},</p>
-        <p>Thank you for your booking request at <strong>${property.title}</strong>!</p>
-        
-        <h2>Your Booking Details</h2>
-        <ul>
-          <li><strong>Check-in:</strong> ${booking.start_date}</li>
-          <li><strong>Check-out:</strong> ${booking.end_date}</li>
-          <li><strong>Guests:</strong> ${booking.guest_count}</li>
-          <li><strong>Total Price:</strong> $${booking.total_price}</li>
-        </ul>
-        
-        <div style="background-color: #fef3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 0; font-weight: bold;">Your request is pending review</p>
-          <p style="margin: 10px 0 0 0;">The host will review your booking and send you a payment link once approved.</p>
-        </div>
-        
-        <p>You'll receive an email shortly with a payment link once the host approves your booking.</p>
-        
-        <p>- The ${property.title} Team</p>
-      `,
-    };
-  }
-  
-  // Booking approved - sent to GUEST with payment link
-  if (type === 'booking_approved') {
-    return {
-      subject: `[ACTION REQUIRED] Booking Approved - Complete Payment for ${property.title}`,
-      html: `
-        <h1>Great News! Your Booking is Approved</h1>
-        <p>Hi ${guestName},</p>
-        <p>Your booking request for <strong>${property.title}</strong> has been approved!</p>
-        
-        <h2>Your Booking Details</h2>
-        <ul>
-          <li><strong>Check-in:</strong> ${booking.start_date}</li>
-          <li><strong>Check-out:</strong> ${booking.end_date}</li>
-          <li><strong>Guests:</strong> ${booking.guest_count}</li>
-          <li><strong>Total Amount Due:</strong> $${booking.total_price}</li>
-        </ul>
-        
-        <div style="margin: 30px 0; text-align: center;">
-          <a href="${paymentLink}" style="background-color: #C47756; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
-            Pay Now - $${booking.total_price}
-          </a>
-        </div>
-        
-        <p>Click the button above to complete your payment and confirm your booking.</p>
-        <p>We look forward to hosting you!</p>
-        <p>- The ${property.title} Team</p>
-      `,
-    };
-  }
-  
-  // Booking confirmed - sent to GUEST after payment
-  if (type === 'booking_confirmed') {
-    return {
-      subject: `Booking Confirmed - ${property.title}`,
-      html: `
-        <h1>Booking Confirmed!</h1>
-        <p>Hi ${guestName},</p>
-        <p>Your booking at <strong>${property.title}</strong> has been confirmed!</p>
-        
-        <h2>Your Booking Details</h2>
-        <ul>
-          <li><strong>Check-in:</strong> ${booking.start_date}</li>
-          <li><strong>Check-out:</strong> ${booking.end_date}</li>
-          <li><strong>Guests:</strong> ${booking.guest_count}</li>
-          <li><strong>Total Price:</strong> $${booking.total_price}</li>
-        </ul>
-        
-        <p>We look forward to hosting you!</p>
-        <p>- The ${property.title} Team</p>
-      `,
-    };
-  }
-  
-  // Booking denied
-  if (type === 'booking_denied') {
-    return {
-      subject: `Booking Not Available - ${property.title}`,
-      html: `
-        <h1>Booking Update</h1>
-        <p>Hi ${guestName},</p>
-        <p>Unfortunately, your booking request for <strong>${property.title}</strong> could not be accommodated.</p>
-        ${denialReason ? `<p><strong>Reason:</strong> ${denialReason}</p>` : ''}
-        <p>We apologize for any inconvenience. Please try different dates or contact us directly.</p>
-      `,
-    };
-  }
-  
-  return {
-    subject: 'Booking Update',
-    html: '<p>Update regarding your booking.</p>',
-  };
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
-    if (req.method === 'OPTIONS') {
-      return new Response('ok', {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        },
-      });
-    }
+    const { 
+      type, 
+      booking, 
+      user, 
+      property, 
+      adminEmail, 
+      adminName, 
+      adminPhone,
+      denialReason 
+    } = await req.json()
 
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY not configured');
+      throw new Error('RESEND_API_KEY is not set')
     }
 
-    const data: BookingEmailRequest = await req.json();
-    console.log('Processing email request:', data.type);
+    let subject = ''
+    let htmlContent = ''
+    let toEmail = ''
 
-    let to: string;
-    let subject: string;
-    let html: string;
+    const formatDate = (dateString: string, includeTime: boolean = false) => {
+      const formattedDate = new Date(dateString).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
 
-    if (data.type === 'booking_request') {
-      to = data.adminEmail;
-      const content = getEmailContent(data);
-      subject = content.subject;
-      html = content.html;
-    } else {
-      // booking_pending, booking_approved, booking_confirmed, booking_denied all go to guest
-      to = data.user.email;
-      const content = getEmailContent(data);
-      subject = content.subject;
-      html = content.html;
-    }
-
-    await sendEmail(to, subject, html);
-
-    return new Response(
-      JSON.stringify({ success: true, message: 'Email sent' }),
-      {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        status: 200,
+      if (includeTime) {
+        return formattedDate
       }
-    );
+
+      return formattedDate
+    }
+
+    const formatCheckIn = (dateString: string) => {
+      return `${formatDate(dateString)} at 3:00 PM`
+    }
+
+    const formatCheckOut = (dateString: string) => {
+      const checkoutDate = new Date(dateString)
+      checkoutDate.setDate(checkoutDate.getDate() + 1)
+      return `${formatDate(checkoutDate.toISOString())} at 11:00 AM`
+    }
+
+    const paymentInfo = `
+      <div style="background-color: #dbeafe; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <h3 style="color: #1e40af; margin: 0 0 12px 0; font-size: 16px;">Payment Information</h3>
+        <div style="color: #1e40af; font-size: 14px; line-height: 1.5;">
+          <div><strong>Venmo:</strong> @davidmollison</div>
+          <div><strong>PayPal:</strong> davidmollison1@gmail.com</div>
+          <p style="font-size: 12px; margin: 8px 0 0 0; color: #1d4ed8;">
+            Please make the payment before your booking can be approved. Include your booking dates in the payment note.
+          </p>
+          <p style="font-size: 12px; margin: 4px 0 0 0; color: #1d4ed8;">
+            Please reach out by phone to talk about your booking.
+          </p>
+        </div>
+      </div>
+    `
+
+    if (type === 'booking_request') {
+      // Email to admin about new booking request
+      subject = `New Booking Request - ${property.title}`
+      toEmail = adminEmail
+      
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1f2937;">New Booking Request</h2>
+          
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #374151; margin-top: 0;">Booking Details</h3>
+            <p><strong>Property:</strong> ${property.title}</p>
+            <p><strong>Guest:</strong> ${user.full_name || 'Unknown'}</p>
+            <p><strong>Email:</strong> ${user.email}</p>
+            <p><strong>Phone:</strong> ${user.phone_number || 'Not provided'}</p>
+            <p><strong>Check-in:</strong> ${formatCheckIn(booking.start_date)}</p>
+            <p><strong>Check-out:</strong> ${formatCheckOut(booking.end_date)}</p>
+            <p><strong>Guests:</strong> ${booking.guest_count}</p>
+            <p><strong>Total Price:</strong> $${booking.total_price}</p>
+            ${booking.special_requests ? `<p><strong>Special Requests:</strong> ${booking.special_requests}</p>` : ''}
+          </div>
+          
+          <p>Please review this booking request in your admin dashboard.</p>
+        </div>
+      `
+    } else if (type === 'booking_confirmed') {
+      // Email to guest about booking confirmation
+      subject = `Booking Confirmed - ${property.title}`
+      toEmail = user.email
+      
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #059669;">🎉 Your Booking is Confirmed!</h2>
+          
+          <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #065f46; margin-top: 0;">Booking Details</h3>
+            <p><strong>Property:</strong> ${property.title}</p>
+            <p><strong>Check-in:</strong> ${formatCheckIn(booking.start_date)}</p>
+            <p><strong>Check-out:</strong> ${formatCheckOut(booking.end_date)}</p>
+            <p><strong>Guests:</strong> ${booking.guest_count}</p>
+            <p><strong>Total Price:</strong> $${booking.total_price}</p>
+            ${booking.special_requests ? `<p><strong>Special Requests:</strong> ${booking.special_requests}</p>` : ''}
+          </div>
+
+          ${paymentInfo}
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #374151; margin-top: 0;">Contact Information</h3>
+            <p><strong>Property Manager:</strong> ${adminName}</p>
+            <p><strong>Email:</strong> ${adminEmail}</p>
+            ${adminPhone ? `<p><strong>Phone:</strong> ${adminPhone}</p>` : ''}
+          </div>
+          
+          <p>We're excited to host you! If you have any questions, please don't hesitate to reach out.</p>
+          
+          <p style="margin-top: 20px; font-style: italic; color: #6b7280;">
+            Looking forward to welcoming you to our surf house paradise! 🏄‍♂️🌊
+          </p>
+        </div>
+      `
+    } else if (type === 'booking_denied') {
+      // Email to guest about booking denial
+      subject = `Booking Update - ${property.title}`
+      toEmail = user.email
+      
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #dc2626;">Booking Update</h2>
+          
+          <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #991b1b; margin-top: 0;">Booking Details</h3>
+            <p><strong>Property:</strong> ${property.title}</p>
+            <p><strong>Check-in:</strong> ${formatCheckIn(booking.start_date)}</p>
+            <p><strong>Check-out:</strong> ${formatCheckOut(booking.end_date)}</p>
+            <p><strong>Guests:</strong> ${booking.guest_count}</p>
+            <p><strong>Total Price:</strong> $${booking.total_price}</p>
+          </div>
+          
+          <p>Unfortunately, we're unable to accommodate your booking request for the selected dates.</p>
+          
+          ${denialReason ? `
+            <div style="background-color: #fef3c7; padding: 16px; border-radius: 8px; margin: 16px 0;">
+              <p style="margin: 0;"><strong>Reason:</strong> ${denialReason}</p>
+            </div>
+          ` : ''}
+          
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #374151; margin-top: 0;">Contact Information</h3>
+            <p><strong>Property Manager:</strong> ${adminName}</p>
+            <p><strong>Email:</strong> ${adminEmail}</p>
+            ${adminPhone ? `<p><strong>Phone:</strong> ${adminPhone}</p>` : ''}
+          </div>
+          
+          <p>Please feel free to contact us about alternative dates or if you have any questions.</p>
+        </div>
+      `
+    }
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: 'SurfHouseBaja <bookings@updates.mollisondavid.com>',
+        to: [toEmail],
+        subject: subject,
+        html: htmlContent,
+      }),
+    })
+
+    if (!res.ok) {
+      const error = await res.text()
+      throw new Error(`Failed to send email: ${error}`)
+    }
+
+    const data = await res.json()
+    
+    return new Response(
+      JSON.stringify(data),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error sending email:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        status: 500,
-      }
-    );
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      },
+    )
   }
-});
+})

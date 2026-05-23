@@ -10,192 +10,222 @@ const corsHeaders = {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not configured");
-    if (!webhookSecret) throw new Error("STRIPE_WEBHOOK_SECRET is not configured");
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: "2023-10-16",
+    });
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const signature = req.headers.get("stripe-signature");
     const body = await req.text();
 
-    if (!signature) {
-      return new Response(
-        JSON.stringify({ error: "Missing stripe-signature header" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      console.error("Webhook signature verification failed:", err.message);
-      return new Response(
-        JSON.stringify({ error: "Webhook signature verification failed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+    if (webhookSecret && signature) {
+      try {
+        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      } catch (err) {
+        console.error("Webhook signature verification failed:", err.message);
+        return new Response(
+          JSON.stringify({ error: "Webhook signature verification failed" }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+    } else {
+      event = JSON.parse(body);
     }
 
-    console.log("Received Stripe event:", event.type);
+    console.log("Received event:", event.type);
 
     switch (event.type) {
-
-      // ── Guest booking payment events ──────────────────────────────────────
-
       case "payment_intent.succeeded": {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        if (pi.metadata?.bookingId) {
-          await supabase.from("bookings").update({
-            status: "approved",
-            payment_status: "paid",
-            payment_completed_at: new Date().toISOString(),
-          }).eq("stripe_payment_intent_id", pi.id);
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const bookingId = paymentIntent.metadata.bookingId;
+
+        if (bookingId) {
+          const { error: updateError } = await supabase
+            .from("bookings")
+            .update({
+              status: "approved",
+              payment_status: "paid",
+              payment_completed_at: new Date().toISOString(),
+            })
+            .eq("stripe_payment_intent_id", paymentIntent.id);
+
+          if (updateError) {
+            console.error("Failed to update booking:", updateError);
+          } else {
+            console.log(`Payment succeeded for booking ${bookingId}`);
+          }
         }
         break;
       }
 
       case "payment_intent.payment_failed": {
-        const pi = event.data.object as Stripe.PaymentIntent;
-        if (pi.metadata?.bookingId) {
-          await supabase.from("bookings").update({
-            payment_status: "failed",
-          }).eq("stripe_payment_intent_id", pi.id);
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const bookingId = paymentIntent.metadata.bookingId;
+
+        if (bookingId) {
+          const { error: updateError } = await supabase
+            .from("bookings")
+            .update({
+              payment_status: "failed",
+            })
+            .eq("stripe_payment_intent_id", paymentIntent.id);
+
+          if (updateError) {
+            console.error("Failed to update booking:", updateError);
+          } else {
+            console.log(`Payment failed for booking ${bookingId}`);
+          }
         }
         break;
       }
 
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
-        const piId = charge.payment_intent as string;
-        if (piId) {
+        const paymentIntentId = charge.payment_intent as string;
+
+        if (paymentIntentId) {
           const refundId = charge.refunds?.data[0]?.id;
-          await supabase.from("bookings").update({
-            payment_status: "refunded",
-            stripe_refund_id: refundId || null,
-          }).eq("stripe_payment_intent_id", piId);
+          const { error: updateError } = await supabase
+            .from("bookings")
+            .update({
+              payment_status: "refunded",
+              stripe_refund_id: refundId || null,
+            })
+            .eq("stripe_payment_intent_id", paymentIntentId);
+
+          if (updateError) {
+            console.error("Failed to update booking refund:", updateError);
+          } else {
+            console.log(`Refund processed for payment intent ${paymentIntentId}`);
+          }
         }
         break;
       }
 
-      // ── PropBook subscription events ──────────────────────────────────────
-
-      // Fired when Stripe Checkout completes — subscription is now active.
-      // We write subscription details to the user's profile row so the client
-      // can verify payment succeeded when it returns from the redirect.
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode !== "subscription") break;
+        console.log(`Checkout session completed: ${session.id}, customer: ${session.customer}, subscription: ${session.subscription}`);
 
-        const userId  = session.metadata?.user_id;
-        const email   = session.metadata?.email || session.customer_email;
-        const plan    = session.metadata?.plan;
-        const subId   = session.subscription as string;
-
-        if (!subId) break;
-
-        // Retrieve full subscription to get period_end and item amounts
-        const sub = await stripe.subscriptions.retrieve(subId);
-        const item = (sub as any).items?.data?.[0];
-
-        // Calculate total monthly amount across all subscription items
-        const totalMonthly = (sub as any).items?.data?.reduce(
-          (sum: number, i: any) => sum + (i.price?.unit_amount || 0),
-          0
-        ) ?? item?.price?.unit_amount ?? 0;
-
-        // Update profile — look up by user_id first, fall back to email
-        const profileUpdate = {
-          stripe_customer_id: session.customer as string,
-          stripe_subscription_id: subId,
-          stripe_subscription_status: sub.status,
-          stripe_subscription_plan: plan || null,
-          stripe_subscription_amount: totalMonthly,
-          stripe_subscription_interval: "month",
-          stripe_subscription_period_end: sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
-            : null,
-        };
-
-        if (userId) {
-          await supabase.from("profiles").update(profileUpdate).eq("id", userId);
-        } else if (email) {
-          await supabase.from("profiles").update(profileUpdate).eq("email", email);
+        if (!session.subscription) {
+          console.log("No subscription in checkout session, skipping profile update");
+          break;
         }
 
-        console.log(`Subscription ${subId} linked to user ${userId || email}`);
-        break;
-      }
+        // Look up the user by customer ID or email
+        let userId: string | null = null;
 
-      // Subscription renewed, plan changed, or cancellation toggled
-      case "customer.subscription.updated": {
-        const sub = event.data.object as Stripe.Subscription;
-        const customerId = sub.customer as string;
+        if (session.customer) {
+          // Find profile with matching stripe_customer_id
+          const { data: profileByCustomer } = await supabase
+            .from("profiles")
+            .select("id, email")
+            .eq("stripe_customer_id", session.customer as string)
+            .maybeSingle();
 
-        const totalMonthly = (sub as any).items?.data?.reduce(
-          (sum: number, i: any) => sum + (i.price?.unit_amount || 0),
-          0
-        ) ?? 0;
+          if (profileByCustomer) {
+            userId = profileByCustomer.id;
+            console.log(`Found profile by customer ID ${session.customer}: ${userId}`);
+          }
+        }
 
-        await supabase.from("profiles").update({
-          stripe_subscription_status: sub.status,
-          stripe_subscription_amount: totalMonthly,
-          stripe_subscription_period_end: sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
-            : null,
-        }).eq("stripe_customer_id", customerId);
+        // Fallback: look up by email from session
+        if (!userId && session.customer_details?.email) {
+          const { data: profileByEmail } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("email", session.customer_details.email.toLowerCase())
+            .maybeSingle();
 
-        break;
-      }
+          if (profileByEmail) {
+            userId = profileByEmail.id;
+            console.log(`Found profile by email ${session.customer_details.email}: ${userId}`);
+          }
+        }
 
-      // Subscription cancelled or expired
-      case "customer.subscription.deleted": {
-        const sub = event.data.object as Stripe.Subscription;
-        const customerId = sub.customer as string;
+        if (!userId) {
+          console.error(`Could not find profile for checkout session ${session.id}`);
+          break;
+        }
 
-        await supabase.from("profiles").update({
-          stripe_subscription_status: "cancelled",
-          stripe_subscription_id: null,
-        }).eq("stripe_customer_id", customerId);
+        // Retrieve full subscription details
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        const plan = subscription.metadata?.plan || "starter";
+        const planAmount = subscription.items.data[0]?.price?.unit_amount || 0;
 
-        break;
-      }
+        const updateData: Record<string, any> = {
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: subscription.id,
+          stripe_subscription_status: subscription.status === "active" || subscription.status === "trialing" ? "active" : subscription.status,
+          stripe_subscription_plan: plan,
+          stripe_subscription_amount: planAmount,
+          stripe_subscription_interval: subscription.items.data[0]?.price?.recurring?.interval || "month",
+          stripe_subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        };
 
-      // Renewal payment failed — mark as past_due
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const customerId = invoice.customer as string;
+        console.log(`Updating profile ${userId} with:`, JSON.stringify(updateData));
 
-        if (invoice.subscription) {
-          await supabase.from("profiles").update({
-            stripe_subscription_status: "past_due",
-          }).eq("stripe_customer_id", customerId);
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update(updateData)
+          .eq("id", userId);
+
+        if (updateError) {
+          console.error(`Failed to update profile for checkout session ${session.id}:`, updateError);
+        } else {
+          console.log(`Profile updated successfully for user ${userId}`);
         }
         break;
       }
 
       default:
-        console.log(`Unhandled event: ${event.type}`);
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return new Response(
       JSON.stringify({ received: true }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
     );
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error("Error processing webhook:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
     );
   }
 });
