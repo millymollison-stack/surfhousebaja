@@ -51,6 +51,9 @@ const destLabel = SLUG ? `props/${SLUG}/` : 'root (public_html/)';
 console.log(`=== PropBook Deploy → Hostinger ===`);
 console.log(`Target: ${destLabel} on propbook.pro\n`);
 
+// 0. Debug: show PROJECT_DIR contents
+run(`ls -la "${PROJECT_DIR}"`, 'DEBUG');
+
 // 1. Build
 run('cd src && npm run build', 'BUILD');
 
