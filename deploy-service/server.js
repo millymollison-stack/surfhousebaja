@@ -15,18 +15,11 @@ const { spawn } = require('child_process');
 const path = require('path');
 const crypto = require('crypto');
 
-// Railway clones the repo and runs from repo root.
-// __dirname = /repo-root/deploy-service (where server.js lives).
-// The deploy script lives at repo-root/deploy-to-hostinger.js
-// Railway root dir = repo root. deploy-service/ is a subdir.
-// __dirname = /repo-root/deploy-service (or /app on some hosts).
-// deploy-to-hostinger.js lives at /repo-root/deploy-to-hostinger.js
-const REPO_ROOT = path.join(__dirname, '..');
+// Railway maps rootDirectory=deploy-service/ → /app/ in the container.
+// __dirname of server.js = /app/. So server.js is at /app/server.js.
+// deploy-to-hostinger.js is at /app/deploy-to-hostinger.js (alongside src/).
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
-// Railway clones the repo and runs the start command from deploy-service/.
-// __dirname = /app/deploy-service/ (container path).
-// Repo root = parent dir = path.join(__dirname, '..').
 const DEPLOY_SCRIPT = path.resolve(__dirname, 'deploy-to-hostinger.js');
 
 const app = express();
@@ -53,7 +46,6 @@ app.post('/deploy', async (req, res) => {
   }
 
   console.log(`[deploy-service] 🚀 Deploy triggered for slug="${slug}", propertyId="${propertyId}"`);
-  console.log(`[deploy-service] DEBUG: __dirname=${__dirname}, parent=${path.join(__dirname, '..')}`);
 
   // Collect stdout/stderr
   let logs = '';
@@ -61,7 +53,7 @@ app.post('/deploy', async (req, res) => {
 
   try {
     const deployProcess = spawn('node', [DEPLOY_SCRIPT, slug, propertyId], {
-      cwd: path.join(__dirname, '..'), // repo root (parent of deploy-service/)
+      cwd: __dirname, // /app/ in container
       env: { ...process.env, DEPLOY_SLUG: slug, DEPLOY_PROPERTY_ID: propertyId },
     });
 
