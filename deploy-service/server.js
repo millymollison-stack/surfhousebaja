@@ -53,6 +53,7 @@ app.post('/deploy', async (req, res) => {
   }
 
   console.log(`[deploy-service] 🚀 Deploy triggered for slug="${slug}", propertyId="${propertyId}"`);
+  console.log(`[deploy-service] DEBUG: __dirname=${__dirname}, parent=${path.join(__dirname, '..')}`);
 
   // Collect stdout/stderr
   let logs = '';
