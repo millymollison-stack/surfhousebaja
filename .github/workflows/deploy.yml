@@ -35,7 +35,8 @@ jobs:
       - name: Deploy to Hostinger
         env:
           DEPLOY_SLUG: ${{ github.event.action == 'deploy-request' && github.event.client_payload.slug || inputs.slug }}
+          DEPLOY_PROPERTY_ID: ${{ github.event.action == 'deploy-request' && github.event.client_payload.propertyId || '' }}
         run: |
-          echo "Deploying slug: $DEPLOY_SLUG"
+          echo "Deploying slug: $DEPLOY_SLUG to props/$DEPLOY_SLUG/"
           node ../deploy-to-hostinger.js "$DEPLOY_SLUG"
         shell: bash

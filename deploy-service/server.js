@@ -19,9 +19,16 @@ const app = express();
 app.use(express.json());
 app.use(require('cors')());
 
+const path = require('path');
+
+// Railway clones the repo and runs from repo root.
+// __dirname = /repo-root/deploy-service (where server.js lives).
+// The deploy script lives at repo-root/deploy-to-hostinger.js
+const REPO_ROOT = path.join(__dirname, '..');
+
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
-const DEPLOY_SCRIPT = path.join(__dirname, '..', 'deploy-to-hostinger.js');
+const DEPLOY_SCRIPT = path.join(REPO_ROOT, 'deploy-to-hostinger.js');
 
 // ─── Health check ───────────────────────────────────────────
 app.get('/health', (req, res) => {
