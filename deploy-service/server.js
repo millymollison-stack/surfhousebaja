@@ -24,11 +24,14 @@ const path = require('path');
 // Railway clones the repo and runs from repo root.
 // __dirname = /repo-root/deploy-service (where server.js lives).
 // The deploy script lives at repo-root/deploy-to-hostinger.js
+// Railway root dir = repo root. deploy-service/ is a subdir.
+// __dirname = /repo-root/deploy-service (or /app on some hosts).
+// deploy-to-hostinger.js lives at /repo-root/deploy-to-hostinger.js
 const REPO_ROOT = path.join(__dirname, '..');
-
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
-const DEPLOY_SCRIPT = path.join(REPO_ROOT, 'deploy-to-hostinger.js');
+// Railway may run npm from repo-root or from deploy-service/ — resolve absolutely
+const DEPLOY_SCRIPT = path.resolve(REPO_ROOT, 'deploy-to-hostinger.js');
 
 // ─── Health check ───────────────────────────────────────────
 app.get('/health', (req, res) => {
