@@ -15,12 +15,6 @@ const { spawn } = require('child_process');
 const path = require('path');
 const crypto = require('crypto');
 
-const app = express();
-app.use(express.json());
-app.use(require('cors')());
-
-const path = require('path');
-
 // Railway clones the repo and runs from repo root.
 // __dirname = /repo-root/deploy-service (where server.js lives).
 // The deploy script lives at repo-root/deploy-to-hostinger.js
