@@ -185,8 +185,6 @@ Deno.serve(async (req: Request) => {
           stripe_subscription_amount: planAmount,
           stripe_subscription_interval: subscription.items.data[0]?.price?.recurring?.interval || "month",
           stripe_subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          // Any user who completes payment gets admin role — they can edit their site
-          role: 'admin',
         };
 
         console.log(`Updating profile ${userId} with:`, JSON.stringify(updateData));

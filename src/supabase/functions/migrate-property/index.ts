@@ -8,6 +8,9 @@ const corsHeaders = {
 };
 
 // Fixed property ID — the migration copy of Surf House Baja
+// This property is the reference copy for Surf House Baja — we only update
+// the fields that come from the scrape, leaving the original reference
+// content (address, property_details, activities, local_area, etc.) intact.
 const MIGRATION_PROPERTY_ID = "03fccab6-a997-4a38-bb7f-4b3e7a6c09a8";
 
 Deno.serve(async (req: Request) => {
@@ -29,31 +32,54 @@ Deno.serve(async (req: Request) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const {
-      title, description, location, price,
-      hero_image, images,
-      guests, bedrooms, beds, baths,
-      rating, reviews, host_name, amenities,
+      title, description, price,
+      images,
+      guests, bedrooms, beds,
+      amenities,
     } = await req.json();
 
-    // ── STEP 1: Update properties table ─────────────────────────────────
+    // ── STEP 1: Update only the fields that confirmed exist in properties ─
+    // NOTE: We intentionally do NOT touch:
+    //   address, property_details, activities, local_area,
+    //   property_title, property_intro, getting_there, hero_image,
+    //   name, bathrooms, location, rating, reviews — these are the
+    //   "Surf House Baja" reference copy fields that stay intact.
+    //
+    // Columns confirmed to exist: title, description, price_per_night,
+    //   max_guests, bedrooms, beds, amenities
+    // Only update columns that have valid values —
+    // bedrooms, max_guests, price_per_night are NOT NULL in the schema.
+    // price_per_night is NOT NULL — only set if we have a valid number.
+    const numericPrice = price ? parseFloat(price.replace(/[^0-9.]/g, '')) : null;
+    const numericBedrooms = bedrooms != null && bedrooms !== '' ? Number(bedrooms) : null;
+    const numericGuests = guests != null && guests !== '' ? Number(guests) : null;
+    const numericBeds = beds != null && beds !== '' ? Number(beds) : null;
+
+    const updateFields: Record<string, any> = {
+      title: title || null,
+      description: description || null,
+      amenities: amenities || [],
+      updated_at: new Date().toISOString(),
+    };
+    if (numericPrice !== null && !isNaN(numericPrice)) {
+      updateFields.price_per_night = numericPrice;
+    }
+    if (numericGuests !== null && !isNaN(numericGuests)) {
+      updateFields.max_guests = numericGuests;
+    }
+    if (numericBedrooms !== null && !isNaN(numericBedrooms)) {
+      updateFields.bedrooms = numericBedrooms;
+    }
+    if (numericBeds !== null && !isNaN(numericBeds)) {
+      updateFields.beds = numericBeds;
+    }
+
     const { error: propertyError } = await supabase
       .from("properties")
-      .update({
-        title: title || null,
-        description: description || null,
-        location: location || null,
-        price: price || null,
-        max_guests: guests ? Number(guests) : null,
-        bedrooms: bedrooms ? Number(bedrooms) : null,
-        beds: beds ? Number(beds) : null,
-        baths: baths ? Number(baths) : null,
-        rating: rating ? Number(rating) : null,
-        reviews: reviews ? Number(reviews) : null,
-        amenities: amenities || [],
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateFields)
       .eq("id", MIGRATION_PROPERTY_ID);
 
+    console.log('[migrate-property] Request body:', JSON.stringify({ title, description, price, guests, bedrooms, beds, amenities, imagesCount: images?.length }));
     if (propertyError) throw new Error("Failed to update property: " + propertyError.message);
 
     // ── STEP 2: Replace property_images ─────────────────────────────────
@@ -72,14 +98,7 @@ Deno.serve(async (req: Request) => {
       const { error: imagesError } = await supabase.from("property_images").insert(imageRecords);
       if (imagesError) throw new Error("Failed to save images: " + imagesError.message);
     }
-
-    // ── STEP 3: Set hero_image ──────────────────────────────────────────
-    if (images?.[0] || hero_image) {
-      await supabase
-        .from("properties")
-        .update({ hero_image: images?.[0] || hero_image })
-        .eq("id", MIGRATION_PROPERTY_ID);
-    }
+    // NOTE: hero_image is intentionally NOT updated — keeps original reference image
 
     return new Response(
       JSON.stringify({

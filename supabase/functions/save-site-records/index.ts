@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+const REFERENCE_PROPERTY_ID = "efa8d280-afee-4971-9145-d591740f484d";
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -42,6 +44,14 @@ Deno.serve(async (req: Request) => {
             pricePerNight, heroImage, images, stripeAccountId, stripeAccountStatus,
             userId } = body;
 
+    // Fetch reference copy from the master Surf House Baja property
+    const { data: refProp } = await supabase
+      .from("properties")
+      .select("property_details, property_intro, activities, local_area, getting_there, brand_color, font_accent")
+      .eq("id", REFERENCE_PROPERTY_ID)
+      .single();
+    const ref = refProp || {};
+
     console.log("[save-site-records] Inserting property:", title, slug);
 
     const { data: propertyRecord, error: propertyError } = await supabase
@@ -53,7 +63,7 @@ Deno.serve(async (req: Request) => {
         address: location || "",
         max_guests: maxGuests || 8,
         bedrooms: bedrooms || 2,
-        bathrooms: bedrooms || 2,
+        bathrooms: baths || 1,
         beds: beds || 3,
         baths: baths || 1,
         price_per_night: pricePerNight || 150,
@@ -61,6 +71,14 @@ Deno.serve(async (req: Request) => {
         images: images || [],
         stripe_account_id: stripeAccountId || null,
         stripe_account_status: stripeAccountStatus || null,
+        // Copy reference copy fields from master property so new sites have rich content
+        property_details: ref.property_details || null,
+        property_intro: ref.property_intro || null,
+        activities: ref.activities || null,
+        local_area: ref.local_area || null,
+        getting_there: ref.getting_there || null,
+        brand_color: ref.brand_color || null,
+        font_accent: ref.font_accent || null,
       })
       .select("id, slug")
       .single();
@@ -71,6 +89,25 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log("[save-site-records] Property created:", propertyRecord.id);
+
+    // ── STEP 2: Insert property images with background flags ──────────
+    // First 2 photos get is_background=true so users discover that feature
+    if (images && images.length > 0) {
+      const imageRecords = images.map((url: string, idx: number) => ({
+        property_id: propertyRecord.id,
+        url,
+        position: idx + 1,
+        is_featured: idx === 0,
+        is_main: idx === 0,
+        is_background: idx < 2,
+      }));
+      const { error: imagesError } = await supabase.from("property_images").insert(imageRecords);
+      if (imagesError) {
+        console.warn("[save-site-records] images insert warning:", imagesError.message);
+      } else {
+        console.log("[save-site-records] Images inserted:", images.length);
+      }
+    }
 
     // Also upsert onboarding_data so Home.tsx doesn't get duplicate-key errors on re-import
     const { error: onboardingError } = await supabase

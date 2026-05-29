@@ -8,17 +8,7 @@ const corsHeaders = {
 };
 
 // Fixed property ID — the migration copy of Surf House Baja
-// We only update fields that the scrape actually provides non-empty values for.
-// All reference copy fields (property_details, activities, local_area, getting_there,
-// property_intro, hero_image, address, etc.) are left completely alone.
 const MIGRATION_PROPERTY_ID = "03fccab6-a997-4a38-bb7f-4b3e7a6c09a8";
-
-function isNonEmpty(val: any): boolean {
-  if (val === null || val === undefined) return false;
-  if (typeof val === 'string' && val.trim() === '') return false;
-  if (Array.isArray(val) && val.length === 0) return false;
-  return true;
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -30,6 +20,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Verify the calling user's JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -37,42 +28,33 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const body = await req.json();
     const {
-      title, description, price,
-      images,
-      guests, bedrooms, beds,
-      amenities,
-    } = body;
+      title, description, location, price,
+      hero_image, images,
+      guests, bedrooms, beds, baths,
+      rating, reviews, host_name, amenities,
+    } = await req.json();
 
-    // Only update a field if the scrape actually provided a non-empty value.
-    // Empty/null values → leave whatever is already in the migration property alone.
+    // ── STEP 1: Update only fields that confirmed exist in the properties table ──
+    // NOTE: We intentionally do NOT touch:
+    //   address, property_details, activities, local_area,
+    //   property_title, property_intro, getting_there, hero_image,
+    //   name, bathrooms — these are the "Surf House Baja" reference copy fields
+    // Only update price_per_night if we have a valid numeric price —
+    // the column is NOT NULL so we can't set null
+    const numericPrice = price ? parseFloat(price.replace(/[^0-9.]/g, '')) : null;
     const updateFields: Record<string, any> = {
+      title: title || null,
+      description: description || null,
+      max_guests: guests ? Number(guests) : null,
+      bedrooms: bedrooms ? Number(bedrooms) : null,
+      beds: beds ? Number(beds) : null,
+      amenities: amenities || [],
       updated_at: new Date().toISOString(),
     };
-
-    if (isNonEmpty(title)) updateFields.title = title.trim();
-    if (isNonEmpty(description)) updateFields.description = description.trim();
-
-    if (isNonEmpty(price)) {
-      const numeric = parseFloat(price.replace(/[^0-9.]/g, ''));
-      if (!isNaN(numeric)) updateFields.price_per_night = numeric;
+    if (numericPrice !== null && !isNaN(numericPrice)) {
+      updateFields.price_per_night = numericPrice;
     }
-    if (isNonEmpty(guests)) {
-      const n = Number(guests);
-      if (!isNaN(n)) updateFields.max_guests = n;
-    }
-    if (isNonEmpty(bedrooms)) {
-      const n = Number(bedrooms);
-      if (!isNaN(n)) updateFields.bedrooms = n;
-    }
-    if (isNonEmpty(beds)) {
-      const n = Number(beds);
-      if (!isNaN(n)) updateFields.beds = n;
-    }
-    if (isNonEmpty(amenities)) updateFields.amenities = amenities;
-
-    console.log('[migrate-property] Fields to update:', Object.keys(updateFields));
 
     const { error: propertyError } = await supabase
       .from("properties")
@@ -91,12 +73,14 @@ Deno.serve(async (req: Request) => {
         position: idx + 1,
         is_featured: idx === 0,
         is_main: idx === 0,
-        is_background: idx < 2,  // First 2 photos get marked as background images
+        is_background: false,
         created_at: new Date().toISOString(),
       }));
       const { error: imagesError } = await supabase.from("property_images").insert(imageRecords);
       if (imagesError) throw new Error("Failed to save images: " + imagesError.message);
     }
+    // NOTE: hero_image is intentionally NOT updated — keeps the original
+    // Surf House Baja hero image as the sidebar/dropdown reference
 
     return new Response(
       JSON.stringify({

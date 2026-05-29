@@ -27,6 +27,9 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 // Railway may run npm from repo-root or from deploy-service/ — resolve absolutely
 const DEPLOY_SCRIPT = path.resolve(REPO_ROOT, 'deploy-to-hostinger.js');
 
+const app = express();
+app.use(express.json());
+
 // ─── Health check ───────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
