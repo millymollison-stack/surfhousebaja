@@ -1,0 +1,41 @@
+name: Deploy to Hostinger
+
+on:
+  # Manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Property slug (e.g. my-beach-house)"
+        required: true
+        type: string
+
+  # Triggered by Railway webhook (repository_dispatch)
+  repository_dispatch:
+    types: [deploy-request]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: src/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: src
+
+      - name: Deploy to Hostinger
+        env:
+          DEPLOY_SLUG: ${{ github.event.action == 'deploy-request' && github.event.client_payload.slug || inputs.slug }}
+        run: |
+          echo "Deploying slug: $DEPLOY_SLUG"
+          node ../deploy-to-hostinger.js "$DEPLOY_SLUG"
+        shell: bash

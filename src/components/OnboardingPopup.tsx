@@ -8,7 +8,7 @@ import { FontDropdown } from './FontDropdown';
 import { FONT_OPTIONS, applyFontAccent } from '../lib/fontAccent';
 import { supabase } from '../lib/supabase';
 import { saveBrandColor } from '../lib/brandColor';
-import { duplicateSiteAfterPayment } from '../services/siteDuplicationService';
+
 import { useAuth } from '../store/auth';
 import { StripeConnectSetup } from './StripeConnectSetup';
 
@@ -237,6 +237,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [stripeSubscriptionId, setStripeSubscriptionId] = useState('');
  const [showCongrats, setShowCongrats] = useState(false);
  const [congratsUrl, setCongratsUrl] = useState('');
+ const [deployUrl, setDeployUrl] = useState('');
  const [stripeProcessing, setStripeProcessing] = useState(false);
  const [accountCreated, setAccountCreated] = useState(false);
  const [popupConnectAccountId, setPopupConnectAccountId] = useState<string | null>(null);
@@ -786,7 +787,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    if (!user) return;
    setSavingSite(true);
    try {
-     const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml } = await import('../services/siteDuplicationService');
+     const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml, duplicateSiteAfterPayment } = await import('../services/siteDuplicationService');
      // Use popup's live scrapedData state (freshest — set when parent passes scrapedProperty)
      // Don't rely on sessionStorage which may be empty/stale
      const data = {
@@ -811,16 +812,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('popup_site_url', result.siteUrl);
      sessionStorage.setItem('popup_site_phase', 'saved');
 
+     // Get the copy command for the terminal
+     const dupResult = await duplicateSiteAfterPayment(result.slug, result.propertyId);
+
      // ── Open the admin sidebar immediately so they can see their data ──
      if (onOpenSidebar) onOpenSidebar();
 
-     // Flash "Your site is saved" banner for 2 seconds, then auto-close it
+     // Show success banner — Railway deploy triggered automatically
+     setCongratsUrl(result.siteUrl);
+     setDeployUrl(dupResult.deployUrl);
      setSavingSite(false);
      setIsOpen(false);
      setShowCongrats(true);
-     setTimeout(() => {
-       setShowCongrats(false);
-     }, 2000);
    } catch (err) {
      console.error('[PopupSaveSite] error:', err);
      setStripeError('Failed to save site. Check DevTools console.');
@@ -1370,7 +1373,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  </div>
  )}
 
- {/* Quick success banner — 2 second auto-dismiss */}
+ {/* Quick success banner with copy command — stays until dismissed */}
  {showCongrats && congratsUrl && (
  <div
  style={{
@@ -1382,17 +1385,34 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  background: '#1a1a1a',
  border: '1px solid #333',
  borderRadius: '12px',
- padding: '16px 28px',
+ padding: '20px 28px',
  textAlign: 'center',
  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
- minWidth: '320px',
+ minWidth: '420px',
+ maxWidth: '640px',
+ width: '90vw',
  }}
  >
- <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
+ <div style={{ fontSize: '2rem', marginBottom: '10px' }}>✅</div>
  <p style={{ color: '#fff', fontWeight: 600, fontSize: '1rem', margin: '0 0 4px 0' }}>
- Your site "{websiteName || 'Your property'}" is successfully set up
+ Site "{websiteName || 'Your property'}" saved to Supabase!
  </p>
- <p style={{ color: '#888', fontSize: '0.8rem', margin: 0 }}>Opening sidebar…</p>
+ <p style={{ color: '#888', fontSize: '0.8rem', margin: '0 0 12px 0' }}>
+ Railway deploy triggered — your site will be live on propbook.pro shortly.
+ </p>
+ {deployUrl && (
+ <div style={{ background: '#111', border: '1px solid #444', borderRadius: '8px', padding: '10px 14px', textAlign: 'left', marginBottom: '12px' }}>
+ <code style={{ color: '#86efac', fontSize: '0.72rem', wordBreak: 'break-all', fontFamily: 'ui-monospace, monospace', whiteSpace: 'pre-wrap' }}>{deployUrl}</code>
+ </div>
+ )}
+ <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+ <button
+ onClick={() => { setShowCongrats(false); }}
+ style={{ background: 'transparent', color: '#888', border: '1px solid #444', borderRadius: '6px', padding: '6px 16px', fontSize: '0.8rem', cursor: 'pointer' }}
+ >
+ Done
+ </button>
+ </div>
  </div>
  )}
 

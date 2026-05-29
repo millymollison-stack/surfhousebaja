@@ -33,9 +33,10 @@ const PRJ_ROOT = path.join(__dirname, '..', '..'); // → 02-surfhousebaja-templ
 // ─────────────────────────────────────────────────────────────
 const SLUG = process.argv[2] || 'new-site';
 const PORT = process.argv[3] || '8400';
+const PROPERTY_ID = process.argv[4];  // New property ID to use in Home.tsx (from createNewSiteRecords())
 // ─────────────────────────────────────────────────────────────
 
-const SOURCE = PRJ_ROOT;                        // the working React app
+const SOURCE = path.join(PRJ_ROOT, 'props', 'site Migration');  // the canonical working app
 const TARGET = path.join(PRJ_ROOT, 'props', SLUG);  // destination folder
 
 console.log('\n📦 STAGE 6 — Copying React app to props/' + SLUG + '\n');
@@ -128,19 +129,39 @@ for (const d of DELETE) {
   }
 }
 
-// ─── STEP 6d: npm install ─────────────────────────────────────
-console.log('\n6d. Installing dependencies…');
+// ─── STEP 6d: Update property ID in Home.tsx ─────────────────
+if (PROPERTY_ID) {
+  console.log('\n6d. Updating property ID in Home.tsx to ' + PROPERTY_ID + '…');
+  const homePath = path.join(TARGET, 'pages', 'Home.tsx');
+  if (fs.existsSync(homePath)) {
+    let homeContent = fs.readFileSync(homePath, 'utf8');
+    // Replace SURF_HOUSE_BAJA_ID with the new property ID
+    homeContent = homeContent.replace(
+      /SURF_HOUSE_BAJA_ID\s*=\s*['"][^'"]+['"]/,
+      `SURF_HOUSE_BAJA_ID = '${PROPERTY_ID}'`
+    );
+    fs.writeFileSync(homePath, homeContent);
+    console.log('   ✅ Property ID updated in Home.tsx');
+  } else {
+    console.log('   ⚠️  Home.tsx not found at ' + homePath);
+  }
+} else {
+  console.log('\n6d. Skipping property ID update (no PROPERTY_ID arg passed)');
+}
+
+// ─── STEP 6e: npm install ─────────────────────────────────────
+console.log('\n6e. Installing dependencies…');
 execSync('npm install', { cwd: TARGET, stdio: 'inherit' });
 
-// ─── STEP 6e: Start dev server ───────────────────────────────
-console.log('\n6e. Starting dev server on port ' + PORT + '…');
+// ─── STEP 6f: Start dev server ───────────────────────────────
+console.log('\n6f. Starting dev server on port ' + PORT + '…');
 execSync(`npm run dev -- --port ${PORT}`, {
   cwd: TARGET,
   detached: true,
   stdio: 'ignore',
 });
 
-// ─── STEP 6f: Open in browser ────────────────────────────────
+// ─── STEP 6g: Open in browser ────────────────────────────────
 console.log('\n6f. Opening http://localhost:' + PORT + '/ in browser…');
 const url = `http://localhost:${PORT}/`;
 execSync(`open "${url}"`);

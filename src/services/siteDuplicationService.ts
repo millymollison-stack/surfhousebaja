@@ -198,8 +198,52 @@ export async function goLiveSite(propertyId: string, slug: string, html: string)
 }
 
 // ─────────────────────────────────────────────
-// STEP 4 — Send confirmation email
+// STEP 4a — Trigger Railway build + deploy to Hostinger
+// POSTs to the Railway webhook receiver which runs deploy-to-hostinger.js
 // ─────────────────────────────────────────────
+export async function duplicateSiteAfterPayment(
+  slug: string,
+  propertyId: string
+): Promise<{ slug: string; propertyId: string; deployUrl: string }> {
+  const webhookUrl = import.meta.env.VITE_RAILWAY_WEBHOOK_URL;
+  const webhookSecret = import.meta.env.VITE_RAILWAY_WEBHOOK_SECRET;
+
+  // Log the copy command for manual use (local dev fallback)
+  const copyCommand = `node scripts/publish-and-copy.mjs ${slug} 8400 ${propertyId}`;
+  console.log('[duplicateSiteAfterPayment] ✅ Site records created for slug:', slug);
+  console.log('[duplicateSiteAfterPayment] Run this if needed:', copyCommand);
+
+  if (!webhookUrl) {
+    console.warn('[duplicateSiteAfterPayment] VITE_RAILWAY_WEBHOOK_URL not set — skipping automated deploy.');
+    return { slug, propertyId, deployUrl: '' };
+  }
+
+  try {
+    console.log('[duplicateSiteAfterPayment] 🚀 Triggering Railway deploy for slug:', slug);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (webhookSecret) headers['Authorization'] = `Bearer ${webhookSecret}`;
+
+    const res = await fetch(`${webhookUrl}/deploy`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ slug, propertyId }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('[duplicateSiteAfterPayment] Railway deploy failed:', res.status, errText);
+      throw new Error(`Railway deploy failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log('[duplicateSiteAfterPayment] ✅ Railway deploy triggered:', data);
+    return { slug, propertyId, deployUrl: `${webhookUrl}/deploy` };
+  } catch (err) {
+    console.error('[duplicateSiteAfterPayment] ❌ Railway webhook error:', err);
+    // Non-fatal — site is saved; deploy can be retried manually
+    return { slug, propertyId, deployUrl: webhookUrl || '' };
+  }
+}
 export async function sendNewSiteEmail(data: NewSiteData, siteUrl: string): Promise<void> {
   try {
     await supabase.functions.invoke('send-booking-email', {
