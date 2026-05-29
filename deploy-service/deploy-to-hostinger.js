@@ -23,7 +23,10 @@ const ROOT_DEST = 'public_html';
 const SLUG = process.argv[2] || null;
 const DEST = SLUG ? `${ROOT_DEST}/props/${SLUG}` : ROOT_DEST;
 
-const PROJECT_DIR = __dirname;
+// Railway runs from deploy-service/ subdir.
+// __dirname = /app/deploy-service/ (or /deploy-service/).
+// The repo root (with src/) is the parent of deploy-service/.
+const PROJECT_DIR = path.join(__dirname, '..');
 
 function run(cmd, label) {
   console.log(`\n[${label}] $ ${cmd}`);

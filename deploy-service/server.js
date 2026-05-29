@@ -24,10 +24,10 @@ const crypto = require('crypto');
 const REPO_ROOT = path.join(__dirname, '..');
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
-// Railway clones the repo to /app/ in the container.
-// deploy-service/ is at /app/deploy-service/, src/ is at /app/src/.
-const RAILWAY_REPO_ROOT = '/app';
-const DEPLOY_SCRIPT = path.resolve(RAILWAY_REPO_ROOT, 'deploy-service', 'deploy-to-hostinger.js');
+// Railway clones the repo and runs the start command from deploy-service/.
+// __dirname = /app/deploy-service/ (container path).
+// Repo root = parent dir = path.join(__dirname, '..').
+const DEPLOY_SCRIPT = path.resolve(__dirname, 'deploy-to-hostinger.js');
 
 const app = express();
 app.use(express.json());
@@ -60,7 +60,7 @@ app.post('/deploy', async (req, res) => {
 
   try {
     const deployProcess = spawn('node', [DEPLOY_SCRIPT, slug, propertyId], {
-      cwd: RAILWAY_REPO_ROOT, // /app/ in the Railway container
+      cwd: path.join(__dirname, '..'), // repo root (parent of deploy-service/)
       env: { ...process.env, DEPLOY_SLUG: slug, DEPLOY_PROPERTY_ID: propertyId },
     });
 
