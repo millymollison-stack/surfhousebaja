@@ -47,6 +47,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
 
   useEffect(() => {
     async function loadProperty() {
+      console.log('[DEBUG loadProperty] starting, supabaseUrl:', import.meta.env.VITE_SUPABASE_URL, 'anonKey starts with:', import.meta.env.VITE_SUPABASE_ANON_KEY?.slice(0, 20));
       try {
         // Always load from surfhousebaja database on first load
         const { data: propData, error: propError } = await supabase
@@ -54,8 +55,10 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           .select('*')
           .eq('id', SURF_HOUSE_BAJA_ID)
           .single();
+        console.log('[DEBUG loadProperty] propData:', !!propData, 'error:', propError);
 
         if (propError) throw propError;
+        console.log('[DEBUG loadProperty] property set, loading:', loading, 'propData.title:', propData?.title);
         setProperty(propData);
         setDefaultProperty(propData);
 
@@ -64,6 +67,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           .select('*')
           .eq('property_id', SURF_HOUSE_BAJA_ID)
           .order('position');
+        console.log('[DEBUG loadProperty] images loaded:', imgData?.length, 'error:', imgError);
 
         if (imgError) throw imgError;
         setImages(imgData || []);
@@ -75,12 +79,14 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           bgImages = (imgData || []).filter((img: PropertyImage) => (img as any).is_background).slice(0, 2);
         } catch (e) { bgImages = []; }
         setBackgroundImages(bgImages);
+        console.log('[DEBUG loadProperty] about to query bookings');
 
         const { data: bkgData, error: bkgError } = await supabase
           .from('bookings')
           .select('*')
           .eq('property_id', SURF_HOUSE_BAJA_ID)
           .in('status', ['approved', 'pending']);
+        console.log('[DEBUG loadProperty] bookings query done, bkgError:', bkgError, 'count:', bkgData?.length);
         if (bkgError) throw bkgError;
 
         const { data: blkData, error: blkError } = await supabase
@@ -91,15 +97,19 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
 
         setBookings(bkgData || []);
         setBlockedDates(blkData || []);
+        console.log('[DEBUG loadProperty] bookings/blocked set, about to call onSiteNameChange');
 
         // Update nav brand name with actual property title
         if (propData?.title && onSiteNameChange) {
           onSiteNameChange(propData.title);
         }
+        console.log('[DEBUG loadProperty] onSiteNameChange done, entering finally');
       } catch (err) {
+        console.log('[DEBUG loadProperty] CATCH block, error:', err);
         setError('Failed to load property details');
         console.error(err);
       } finally {
+        console.log('[DEBUG loadProperty] FINALLY block, setting loading=false');
         // Only auto-open popup on the reference/template site, not customer copies
         if (propData?.id === SURF_HOUSE_BAJA_ID) {
           sessionStorage.removeItem('onboarding_popup_closed');
