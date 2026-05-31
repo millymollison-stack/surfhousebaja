@@ -33,7 +33,7 @@ export function CustomerSite() {
           .from('properties')
           .select('*')
           .eq('slug', slug)
-          .single();
+          .maybeSingle();
 
         if (propError || !propData) {
           setError('Property not found');
