@@ -573,6 +573,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
   const sessionId = params.get('session_id')!;
 
+  // Alert so user can see it fired
+  window.alert('Payment successful! Session: ' + sessionId + '. Loading your property data...');
+
   // Clear params from URL without reload
   window.history.replaceState({}, '', window.location.pathname);
   console.log('[DEBUG ?paid handler] Cleared URL, sessionId=' + sessionId);
@@ -647,8 +650,42 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         // ── 4. Show success state in popup (no page refresh, no redirect) ───────
         sessionStorage.setItem('stripe_payment_done', '1');
         setShowCongrats(true);
-        // ── 5. Load migration property data into the popup ──────────────────────
-        loadSavedData();
+
+        // ── 5. Load migration property data directly from Supabase ─────────────
+        // This loads the scraped Airbnb data from the migration property record
+        // so the popup shows real property content after payment succeeds.
+        const MIGRATION_PROPERTY_ID = '03fccab6-a997-4a38-bb7f-4b3e7a6c09a8';
+        const { data: migProp, error: migError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', MIGRATION_PROPERTY_ID)
+          .single();
+        console.log('[DEBUG ?paid handler] Migration property load result:', migError ? migError.message : 'found', migProp?.property_title);
+        if (migProp && migProp.property_title) {
+          const { data: migImgs } = await supabase
+            .from('property_images')
+            .select('*')
+            .eq('property_id', MIGRATION_PROPERTY_ID)
+            .order('position');
+          const imgUrls = (migImgs || []).map((img: any) => img.url);
+          setScrapedData({
+            title: migProp.property_title || migProp.title || '',
+            location: migProp.location || '',
+            description: migProp.property_intro || migProp.description || '',
+            hero_image: imgUrls[0] || '',
+            images: imgUrls,
+            guests: migProp.max_guests || null,
+          });
+          if (onImported) {
+            onImported({
+              title: migProp.property_title || migProp.title || '',
+              description: migProp.property_intro || migProp.description || '',
+            });
+          }
+          window.alert('Migration property loaded: ' + (migProp.property_title || migProp.title));
+        } else {
+          window.alert('Payment done! But no migration property found (ID: ' + MIGRATION_PROPERTY_ID + '). Check console for details.');
+        }
       } else {
         setStripeError('Payment was not completed. Please try again.');
       }
