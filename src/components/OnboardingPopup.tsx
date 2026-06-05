@@ -34,6 +34,22 @@ export interface OnboardingPopupProps {
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
 const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 
+// ── Paddle Configuration ────────────────────────────────────────────────────
+const PADDLE_VENDOR_ID = '353043';
+const PADDLE_CLIENT_TOKEN = 'live_c9152e76d51ef908b8697afd399';
+
+// Paddle product IDs for each plan (created in Paddle dashboard)
+const PADDLE_PRODUCT_IDS: Record<string, string> = {
+  starter: 'pro_01ktcy9eqyc79fgaqh3rjg7m0a',
+  pro:     'pro_01ktczh43e4wjbprx5eak4s9zs',
+  agency:  'pro_01ktczjkr28gnsmcqtcyfxjs77',
+};
+
+declare global {
+  interface Window {
+    Paddle?: typeof import('paddle-js').default;
+  }
+}
 
 // ── Stripe CheckoutForm (must be inside <Elements> context) ─────────────────
 function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
@@ -179,6 +195,75 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [extras, setExtras] = useState({ seo: false, ads: false, analytics: false, social: false });
  const [agreed, setAgreed] = useState(false);
  const [stripeError, setStripeError] = useState('');
+ // ── Paddle Overlay Checkout ─────────────────────────────────────────────────
+ const openPaddleCheckout = async () => {
+   console.log('[openPaddleCheckout] running...');
+   if (!user) {
+     setStripeError('Please sign in or create an account above first.');
+     return;
+   }
+   if (!planChoice) {
+     setStripeError('Please select a subscription plan first.');
+     return;
+   }
+   if (!window.Paddle) {
+     setStripeError('Payment system is loading. Please wait a moment and try again.');
+     return;
+   }
+   setStripeError('');
+
+   // Save form data before opening overlay
+   try {
+     await saveToSupabase();
+   } catch(e) {
+     console.error('[openPaddleCheckout] saveToSupabase failed:', e);
+     console.log('[openPaddleCheckout] continuing anyway...');
+   }
+
+   const productId = PADDLE_PRODUCT_IDS[planChoice];
+   if (!productId) {
+     setStripeError('Invalid plan selected. Please choose Starter, Pro, or Agency.');
+     return;
+   }
+
+   const paddle = window.Paddle;
+   console.log('[openPaddleCheckout] Opening checkout for product:', productId, 'plan:', planChoice);
+
+   // Override the checkout closed event to capture transaction info
+   const originalCheckout = paddle.Checkout?.open;
+
+   try {
+     paddle.Checkout.open({
+       items: [{ productId }],
+       customData: {
+         user_id: user.id,
+         email: user.email,
+         plan: planChoice,
+       },
+       customer: {
+         email: user.email,
+       },
+       settings: {
+         displayMode: 'overlay',
+         theme: 'light',
+         locale: 'en',
+         successUrl: window.location.origin + '?paddle_success=true',
+       },
+       eventCallback: (event: any) => {
+         console.log('[Paddle event]', event.name, JSON.stringify(event.data));
+         if (event.name === 'checkout.closed') {
+           const detail = event.data;
+           // Dispatch our own event for the useEffect listener
+           window.dispatchEvent(new CustomEvent('paddle-checkout-closed', { detail }));
+         }
+       },
+     });
+   } catch(e) {
+     console.error('[openPaddleCheckout] Paddle.Checkout.open error:', e);
+     setStripeError('Could not open payment checkout. Please try again.');
+   }
+ };
+
  const openStripeGateway = async () => {
   console.log('[openStripeGateway] running...');
   console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
@@ -270,6 +355,89 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    return () => window.removeEventListener('stripe-connect-updated', handler);
  }, []);
  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+
+ // ── Load Paddle.js script ──────────────────────────────────────────────────
+ useEffect(() => {
+   // Only load once
+   if (document.querySelector('script[src*="paddle.com"]')) return;
+
+   const script = document.createElement('script');
+   script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+   script.setAttribute('data-url', 'https://cdn.paddle.com');
+   script.async = true;
+   script.onload = () => {
+     console.log('[Paddle] Script loaded');
+     if (window.Paddle) {
+       window.Paddle.Initialize({
+         token: PADDLE_CLIENT_TOKEN,
+         vendor: Number(PADDLE_VENDOR_ID),
+       });
+       console.log('[Paddle] Initialized with vendor:', PADDLE_VENDOR_ID);
+     }
+   };
+   document.body.appendChild(script);
+ }, []);
+
+ // ── Listen for Paddle checkout.closed events ──────────────────────────────
+ useEffect(() => {
+   const handler = (event: Event) => {
+     const detail = (event as CustomEvent).detail;
+     console.log('[Paddle checkout.closed]', JSON.stringify(detail));
+
+     // detail = { transaction: { id: 'xxx', status: 'completed' } }
+     if (detail?.transaction?.id && detail.transaction.status === 'completed') {
+       const transactionId = detail.transaction.id;
+       console.log('[Paddle] Transaction completed:', transactionId);
+
+       // Verify and update profile via edge function
+       (async () => {
+         try {
+           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+           const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+           const { data: { session } } = await supabase.auth.getSession();
+           if (!session?.user) return;
+
+           setStripeProcessing(true);
+
+           const res = await fetch(`${supabaseUrl}/functions/v1/paddle-verification`, {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${session.access_token}`,
+               'Apikey': supabaseAnonKey,
+             },
+             body: JSON.stringify({
+               transaction_id: transactionId,
+               plan: planChoice,
+             }),
+           });
+
+           const data = await res.json();
+           console.log('[Paddle] Verification result:', JSON.stringify(data));
+
+           if (data.success) {
+             await refreshUser();
+             window.dispatchEvent(new CustomEvent('subscription-updated', {
+               detail: { transaction_id: transactionId, status: 'active' },
+             }));
+             setShowCongrats(true);
+             setIsOpen(true);
+           } else {
+             setStripeError('Payment could not be confirmed. Please contact support.');
+           }
+         } catch (err) {
+           console.error('[Paddle] Verification error:', err);
+           setStripeError('Payment verified but failed to update. Please refresh.');
+         } finally {
+           setStripeProcessing(false);
+         }
+       })();
+     }
+   };
+
+   window.addEventListener('paddle-checkout-closed', handler);
+   return () => window.removeEventListener('paddle-checkout-closed', handler);
+ }, [planChoice]);
 
  // Payment calculator
  const pricing = {
@@ -1264,10 +1432,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Payment */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Payment Calculated</h1>
- <p>Input your card details with our 3rd-party, secure payment partner.</p>
+ <p>Secure payment via Paddle (accepts Visa, Mastercard, Amex).</p>
  <button
  className="btn"
- onClick={() => { openStripeGateway() }}>
+ onClick={() => { openPaddleCheckout() }}>
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
  ? `✓ Subscribed to ${planChoice === 'starter' ? 'Starter' : planChoice === 'pro' ? 'Pro' : 'Agency'}`
  : user?.stripe_subscription_status === 'past_due'

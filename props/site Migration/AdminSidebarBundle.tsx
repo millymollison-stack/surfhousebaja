@@ -854,6 +854,7 @@ interface NextBooking {
 
 export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebarProps) {
   const { user, signOut } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
   const setPropertyTitle = useProperty(s => s.setTitle);
 
@@ -972,6 +973,9 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       const detail = (e as CustomEvent).detail;
       console.log('[Banking] subscription-updated event received:', JSON.stringify(detail));
       if (detail?.subscription_id) {
+        // Use the fresh Stripe session data directly — don't overwrite with
+        // loadSubscriptionData() which reads the profile (webhook may not have
+        // run yet, causing the fresh data to be clobbered with no_subscription).
         setSubscriptionData({
           id: detail.subscription_id,
           status: detail.sub_status || detail.status || 'active',
@@ -982,8 +986,6 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           cancel_at_period_end: detail.cancel_at_period_end || false,
         });
       }
-      // Always re-fetch from API to get authoritative data
-      loadSubscriptionData();
     };
     window.addEventListener('subscription-updated', handleSubUpdated);
     return () => window.removeEventListener('subscription-updated', handleSubUpdated);

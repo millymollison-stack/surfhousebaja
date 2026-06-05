@@ -21,6 +21,8 @@ export interface OnboardingPopupProps {
  onSiteNameChange?: (name: string) => void;
  scrapedImages?: any[];
  onOpenSidebar?: () => void;
+ /** ID of the currently loaded property — used to trigger popup auto-open on initial mount */
+ propertyId?: string;
 }
 
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
@@ -94,7 +96,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
   );
 }
 
-export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange, onOpenSidebar }: OnboardingPopupProps) {
+export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange, onOpenSidebar, propertyId }: OnboardingPopupProps) {
  const { user, refreshUser } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
@@ -129,7 +131,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          email: authEmail,
          full_name: authFullName,
          phone_number: authPhone,
-         role: 'user',
+         role: 'admin',
        }, { onConflict: 'id' });
        setAccountCreated(true);
        await refreshUser();
@@ -386,6 +388,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
           return;
         }
 
+ // Auto-open on first mount for the Surf House Baja template site (not customer copies)
+ const SURF_HOUSE_BAJA_ID = 'efa8d280-afee-4971-9145-d591740f484d';
+ if (!isOpen && propertyId === SURF_HOUSE_BAJA_ID && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
+   setIsOpen(true);
+ }
 
  // Restore form field selections from sessionStorage (from before Stripe redirect)
  const savedPlan = sessionStorage.getItem('popup_plan');
@@ -449,7 +456,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
 
  loadSavedData();
- }, [scrapedProperty, scrapedImages]);
+ }, [scrapedProperty, scrapedImages, propertyId]);
 
  // Sync websiteName to header AND to New Site Template
  useEffect(() => {

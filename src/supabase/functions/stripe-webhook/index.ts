@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const stripe = new Stripe(stripeKey, {
-      apiVersion: "2023-10-16",
+      apiVersion: "2025-11-17.clover",
     });
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -39,7 +39,8 @@ Deno.serve(async (req: Request) => {
 
     if (webhookSecret && signature) {
       try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+        // Use constructEventAsync for Deno/edge runtime compatibility
+        event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       } catch (err) {
         console.error("Webhook signature verification failed:", err.message);
         return new Response(

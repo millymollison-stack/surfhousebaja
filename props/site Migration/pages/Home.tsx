@@ -111,7 +111,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       } finally {
         console.log('[DEBUG loadProperty] FINALLY block, setting loading=false');
         // Only auto-open popup on the reference/template site, not customer copies
-        if (propData?.id === SURF_HOUSE_BAJA_ID) {
+        if (property?.id === SURF_HOUSE_BAJA_ID) {
           sessionStorage.removeItem('onboarding_popup_closed');
         }
         setLoading(false);
@@ -507,6 +507,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         onSiteNameChange={onSiteNameChange}
         onComplete={undefined}
         onOpenSidebar={onOpenSidebar}
+        propertyId={property?.id}
       />
     </div>
   );

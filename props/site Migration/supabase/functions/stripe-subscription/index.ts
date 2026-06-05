@@ -107,11 +107,11 @@ Deno.serve(async (req: Request) => {
 
       const successUrl = (return_url || `${Deno.env.get("SUPABASE_URL")}/?paid=true`)
         .replace(/[?&]session_id=[^&]*/, "")
-        .replace(/[?&]paid=true/, "?") + "paid=true&session_id={CHECKOUT_SESSION_ID}";
+        .replace(/[?&]paid=true/, "&") + "paid=true&session_id={CHECKOUT_SESSION_ID}";
 
       const cancelUrl = (return_url || `${Deno.env.get("SUPABASE_URL")}/?`)
         .replace(/[?&]session_id=[^&]*/, "")
-        .replace(/[?&]paid=true/, "") + "?cancelled=true";
+        .replace(/[?&]paid=true/, "&") + "cancelled=true";
 
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
         { price: priceId, quantity: 1 },

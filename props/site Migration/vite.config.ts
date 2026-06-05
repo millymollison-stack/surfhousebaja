@@ -9,10 +9,6 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   server: {
-    https: {
-      key: path.resolve(__dirname, 'certs/key.pem'),
-      cert: path.resolve(__dirname, 'certs/cert.pem'),
-    },
     port: 5174,
     host: true,
   },

@@ -136,11 +136,25 @@ Deno.serve(async (req: Request) => {
           break;
         }
 
-        // Look up the user by customer ID or email
+        // Look up the user by metadata user_id (most reliable), then customer ID, then email
         let userId: string | null = null;
 
-        if (session.customer) {
-          // Find profile with matching stripe_customer_id
+        // Primary: look up by user_id stored in session metadata during checkout creation
+        const metadataUserId = session.metadata?.user_id;
+        if (metadataUserId) {
+          const { data: profileByMeta } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", metadataUserId)
+            .maybeSingle();
+          if (profileByMeta) {
+            userId = profileByMeta.id;
+            console.log(`Found profile by metadata user_id ${metadataUserId}: ${userId}`);
+          }
+        }
+
+        // Secondary: find profile with matching stripe_customer_id
+        if (!userId && session.customer) {
           const { data: profileByCustomer } = await supabase
             .from("profiles")
             .select("id, email")
@@ -153,7 +167,7 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        // Fallback: look up by email from session
+        // Tertiary: look up by email from session
         if (!userId && session.customer_details?.email) {
           const { data: profileByEmail } = await supabase
             .from("profiles")
@@ -185,6 +199,8 @@ Deno.serve(async (req: Request) => {
           stripe_subscription_amount: planAmount,
           stripe_subscription_interval: subscription.items.data[0]?.price?.recurring?.interval || "month",
           stripe_subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          // Grant admin access after successful payment
+          role: 'admin',
         };
 
         console.log(`Updating profile ${userId} with:`, JSON.stringify(updateData));

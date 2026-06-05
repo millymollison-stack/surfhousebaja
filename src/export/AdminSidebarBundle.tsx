@@ -740,7 +740,7 @@ interface NextBooking {
 }
 
 export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebarProps) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, refreshUser } = useAuth();
   const navigate = useNavigate();
   const setPropertyTitle = useProperty(s => s.setTitle);
 
@@ -874,6 +874,51 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     return () => window.removeEventListener('stripe-connect-updated', handler);
   }, []);
 
+  // ── RETURN FROM STRIPE CHECKOUT ───────────────────────────────────────
+  // Detect ?paid=true in URL (appended by stripe-subscription success_url)
+  // and refresh subscription state so sidebar reflects the active plan.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('paid') !== 'true') return;
+
+    // Clear URL params without page reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('paid');
+    url.searchParams.delete('session_id');
+    window.history.replaceState({}, '', url.toString());
+
+    // Refresh user profile first
+    refreshUser();
+
+    // Reset subscription state so next loadSubscriptionData() fetches fresh
+    setSubscriptionData(null);
+    setSubLoading(false);
+
+    // Poll a couple of times — webhook can take 1-2s to fire after payment
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      // Trigger subscription reload next time the sidebar section is opened
+      if (attempts >= 2) {
+        clearInterval(poll);
+        return;
+      }
+      // Force a direct re-fetch of subscription data
+      const session = await getSession().catch(() => null);
+      if (!session) return;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription?action=get`,
+        { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } }
+      ).catch(() => null);
+      if (!res?.ok) return;
+      const data = await res.json().catch(() => null);
+      if (data?.subscription) {
+        setSubscriptionData(data.subscription);
+        clearInterval(poll);
+      }
+    }, 1500);
+  }, []);
+
   // Auto-refresh Stripe connect data when returning from Stripe onboarding
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -891,7 +936,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   }, []);
 
   const loadSubscriptionData = async () => {
-    if (subscriptionData || subLoading) return;
+    if (subLoading) return;
     setSubLoading(true);
     try {
       const session = await getSession();
