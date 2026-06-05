@@ -12,6 +12,15 @@ import { saveBrandColor } from '../lib/brandColor';
 import { useAuth } from '../store/auth';
 import { StripeConnectSetup } from './StripeConnectSetup';
 
+// Color utility: adjust hex brightness
+function adjustBrightness(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + Math.round(2.55 * percent)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + Math.round(2.55 * percent)));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + Math.round(2.55 * percent)));
+  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
 export interface OnboardingPopupProps {
  onComplete?: (data: any) => void;
  onImported?: (data: any) => void;
@@ -183,8 +192,16 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    }
    setStripeError('');
 
+
    // Save form data before redirecting to Stripe so we can restore it on return
-   await saveToSupabase();
+   try {
+     await saveToSupabase();
+   } catch(e) {
+     console.error('[openStripeGateway] saveToSupabase failed:', e);
+     // Continue anyway — payment is more important than saving form data
+     console.log('[openStripeGateway] continuing without save...');
+   }
+
 
    try {
      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -212,7 +229,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
-         return_url: window.location.origin + window.location.pathname + '?paid=true&tab=' + myTabId,
+         return_url: window.location.origin + window.location.pathname + '?paid=true',
        }),
      });
      console.log('[openStripeGateway] response:', res.status, res.ok);
@@ -770,7 +787,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
-         return_url: window.location.origin + window.location.pathname + '?paid=true&tab=' + myTabId,
+         return_url: window.location.origin + window.location.pathname + '?paid=true',
        }),
      });
 
