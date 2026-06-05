@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Playground</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --bg: #0a0a0f; --surface: #111118; --border: rgba(255,255,255,0.08); --text: #f0f0f0; --muted: #666; --accent: #667eea; --accent2: #764ba2; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-x: hidden; }
+body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(102,126,234,0.08) 0%, transparent 60%); pointer-events: none; z-index: 0; }
+
+/* ── Setup card ── */
+#setup-card { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+#setup-card.hidden { display: none; }
+#setup-card .card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; max-width: 480px; width: 100%; }
+#setup-card h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+#setup-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem; }
+#setup-card label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+#setup-card input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 1rem; color: var(--text); font-size: 0.95rem; outline: none; transition: border-color 0.2s; margin-bottom: 1rem; }
+#setup-card input:focus { border-color: var(--accent); }
+#setup-card .btn { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; padding: 0.85rem; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.2s, transform0.2s; }
+#setup-card .btn:hover { opacity: 0.9; transform: scale(1.02); }
+.demo-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.6rem 1rem; border-radius: 10px; font-size: 0.85rem; cursor: pointer; margin-top: 0.75rem; width: 100%; transition: all 0.2s; }
+.demo-btn:hover { border-color: var(--accent); color: var(--text); }
+#setup-card .hint { font-size: 0.75rem; color: var(--muted); margin-top: 1rem; text-align: center; }
+#setup-card .hint a { color: var(--accent); text-decoration: none; }
+
+/* ── Main content ── */
+#main { display: none; flex-direction: column; align-items: center; padding: 2rem 1rem; position: relative; z-index: 1; }
+#main.active { display: flex; }
+.hero { text-align: center; margin-bottom: 2.5rem; animation: fadeUp 0.5s ease; }
+.hero h1 { font-size: 2.2rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero p { color: var(--muted); margin-top: 0.5rem; font-size: 1rem; }
+
+/* ── Plans grid ── */
+.plans { display: flex; gap: 1.25rem; flex-wrap: wrap; justify-content: center; max-width: 860px; animation: fadeUp 0.5s ease 0.15s both; }
+.plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1.75rem; width: 250px; text-align: center; transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); position: relative; }
+.plan-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 20px 20px 0 0; background: linear-gradient(90deg, var(--c1), var(--c2)); opacity: 0; transition: opacity 0.3s; }
+.plan-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.2); box-shadow: 0 16px 48px rgba(0,0,0,0.4); }
+.plan-card:hover::before { opacity: 1; }
+.plan-card.popular { border-color: var(--accent); box-shadow: 0 0 40px rgba(102,126,234,0.15); }
+.plan-card .badge { position: absolute; top: 0.75rem; right: 0.75rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; font-size: 0.6rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+.plan-card .emoji { font-size: 2.2rem; margin-bottom: 0.75rem; }
+.plan-card h2 { font-size: 1.15rem; margin-bottom: 0.2rem; }
+.plan-card .price { font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, var(--c1), var(--c2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0.4rem 0; }
+.plan-card .price span { font-size: 0.8rem; font-weight: 400; opacity: 0.7; }
+.plan-card ul { list-style: none; text-align: left; margin-top: 0.75rem; }
+.plan-card li { padding: 0.25rem 0; font-size: 0.8rem; color: #999; display: flex; align-items: center; gap: 0.4rem; }
+.plan-card li::before { content: '✓'; color: var(--c1); font-weight: 700; flex-shrink: 0; }
+.plan-card .cta { margin-top: 1.25rem; background: linear-gradient(135deg, var(--c1), var(--c2)); color: white; border: none; padding: 0.65rem 1.25rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; width: 100%; transition: transform 0.2s, box-shadow 0.2s; }
+.plan-card:hover .cta { transform: scale(1.04); box-shadow: 0 6px 24px rgba(102,126,234,0.35); }
+
+/* ── Status bar ── */
+.status-bar { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 50px; padding: 0.6rem 1.2rem; font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; z-index: 100; }
+.status-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #00CEC9; animation: pulse 2s infinite; }
+.status-bar kbd { background: rgba(255,255,255,0.08); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; }
+
+/* ── Checkout overlay ── */
+#checkout-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(16px); z-index: 1000; align-items: center; justify-content: center; }
+#checkout-overlay.active { display: flex; }
+.checkout-box { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 2.5rem; width: 400px; max-width: 95vw; text-align: center; animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.checkout-box h2 { font-size: 1.4rem; }
+.checkout-box .plan-name { color: var(--accent); font-weight: 600; margin-top: 0.25rem; }
+.checkout-box .price-tag { font-size: 2.8rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 1rem 0; }
+.checkout-box .price-tag span { font-size: 1rem; opacity: 0.6; }
+.spinner { width: 44px; height: 44px; border: 3px solid rgba(255,255,255,0.08); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 1.25rem auto; }
+.checkout-status { color: #888; font-size: 0.85rem; margin-top: 0.5rem; }
+.checkout-status.error { color: #E63946; }
+.checkout-close { margin-top: 1.5rem; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 0.5rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+.checkout-close:hover { border-color: #E63946; color: #E63946; }
+
+/* ── Success overlay ── */
+#success-overlay { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; }
+#success-overlay.active { display: flex; }
+.success-ring { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 3rem; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both; box-shadow: 0 0 80px rgba(102,126,234,0.5); }
+#success-overlay h1 { font-size: 2.2rem; margin-top: 1.75rem; animation: fadeUp 0.5s ease 0.4s both; }
+#success-overlay p { color: var(--muted); margin-top: 0.5rem; animation: fadeUp 0.5s ease 0.55s both; }
+#success-overlay .sub-details { margin-top: 1.5rem; padding: 1rem 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; animation: fadeUp 0.5s ease 0.65s both; font-size: 0.9rem; color: #aaa; }
+.reset-btn { margin-top: 2rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; animation: fadeUp 0.5s ease 0.8s both; transition: transform 0.2s; }
+.reset-btn:hover { transform: scale(1.05); }
+
+/* ── Step indicators ── */
+.step-trace { position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; align-items: center; z-index: 100; }
+.step-trace .step { padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); transition: all 0.3s; }
+.step-trace .step.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); border-color: var(--accent); color: white; }
+.step-trace .step.done { background: rgba(0,206,201,0.15); border-color: #00CEC9; color: #00CEC9; }
+.step-trace .arrow { color: var(--muted); font-size: 0.7rem; }
+
+/* ── Animations ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes scaleIn { from { transform: scale(0.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes popIn { from { transform: scale(0); } 60% { transform: scale(1.15); } to { transform: scale(1); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+@media (max-width: 700px) {
+  .plans { flex-direction: column; align-items: center; }
+  .plan-card { width: 100%; max-width: 320px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Setup -->
+<div id="setup-card">
+  <div class="card">
+    <h1>⚡ Payment Playground</h1>
+    <p>Pick a plan, pay, and see exactly how the flow works — no data entry required. Or enter your Stripe key for real checkout.</p>
+    <label>Stripe Publishable Key<span style="opacity:0.5">(pk_test_...)</span></label>
+    <input type="text" id="stripe-key-input" placeholder="pk_test_..." />
+    <button class="btn" onclick="startWithKeys()">Launch with real Stripe →</button>
+    <button class="demo-btn" onclick="startDemoMode()">🎭 Demo Mode — see the full flow</button>
+    <p class="hint">Your key stays in your browser. Nothing sent anywhere.</p>
+  </div>
+</div>
+
+<!-- Main playground -->
+<div id="main">
+  <div class="step-trace">
+    <div class="step active" id="s1">1. Select plan</div>
+    <div class="arrow">→</div>
+    <div class="step" id="s2">2. Checkout</div>
+    <div class="arrow">→</div>
+    <div class="step" id="s3">3. Success!</div>
+  </div>
+
+  <div class="hero">
+    <h1>Payment Playground</h1>
+    <p>Pick a plan. Pay. See exactly how it works.</p>
+  </div>
+
+  <div class="plans">
+    <div class="plan-card" style="--c1:#00CEC9;--c2:#00CEC9">
+      <div class="emoji">🌊</div>
+      <h2>Starter</h2>
+      <div class="price">$10<span>/mo</span></div>
+      <ul>
+        <li>1 property website</li>
+        <li>Basic analytics</li>
+        <li>Email support</li>
+      </ul>
+      <button class="cta" onclick="selectPlan('starter', 10, 'Starter')">Subscribe</button>
+    </div>
+
+    <div class="plan-card popular" style="--c1:#667eea;--c2:#764ba2">
+      <span class="badge">Most Popular</span>
+      <div class="emoji">🏄</div>
+      <h2>Pro</h2>
+      <div class="price">$30<span>/mo</span></div>
+      <ul>
+        <li>3 property websites</li>
+        <li>SEO& social tools</li>
+        <li>Priority support</li>
+      </ul>
+      <button class="cta" onclick="selectPlan('pro', 30, 'Pro')">Subscribe</button>
+    </div>
+
+    <div class="plan-card" style="--c1:#F77F00;--c2:#F77F00">
+      <div class="emoji">🚀</div>
+      <h2>Agency</h2>
+      <div class="price">$150<span>/mo</span></div>
+      <ul>
+        <li>Unlimited properties</li>
+        <li>White-label dashboard</li>
+        <li>Dedicated account manager</li>
+      </ul>
+      <button class="cta" onclick="selectPlan('agency', 150, 'Agency')">Subscribe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Checkout overlay -->
+<div id="checkout-overlay">
+  <div class="checkout-box">
+    <h2>Secure Checkout</h2>
+    <div class="plan-name" id="co-plan-name">Pro Plan</div>
+    <div class="price-tag" id="co-price">$30<span>/mo</span></div>
+    <div class="spinner" id="co-spinner"></div>
+    <p class="checkout-status" id="co-status">Connecting to Stripe...</p>
+    <button class="checkout-close" id="co-close" onclick="cancelCheckout()">Cancel</button>
+  </div>
+</div>
+
+<!-- Success overlay -->
+<div id="success-overlay">
+  <div class="success-ring">🎉</div>
+  <h1>You're all set!</h1>
+  <p id="su-plan-text">Your subscription is now active.</p>
+  <div class="sub-details" id="su-details">Subscription confirmed · $30/month · Pro Plan</div>
+  <button class="reset-btn" onclick="resetDemo()">Try another plan →</button>
+</div>
+
+<!-- Status bar -->
+<div class="status-bar" id="status-bar" style="display:none">
+  <div class="dot"></div>
+  <span id="status-text">Ready</span>
+  <kbd>Esc</kbd> to cancel
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let state = { mode: null, plan: null, price: 0 };
+
+function setStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el = $(`s${i}`);
+    el.classList.remove('active', 'done');
+    if (i === n) el.classList.add('active');
+    else if (i < n) el.classList.add('done');
+  }
+}
+
+function startWithKeys() {
+  const key = $('stripe-key-input').value.trim();
+  if (!key.startsWith('pk_')) {
+    alert('Enter a valid Stripe publishable key (starts with pk_)');
+    return;
+  }
+  state.mode = 'real';
+  state.stripeKey = key;
+  localStorage.setItem('pp_stripe_key', key);
+  $('setup-card').classList.add('hidden');
+  $('main').classList.add('active');
+  $('status-bar').style.display = 'flex';
+  $('status-text').textContent = 'Real Stripe mode';
+  setStep(1);
+}
+
+function startDemoMode() {
+  state.mode = 'demo';
+  $('setup-card').classList.add('hidden');
+  $('main').classList.add('active');
+  $('status-bar').style.display = 'flex';
+  $('status-text').textContent = 'Demo mode — simulated flow';
+  setStep(1);
+}
+
+function selectPlan(plan, price, label) {
+  state.plan = plan;
+  state.price = price;
+  state.planLabel = label;
+  setStep(2);
+  showCheckout();
+}
+
+function showCheckout() {
+  $('co-plan-name').textContent = labelFor(state.plan) + ' Plan';
+  $('co-price').innerHTML = '$' + state.price + '<span>/mo</span>';
+  $('co-status').textContent = 'Connecting to Stripe...';
+  $('co-status').classList.remove('error');
+  $('co-spinner').style.display = 'block';
+  $('co-close').style.display = 'inline-block';
+  $('checkout-overlay').classList.add('active');
+  $('status-text').textContent = 'Opening Stripe Checkout...';
+
+  if (state.mode === 'demo') {
+    simulateCheckout();
+  } else {
+    openRealCheckout();
+  }
+}
+
+function labelFor(plan) {
+  return { starter: '🌊 Starter', pro: '🏄 Pro', agency: '🚀 Agency' }[plan] || plan;
+}
+
+function openRealCheckout() {
+  $('co-status').textContent = 'Real Stripe: configure your edge function URL first';
+  $('co-status').classList.add('error');
+  $('co-spinner').style.display = 'none';
+  $('status-text').textContent = 'Edge function not configured';
+}
+
+function simulateCheckout() {
+  const steps = [
+    { delay: 800, text: 'Creating checkout session...', spinner: true },
+    { delay: 1200, text: 'Redirecting to Stripe...', spinner: true },
+    { delay: 2000, text: '💳 Payment confirmed!', spinner: false },
+    { delay: 2800, text: 'Updating your profile...', spinner: true },
+    { delay: 3500, text: 'Loading your new features...', spinner: true },
+    { delay: 4200, text: 'Done!', spinner: false },
+  ];
+
+  let completed = 0;
+  steps.forEach(({ delay, text, spinner }) => {
+    setTimeout(() => {
+      $('co-status').textContent = text;
+      $('co-spinner').style.display = spinner ? 'block' : 'none';
+      $('status-text').textContent = text;
+      completed++;
+      if (completed === steps.length) {
+        setTimeout(() => {
+          $('checkout-overlay').classList.remove('active');
+          showSuccess();
+        }, 600);
+      }
+    }, delay);
+  });
+}
+
+function cancelCheckout() {
+  $('checkout-overlay').classList.remove('active');
+  setStep(1);
+  $('status-text').textContent = 'Checkout cancelled';
+}
+
+function showSuccess() {
+  setStep(3);
+  $('su-plan-text').textContent = `Your ${state.planLabel} subscription is now active.`;
+  $('su-details').textContent = `Subscription confirmed · $${state.price}/month · ${state.planLabel} Plan`;
+  $('success-overlay').classList.add('active');
+  $('status-text').textContent = 'Payment successful! 🎉';
+}
+
+function resetDemo() {
+  $('success-overlay').classList.remove('active');
+  state.plan = null;
+  state.price = 0;
+  setStep(1);
+  $('status-text').textContent = state.mode === 'demo' ? 'Demo mode' : 'Real Stripe mode';
+}
+
+function handleReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('paid') === 'true') {
+    const plan = params.get('plan') || 'pro';
+    const amount = params.get('amount') || '30';
+    state.plan = plan;
+    state.price = parseInt(amount);
+    state.planLabel = labelFor(plan);
+    window.history.replaceState({}, '', window.location.pathname);
+    showSuccess();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') cancelCheckout();
+});
+
+const savedKey = localStorage.getItem('pp_stripe_key');
+if (savedKey) $('stripe-key-input').value = savedKey;
+
+handleReturn();
+</script>
+</body>
+</html>
