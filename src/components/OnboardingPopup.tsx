@@ -370,9 +370,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      if (window.Paddle) {
        window.Paddle.Initialize({
          token: PADDLE_CLIENT_TOKEN,
-         vendor: Number(PADDLE_VENDOR_ID),
        });
-       console.log('[Paddle] Initialized with vendor:', PADDLE_VENDOR_ID);
+       console.log('[Paddle] Initialized with client token, vendor:', PADDLE_VENDOR_ID);
      }
    };
    document.body.appendChild(script);
