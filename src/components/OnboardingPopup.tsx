@@ -38,11 +38,11 @@ const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 const PADDLE_VENDOR_ID = '353043';
 const PADDLE_CLIENT_TOKEN = 'live_c9152e76d51ef908b8697afd399';
 
-// Paddle product IDs for each plan (created in Paddle dashboard)
+// Paddle price IDs for each plan (created in Paddle dashboard)
 const PADDLE_PRODUCT_IDS: Record<string, string> = {
-  starter: 'pro_01ktcy9eqyc79fgaqh3rjg7m0a',
-  pro:     'pro_01ktczh43e4wjbprx5eak4s9zs',
-  agency:  'pro_01ktczjkr28gnsmcqtcyfxjs77',
+  starter: 'pri_01ktd2rqyavf5v90dnd73g6ycb',
+  pro:     'pri_01ktd2ghpxztrenwpb813whw4g',
+  agency:  'pri_01ktd2tc1f7zmgrshs77vt55d0',
 };
 
 declare global {
@@ -234,7 +234,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
    try {
      paddle.Checkout.open({
-       items: [{ productId }],
+       items: [{ priceId: productId, quantity: 1 }],
        customData: {
          user_id: user.id,
          email: user.email,
