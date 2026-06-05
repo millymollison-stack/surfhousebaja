@@ -234,7 +234,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
    try {
      paddle.Checkout.open({
-       items: [{ priceId: productId, quantity: 1 }],
+       items: [{ priceId: productId }],
        customData: {
          user_id: user.id,
          email: user.email,
