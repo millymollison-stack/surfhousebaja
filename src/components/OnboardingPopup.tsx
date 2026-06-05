@@ -637,6 +637,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       }));
 
       // ── Step 5: Show success! ───────────────────────────────────────────────
+      setIsOpen(true);
       setShowCongrats(true);
       window.alert('Payment successful! Your subscription is now active.');
 
