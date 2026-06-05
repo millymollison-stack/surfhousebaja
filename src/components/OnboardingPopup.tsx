@@ -484,6 +484,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
 
  // Keep calling loadSavedData when scrapedProperty/scrapedImages change
+ useEffect(() => {
  loadSavedData();
  }, [scrapedProperty, scrapedImages]);
 
