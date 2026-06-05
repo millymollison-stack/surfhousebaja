@@ -568,6 +568,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
  // Clean approach: verify payment directly with Stripe, no webhook needed.
  useEffect(() => {
+  console.log('[DEBUG] useEffect fired, full URL:', window.location.href);
   const params = new URLSearchParams(window.location.search);
   if (!params.has('paid') || !params.has('session_id')) return;
 
