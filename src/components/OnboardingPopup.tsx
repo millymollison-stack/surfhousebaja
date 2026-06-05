@@ -650,8 +650,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     }
   })();
  }, []); // fires once on mount when URL has ?paid=true
- — fires once on mount when URL has ?paid=true
-
+ 
 
  // Save or update onboarding data in Supabase
  const saveToSupabase = async (overrides: any = {}) => {
