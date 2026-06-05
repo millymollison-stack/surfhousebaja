@@ -566,20 +566,16 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
  // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
+ // Clean approach: verify payment directly with Stripe, no webhook needed.
  useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   if (!params.has('paid') || !params.has('session_id')) return;
-  console.log('[DEBUG ?paid handler] URL has ?paid=true, session_id=' + params.get('session_id'));
 
   const sessionId = params.get('session_id')!;
+  console.log('[DEBUG ?paid handler] Payment complete, verifying session:', sessionId);
 
-  // Alert so user can see it fired
-  window.alert('Payment successful! Session: ' + sessionId + '. Loading your property data...');
-
-  // Clear params from URL without reload
+  // Clear URL immediately
   window.history.replaceState({}, '', window.location.pathname);
-  console.log('[DEBUG ?paid handler] Cleared URL, sessionId=' + sessionId);
-  sessionStorage.setItem('stripe_payment_done', '1');
 
   setStripeProcessing(true);
 
@@ -587,6 +583,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
@@ -595,6 +592,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         return;
       }
 
+      // ── Step 1: Verify payment directly with Stripe ───────────────────────────
+      // Call our edge function which uses the secret key to verify with Stripe
       const sessionRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
         method: 'POST',
         headers: {
@@ -606,97 +605,49 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       });
 
       const sessionData = await sessionRes.json();
+      console.log('[DEBUG ?paid handler] Session data from Stripe:', JSON.stringify(sessionData));
 
-      if (sessionData.status === 'complete') {
-        // Mark payment done so popup shows success state on remount
-        sessionStorage.setItem('stripe_payment_done', '1');
-
-        // ── 1. Update profile with subscription data ───────────────────────────────
-        if (sessionData.subscription_id) {
-          await supabase
-            .from('profiles')
-            .update({
-              stripe_subscription_id: sessionData.subscription_id,
-              stripe_subscription_status: sessionData.sub_status || 'active',
-            })
-            .eq('id', session.user.id);
-        }
-
-        // ── 2. Refresh auth store so useAuth().user has fresh subscription ───────
-        await refreshUser();
-
-        // ── 2b. Fetch Stripe Connect account ID from profile so site publishing works on mobile ──
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('stripe_account_id, stripe_account_status')
-            .eq('id', user.id)
-            .single();
-          if (profile?.stripe_account_id) {
-            setPopupConnectAccountId(profile.stripe_account_id);
-            // Also tell sidebar so it can update
-            window.dispatchEvent(new CustomEvent('stripe-connect-updated', {
-              detail: { account_id: profile.stripe_account_id, charges_enabled: profile.stripe_account_status === 'active' },
-            }));
-          }
-        }
-
-        // ── 3. Tell sidebar to reload subscription data immediately ──────────────
-        // Pass the full subscription data directly so sidebar doesn't need to re-fetch
-        window.dispatchEvent(new CustomEvent('subscription-updated', {
-          detail: { ...sessionData },
-        }));
-
-        // ── 4. Show success state in popup (no page refresh, no redirect) ───────
-        sessionStorage.setItem('stripe_payment_done', '1');
-        setShowCongrats(true);
-
-        // ── 5. Load migration property data directly from Supabase ─────────────
-        // This loads the scraped Airbnb data from the migration property record
-        // so the popup shows real property content after payment succeeds.
-        const MIGRATION_PROPERTY_ID = '03fccab6-a997-4a38-bb7f-4b3e7a6c09a8';
-        const { data: migProp, error: migError } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', MIGRATION_PROPERTY_ID)
-          .single();
-        console.log('[DEBUG ?paid handler] Migration property load result:', migError ? migError.message : 'found', migProp?.property_title);
-        if (migProp && migProp.property_title) {
-          const { data: migImgs } = await supabase
-            .from('property_images')
-            .select('*')
-            .eq('property_id', MIGRATION_PROPERTY_ID)
-            .order('position');
-          const imgUrls = (migImgs || []).map((img: any) => img.url);
-          setScrapedData({
-            title: migProp.property_title || migProp.title || '',
-            location: migProp.location || '',
-            description: migProp.property_intro || migProp.description || '',
-            hero_image: imgUrls[0] || '',
-            images: imgUrls,
-            guests: migProp.max_guests || null,
-          });
-          if (onImported) {
-            onImported({
-              title: migProp.property_title || migProp.title || '',
-              description: migProp.property_intro || migProp.description || '',
-            });
-          }
-          window.alert('Migration property loaded: ' + (migProp.property_title || migProp.title));
-        } else {
-          window.alert('Payment done! But no migration property found (ID: ' + MIGRATION_PROPERTY_ID + '). Check console for details.');
-        }
-      } else {
-        setStripeError('Payment was not completed. Please try again.');
+      if (sessionData.status !== 'complete') {
+        setStripeError('Payment not confirmed by Stripe. Status: ' + sessionData.status);
+        setStripeProcessing(false);
+        return;
       }
+
+      // ── Step 2: Update profile with subscription data ───────────────────────
+      const profileUpdate: any = {
+        stripe_subscription_status: sessionData.sub_status || 'active',
+      };
+      if (sessionData.subscription_id) {
+        profileUpdate.stripe_subscription_id = sessionData.subscription_id;
+        profileUpdate.stripe_customer_id = sessionData.customer_id;
+      }
+
+      await supabase
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', session.user.id);
+
+      // ── Step 3: Refresh auth so sidebar sees the subscription ───────────────
+      await refreshUser();
+
+      // ── Step 4: Tell sidebar to update ─────────────────────────────────────
+      window.dispatchEvent(new CustomEvent('subscription-updated', {
+        detail: { subscription_id: sessionData.subscription_id, status: sessionData.sub_status || 'active' },
+      }));
+
+      // ── Step 5: Show success! ───────────────────────────────────────────────
+      setShowCongrats(true);
+      window.alert('Payment successful! Your subscription is now active.');
+
     } catch (err) {
-      console.error('Post-Stripe-Checkout error:', err);
-      setStripeError('Something went wrong after payment. Please refresh and check your subscription status.');
+      console.error('[DEBUG ?paid handler] Error:', err);
+      setStripeError('Payment verified but failed to save. Please refresh and check your sidebar.');
     } finally {
       setStripeProcessing(false);
     }
   })();
- }, []); // intentionally empty — fires once on mount when URL has ?paid=true
+ }, []); // fires once on mount when URL has ?paid=true
+ — fires once on mount when URL has ?paid=true
 
 
  // Save or update onboarding data in Supabase
