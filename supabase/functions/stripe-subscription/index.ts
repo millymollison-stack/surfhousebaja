@@ -85,13 +85,19 @@ Deno.serve(async (req: Request) => {
       const priceId = priceIds[plan];
       if (!priceId) throw new Error(`No price ID configured for plan: ${plan}`);
 
-      const successUrl = (return_url || `${Deno.env.get("SUPABASE_URL")}/?paid=true`)
-        .replace(/[?&]session_id=[^&]*/, "")
-        .replace(/[?&]paid=true/, "?") + "paid=true&session_id={CHECKOUT_SESSION_ID}";
+      // Use URL API for robust query param handling instead of fragile regex
+      const successBase = return_url ? new URL(return_url) : new URL(`${Deno.env.get("SUPABASE_URL")}/`);
+      successBase.searchParams.delete('session_id');
+      successBase.searchParams.delete('paid');
+      successBase.searchParams.set('paid', 'true');
+      successBase.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+      const successUrl = successBase.toString();
 
-      const cancelUrl = (return_url || `${Deno.env.get("SUPABASE_URL")}/?`)
-        .replace(/[?&]session_id=[^&]*/, "")
-        .replace(/[?&]paid=true/, "") + "?cancelled=true";
+      const cancelBase = return_url ? new URL(return_url) : new URL(`${Deno.env.get("SUPABASE_URL")}/`);
+      cancelBase.searchParams.delete('session_id');
+      cancelBase.searchParams.delete('paid');
+      cancelBase.searchParams.set('cancelled', 'true');
+      const cancelUrl = cancelBase.toString();
 
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
         { price: priceId, quantity: 1 },

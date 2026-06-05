@@ -8,6 +8,47 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// ── Manual webhook signature verification ─────────────────────────────────
+// Stripe's built-in constructEvent() uses SubtleCrypto synchronously, which
+// Deno's edge runtime doesn't support. We verify the signature manually using
+// Deno's built-in crypto API instead.
+async function verifyStripeSignature(
+  payload: string,
+  signatureHeader: string,
+  secret: string
+): Promise<boolean> {
+  // Stripe signature header format: t=timestamp,v1=signature[,v0=legacy]
+  const parts = Object.fromEntries(
+    signatureHeader.split(",").map((p) => {
+      const idx = p.indexOf("=");
+      return [p.slice(0, idx), p.slice(idx + 1)];
+    })
+  );
+  const timestamp = parts["t"];
+  const v1 = parts["v1"];
+  if (!timestamp || !v1) return false;
+
+  // Compute expected signature: HMAC-SHA256(timestamp + "." + payload)
+  const signedPayload = `${timestamp}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedPayload));
+  const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
+
+  // Timing-safe comparison
+  if (expected.length !== v1.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -35,13 +76,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      console.error("Webhook signature verification failed:", err.message);
+    // Verify signature manually (Deno-compatible, avoids SubtleCrypto sync error)
+    const isValid = await verifyStripeSignature(body, signature, webhookSecret);
+    if (!isValid) {
+      console.error("Webhook signature verification failed");
       return new Response(
         JSON.stringify({ error: "Webhook signature verification failed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Parse event from body (signature already verified)
+    let event: Stripe.Event;
+    try {
+      event = JSON.parse(body);
+    } catch (err) {
+      console.error("Webhook event parse failed:", err.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid event payload" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
