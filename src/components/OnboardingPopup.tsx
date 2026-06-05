@@ -337,9 +337,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  if (onClose) onClose();
  };
 
- // Load saved onboarding data from Supabase on mount
- // Load saved data from Supabase on mount
- useEffect(() => {
+ // ── loadSavedData ───────────────────────────────────────────────────────────────────
+ // Extracted to component scope so it can be called from the ?paid=true handler
+ // after Stripe returns, ensuring migration property data is loaded even when
+ // scrapedProperty/scrapedImages deps haven't changed.
  async function loadSavedData() {
  // If parent has fresh scraped data, use it instead of stale saved data
  if (scrapedProperty) {
@@ -382,6 +383,41 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
           if (onImported) {
             onImported({ title: restoredName, description: sessionStorage.getItem('popup_website_desc') || '' });
           }
+
+          // ── Load migration property data from Supabase ────────────────────────
+          // This property (03fccab6) acts as staging for scraped data during the
+          // Airbnb→Stripe flow. Load it so the form shows real property content.
+          const MIGRATION_PROPERTY_ID = '03fccab6-a997-4a38-bb7f-4b3e7a6c09a8';
+          const { data: migProp } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('id', MIGRATION_PROPERTY_ID)
+            .single();
+          if (migProp && migProp.property_title) {
+            const { data: migImgs } = await supabase
+              .from('property_images')
+              .select('*')
+              .eq('property_id', MIGRATION_PROPERTY_ID)
+              .order('position');
+            const imgUrls = (migImgs || []).map((img: any) => img.url);
+            // Update scrapedData so the popup shows the migration property content
+            setScrapedData({
+              title: migProp.property_title || '',
+              location: migProp.location || '',
+              description: migProp.property_intro || migProp.description || '',
+              hero_image: imgUrls[0] || '',
+              images: imgUrls,
+              guests: migProp.max_guests || null,
+            });
+            // Also notify parent (Home.tsx) so it can overlay the migration property
+            if (onImported) {
+              onImported({
+                title: migProp.property_title || restoredName,
+                description: migProp.property_intro || migProp.description || '',
+              });
+            }
+          }
+
           return;
         }
 
@@ -447,6 +483,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }
  }
 
+ // Keep calling loadSavedData when scrapedProperty/scrapedImages change
  loadSavedData();
  }, [scrapedProperty, scrapedImages]);
 
@@ -532,23 +569,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   if (!params.has('paid') || !params.has('session_id')) return;
-  console.log('[DEBUG ?paid handler] URL has ?paid=true, myTabId=' + myTabId + ', stripe_redirect_initiated=' + sessionStorage.getItem('stripe_redirect_initiated'));
-
-  // Only handle ?paid=true in the tab that initiated the redirect.
-  // We pass myTabId through the return_url query param so it's preserved across
-  // the page-unload/redirect/reload cycle (React state is lost on redirect).
-  const redirectTabId = params.get('tab');
-  if (redirectTabId !== myTabId) {
-    console.log('[DEBUG ?paid handler] NOT my tab (' + myTabId + ' vs redirect tab ' + redirectTabId + '), ignoring');
-    window.history.replaceState({}, '', window.location.pathname);
-    return;
-  }
+  console.log('[DEBUG ?paid handler] URL has ?paid=true, session_id=' + params.get('session_id'));
 
   const sessionId = params.get('session_id')!;
 
   // Clear params from URL without reload
   window.history.replaceState({}, '', window.location.pathname);
-  console.log('[DEBUG ?paid handler] Cleared URL, myTabId=' + myTabId);
+  console.log('[DEBUG ?paid handler] Cleared URL, sessionId=' + sessionId);
   sessionStorage.setItem('stripe_payment_done', '1');
 
   setStripeProcessing(true);
@@ -620,6 +647,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         // ── 4. Show success state in popup (no page refresh, no redirect) ───────
         sessionStorage.setItem('stripe_payment_done', '1');
         setShowCongrats(true);
+        // ── 5. Load migration property data into the popup ──────────────────────
+        loadSavedData();
       } else {
         setStripeError('Payment was not completed. Please try again.');
       }
