@@ -31,94 +31,76 @@ Deno.serve(async (req: Request) => {
     // Verify property belongs to user
     const { data: property } = await supabase
       .from("properties")
-      .select("id, owner_id")
+      .select("id, owner_id, status")
       .eq("id", propertyId)
       .maybeSingle();
     if (!property) throw new Error("Property not found");
     if (property.owner_id !== user.id) throw new Error("Not authorized");
 
-    const HOSTINGER_USER = "u805830916";
-    const HOSTINGER_HOST = "82.29.86.252";
-    const HOSTINGER_PORT = "65002";
-    const HOSTINGER_PASS = Deno.env.get("HOSTINGER_SSH_PASS") || "Clawbot12!";
-    const REMOTE_BASE = `/home/${HOSTINGER_USER}/domains/propbook.pro/public_html`;
-    const REMOTE_TARGET = `${REMOTE_BASE}/props/${slug}`;
+    const DEPLOY_SECRET = "propbook-deploy-2026";
+    const RSYNC_DEPLOY_URL = "https://www.propbook.pro/rsync-deploy.php";
 
-    // ─── STEP 1: Create remote directory ────────────────────
-    console.log("[deploy-site] STEP 1: Creating remote directory...");
-    await runSSH(
-      `mkdir -p "${REMOTE_TARGET}" && echo "DIR_OK"`,
-      HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-    );
+    console.log(`[deploy-site] Starting HTTP deploy for slug=${slug} property=${propertyId}`);
 
-    // ─── STEP 2: Rsync Migration template to Hostinger ───────
-    // We store the template on Hostinger already at a known path
-    const MIGRATION_TEMPLATE = `${REMOTE_BASE}/_templates/migration`;
-    const templateExists = await runSSH(
-      `test -d "${MIGRATION_TEMPLATE}" && echo "EXISTS" || echo "MISSING"`,
-      HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-    );
+    // ─── Call rsync-deploy.php on Hostinger via HTTP ───────────────────────
+    const deployFormData = new URLSearchParams({
+      secret: DEPLOY_SECRET,
+      slug,
+      property_id: propertyId,
+    });
 
-    if (templateExists.includes("EXISTS")) {
-      console.log("[deploy-site] STEP 2: Rsyncing migration template...");
-      await runSSH(
-        `rsync -avz -e "sshpass -p '${HOSTINGER_PASS}' ssh -o StrictHostKeyChecking=no -p ${HOSTINGER_PORT}" "${MIGRATION_TEMPLATE}/" "${REMOTE_TARGET}/"`,
-        HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-      );
-    } else {
-      // Fallback: clone from GitHub
-      console.log("[deploy-site] STEP 2: Cloning from GitHub...");
-      await runSSH(
-        `cd "${REMOTE_TARGET}" && git clone git@github.com:millymollison-stack/surfhousebaja.git . 2>&1 || echo "GIT_FALLBACK_OK"`,
-        HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-      );
+    let deploySuccess = false;
+    let siteUrl = `https://www.propbook.pro/props/${slug}`;
+
+    try {
+      const deployRes = await fetch(RSYNC_DEPLOY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: deployFormData.toString(),
+      });
+
+      const deployData = await deployRes.json();
+      console.log("[deploy-site] rsync-deploy response:", deployRes.status, JSON.stringify(deployData));
+
+      if (!deployRes.ok || !deployData.success) {
+        throw new Error(`Deploy failed: ${deployData.error || deployRes.status}`);
+      }
+
+      deploySuccess = true;
+      siteUrl = deployData.site_url || siteUrl;
+      console.log(`[deploy-site] ✅ rsync succeeded: ${siteUrl}`);
+    } catch (fetchErr: any) {
+      console.error("[deploy-site] ❌ Deploy fetch error:", fetchErr.message);
+      throw new Error(`Deploy call failed: ${fetchErr.message}`);
     }
 
-    // ─── STEP 3: Update Home.tsx with new property ID ────────
-    console.log("[deploy-site] STEP 3: Updating Home.tsx property ID...");
-    const homeUpdate = `sed -i "s/SURF_HOUSE_BAJA_ID = '[^']*'/SURF_HOUSE_BAJA_ID = '${propertyId}'/" pages/Home.tsx`;
-    await runSSH(
-      `cd "${REMOTE_TARGET}" && ${homeUpdate} && echo "HOME_UPDATED"`,
-      HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-    );
-
-    // ─── STEP 4: npm install on Hostinger ────────────────────
-    console.log("[deploy-site] STEP 4: npm install...");
-    await runSSH(
-      `cd "${REMOTE_TARGET}" && npm install 2>&1`,
-      HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-    );
-
-    // ─── STEP 5: npm run build on Hostinger ───────────────────
-    console.log("[deploy-site] STEP 5: Building React app...");
-    await runSSH(
-      `cd "${REMOTE_TARGET}/src" && npm run build 2>&1`,
-      HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-    );
-
-    // ─── STEP 6: Fix permissions ─────────────────────────────
-    console.log("[deploy-site] STEP 6: Fixing permissions...");
-    await runSSH(
-      `chmod -R 755 "${REMOTE_TARGET}/src/dist" && chmod 644 "${REMOTE_TARGET}/src/dist"/* 2>&1 || echo "PERMS_done"`,
-      HOSTINGER_USER, HOSTINGER_HOST, HOSTINGER_PORT, HOSTINGER_PASS
-    );
-
-    // ─── STEP 7: Mark property as active ────────────────────
-    await supabase
+    // ─── Update property status in Supabase ─────────────────────────────────
+    console.log("[deploy-site] Updating property status to 'active'...");
+    const { error: updateErr } = await supabase
       .from("properties")
       .update({
         status: "active",
-        site_url: `https://propbook.pro/props/${slug}`,
-        server_ip: HOSTINGER_HOST,
-        folder_path: REMOTE_TARGET,
+        site_url: siteUrl,
       })
       .eq("id", propertyId);
 
-    const siteUrl = `https://propbook.pro/props/${slug}`;
+    if (updateErr) {
+      console.error("[deploy-site] ⚠️ Property status update failed:", updateErr.message);
+      // Don't fail the deploy — rsync worked, status can be fixed manually
+    }
+
     console.log(`[deploy-site] ✅ Deploy complete: ${siteUrl}`);
 
     return new Response(
-      JSON.stringify({ success: true, siteUrl, slug, propertyId }),
+      JSON.stringify({
+        success: true,
+        siteUrl,
+        slug,
+        propertyId,
+        deployed_via: "rsync-deploy.php"
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
@@ -129,36 +111,3 @@ Deno.serve(async (req: Request) => {
     );
   }
 });
-
-// ─── SSH helper ───────────────────────────────────────────────────────────────
-async function runSSH(
-  cmd: string,
-  user: string,
-  host: string,
-  port: string,
-  pass: string
-): Promise<string> {
-  const fullCmd = [
-    "sshpass",
-    `-p '${pass}'`,
-    "ssh",
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "ConnectTimeout=10",
-    "-p", port,
-    `${user}@${host}`,
-    `"${cmd.replace(/"/g, '\\"')}"`,
-  ].join(" ");
-
-  const proc = Deno.run({
-    cmd: fullCmd.split(" "),
-    stdout: "piped",
-    stderr: "piped",
-  });
-  const [stdout, stderr] = await Promise.all([proc.output(), proc.stderrOutput()]);
-  const status = await proc.status();
-  if (!status.success) {
-    const errMsg = new TextDecoder().decode(stderr);
-    throw new Error(`SSH failed (${status.code}): ${errMsg}`);
-  }
-  return new TextDecoder().decode(stdout).trim();
-}

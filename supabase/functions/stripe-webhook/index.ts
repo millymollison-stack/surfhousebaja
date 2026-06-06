@@ -69,7 +69,14 @@ Deno.serve(async (req: Request) => {
     const signature = req.headers.get("stripe-signature");
     const body = await req.text();
 
+    console.log("[stripe-webhook] Request received. Headers:", JSON.stringify({
+      sigHeader: signature ? `present (${signature.slice(0, 20)}... )` : "MISSING",
+      bodyLen: body.length,
+      contentType: req.headers.get("content-type"),
+    }));
+
     if (!signature) {
+      console.error("[stripe-webhook] ERROR: Missing stripe-signature header — returning 400");
       return new Response(
         JSON.stringify({ error: "Missing stripe-signature header" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -78,8 +85,9 @@ Deno.serve(async (req: Request) => {
 
     // Verify signature manually (Deno-compatible, avoids SubtleCrypto sync error)
     const isValid = await verifyStripeSignature(body, signature, webhookSecret);
+    console.log("[stripe-webhook] Signature verification result:", isValid ? "PASS" : "FAIL");
     if (!isValid) {
-      console.error("Webhook signature verification failed");
+      console.error("Webhook signature verification failed — returning 400");
       return new Response(
         JSON.stringify({ error: "Webhook signature verification failed" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -98,7 +106,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log("Received Stripe event:", event.type);
+    console.log("Received Stripe event:", event.type, "id:", event.id);
+
+    // ── Log ALL incoming webhook events so we can confirm delivery in Supabase logs
+    console.log("[stripe-webhook] full event:", JSON.stringify({
+      id: event.id,
+      type: event.type,
+      created: event.created,
+      object: event.object,
+    }));
 
     switch (event.type) {
 

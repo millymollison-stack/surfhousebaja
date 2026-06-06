@@ -321,8 +321,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      const data = await res.json();
      console.log('[openStripeGateway] data:', data);
      if (data.url) {
+       // Persist session_id so the ?paid=true handler survives Vite HMR reloads
+       // that can fire after the Stripe redirect and wipe URL params
+       sessionStorage.setItem('stripe_session_id', data.session_id);
        sessionStorage.setItem('stripe_redirect_initiated', myTabId);
-       console.log('[DEBUG] stripe_redirect_initiated SET=' + myTabId + ', href=' + data.url);
+       console.log('[DEBUG] stripe_session_id saved=', data.session_id, ', redirect href=', data.url);
        window.location.href = data.url;
      } else {
        setStripeError(data.error || 'Payment failed. Please try again.');
@@ -751,17 +754,23 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
  // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
- // Clean approach: verify payment directly with Stripe, no webhook needed.
+ // Dual-path: URL params (normal) + sessionStorage fallback (survives Vite HMR reloads
+ // that can fire after Stripe redirects back and wipe URL params before this effect runs).
  useEffect(() => {
-  console.log('[DEBUG] useEffect fired, full URL:', window.location.href);
   const params = new URLSearchParams(window.location.search);
-  if (!params.has('paid') || !params.has('session_id')) return;
+  const hasPaidParam = params.has('paid') && params.has('session_id');
+  const sessionIdFromUrl = hasPaidParam ? params.get('session_id') : null;
+  const sessionIdFromStorage = sessionStorage.getItem('stripe_session_id');
 
-  const sessionId = params.get('session_id')!;
-  console.log('[DEBUG ?paid handler] Payment complete, verifying session:', sessionId);
+  // Must have a session ID from at least one source
+  const sessionId = sessionIdFromUrl || sessionIdFromStorage;
+  if (!sessionId) return;
 
-  // Clear URL immediately
+  console.log('[DEBUG ?paid handler] Payment complete, session_id from URL:', sessionIdFromUrl, 'from storage:', sessionIdFromStorage);
+
+  // Clear URL params and sessionStorage immediately so re-mounts don't re-trigger
   window.history.replaceState({}, '', window.location.pathname);
+  sessionStorage.removeItem('stripe_session_id');
 
   setStripeProcessing(true);
 
@@ -824,11 +833,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       // ── Step 5: Show success! ───────────────────────────────────────────────
       setIsOpen(true);
       setShowCongrats(true);
-      window.alert('Payment successful! Your subscription is now active.');
 
     } catch (err) {
       console.error('[DEBUG ?paid handler] Error:', err);
       setStripeError('Payment verified but failed to save. Please refresh and check your sidebar.');
+      setStripeProcessing(false);
     } finally {
       setStripeProcessing(false);
     }
@@ -980,6 +989,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        sessionStorage.setItem('popup_scraped_data', JSON.stringify(scrapedData));
      }
      console.log('[DEBUG] About to redirect to: ' + data.url);
+     // Persist session_id so the ?paid=true handler survives Vite HMR reloads
+     if (data.session_id) sessionStorage.setItem('stripe_session_id', data.session_id);
      window.location.href = data.url;
    } catch {
      setStripeError('Could not connect to payment server. Please try again.');
@@ -1015,7 +1026,36 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('popup_site_url', result.siteUrl);
      sessionStorage.setItem('popup_site_phase', 'saved');
 
-     // Get the copy command for the terminal
+     // ── Migrate scraped data from source property into the new property ──
+     // The scraped data lives in the source property (efa8d280) owned by the scraper account.
+     // Copy it to the user's new property so the site has real content.
+     try {
+       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+       const { data: { session } } = await import('../lib/supabase').supabase.auth.getSession();
+       if (session) {
+         const migRes = await fetch(`${supabaseUrl}/functions/v1/migrate-property`, {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${session.access_token}`,
+             'Apikey': supabaseAnonKey,
+           },
+           body: JSON.stringify({ targetPropertyId: result.propertyId }),
+         });
+         const migData = await migRes.json();
+         if (migRes.ok && migData.success) {
+           console.log('[handleSaveSiteInPopup] ✅ Migrated scraped data:', migData.fields_copied);
+         } else {
+           console.warn('[handleSaveSiteInPopup] ⚠️ Migration failed:', migData.error);
+         }
+       }
+     } catch (migErr) {
+       console.warn('[handleSaveSiteInPopup] ⚠️ Migration error:', migErr);
+       // Non-fatal — site still deploys even if migration fails
+     }
+
+     // ── Deploy to Hostinger ──
      const dupResult = await duplicateSiteAfterPayment(result.slug, result.propertyId);
 
      // ── Open the admin sidebar immediately so they can see their data ──
@@ -1390,6 +1430,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Subscription */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>5. Subscription</h1>
+ {(user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing') ? (
+ <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(80,180,100,0.12)', border: '1px solid rgba(80,180,100,0.35)', borderRadius: 8, fontSize: '0.95rem', color: '#a8d8b0', marginBottom: 8 }}>
+ <span>✓ You have the {user?.stripe_subscription_plan || planChoice || 'starter'} plan</span>
+ </div>
+ ) : (
+ <>
  <ul>
  <li>
  <input type="radio" name="plan" id="5-1" checked={planChoice === 'starter'} onChange={() => setPlanChoice('starter')} />
@@ -1404,6 +1450,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <label htmlFor="5-3">Agency — $150/mo</label>
  </li>
  </ul>
+ </>
+ )}
  <br /><hr />
 
  {/* Extras */}
@@ -1431,10 +1479,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  {/* Payment */}
  <h1 style={{ fontSize: "clamp(1.5rem, 2.8vw, 1.875rem)" }}>Payment Calculated</h1>
- <p>Secure payment via Paddle (accepts Visa, Mastercard, Amex).</p>
+ <p>Secure payment via Stripe (accepts Visa, Mastercard, Amex).</p>
  <button
  className="btn"
- onClick={() => { openPaddleCheckout() }}>
+ onClick={() => { openStripeGateway() }}>
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
  ? `✓ Subscribed to ${planChoice === 'starter' ? 'Starter' : planChoice === 'pro' ? 'Pro' : 'Agency'}`
  : user?.stripe_subscription_status === 'past_due'
@@ -1572,6 +1620,36 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <div className="stripe-loading"><div className="spinner-ring" /></div>
  )}
  {stripeError && <div className="stripe-error">{stripeError}</div>}
+ </div>
+ </div>
+ )}
+
+ {/* Success modal — shown after Stripe payment completes */}
+ {showCongrats && (
+ <div className="stripe-modal-backdrop" style={{ zIndex: 99999 }} onClick={() => setShowCongrats(false)}>
+ <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px 32px' }} onClick={e => e.stopPropagation()}>
+ <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
+ <h1 style={{ margin: '0 0 12px 0', fontSize: '1.5rem', color: '#fff' }}>Well done!</h1>
+ <p style={{ color: '#aaa', fontSize: '0.95rem', margin: '0 0 24px 0', lineHeight: 1.6 }}>
+ Your subscription is active. You can now publish your site!
+ </p>
+ <button
+ className="btn"
+ style={{ width: '100%', fontSize: '1rem', padding: '14px' }}
+ onClick={() => {
+ setShowCongrats(false);
+ setIsOpen(false);
+ handlePublish();
+ }}
+ >
+ Publish Now
+ </button>
+ <button
+ onClick={() => setShowCongrats(false)}
+ style={{ background: 'transparent', border: 'none', color: '#888', fontSize: '0.85rem', cursor: 'pointer', marginTop: '12px' }}
+ >
+ Maybe later
+ </button>
  </div>
  </div>
  )}

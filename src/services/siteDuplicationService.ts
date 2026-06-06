@@ -16,7 +16,7 @@
  * Hostinger SSH: u805830916@82.29.86.252 port 65002
  */
 
-import { supabaseAdmin } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { createSlug } from './slugService';
 
 export interface ScrapedData {
@@ -197,7 +197,7 @@ export async function duplicateSiteAfterPayment(
 ): Promise<{ slug: string; propertyId: string; deployUrl: string }> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const siteUrl = `https://propbook.pro/props/${slug}`;
+  const siteUrl = `https://www.propbook.pro/props/${slug}`;
 
   console.log('[duplicateSiteAfterPayment] 🚀 Deploying to Hostinger for slug:', slug);
 
