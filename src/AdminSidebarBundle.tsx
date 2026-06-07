@@ -821,8 +821,15 @@ function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscri
     return (
       <div>
         <div className="py-3">
-          <div className="flex items-center justify-between mb-0.5"><p className="text-xs text-gray-500">Plan</p><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isTrialing ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{isTrialing ? 'Trial' : 'Active'}</span></div>
-          <p className="text-base font-bold text-gray-900">{subscription.plan}</p>
+          <p className="text-xs text-gray-500 mb-0.5">Plan</p>
+          <div className="flex items-center gap-2">
+            <p className="text-base font-bold text-gray-900">
+              {subscription.plan === 'starter' ? 'Prop Book Starter Plan' :
+               subscription.plan === 'pro' ? 'Pro' :
+               subscription.plan === 'agency' ? 'Agency' : subscription.plan}
+            </p>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isTrialing ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{isTrialing ? 'Trial' : 'Active'}</span>
+          </div>
         </div>
         <div className="py-3 grid grid-cols-2 gap-4">
           <div><h4 className="sb-h4-grey">Amount</h4><p className="text-base font-bold text-gray-900">${(subscription.amount / 100).toFixed(2)}<span className="text-sm font-normal text-gray-500">/{subscription.interval}</span></p></div>
@@ -866,7 +873,7 @@ interface AdminSidebarProps {
   mockMode?: boolean;
 }
 
-type Section = 'bookings' | 'property' | 'website' | 'contact' | 'banking' | 'services' | 'subscription';
+type Section = 'bookings' | 'property' | 'edit' | 'website' | 'contact' | 'banking' | 'services' | 'subscription';
 
 interface NextBooking {
   guestName: string; location: string; guestCount: number; nights: number;
@@ -921,7 +928,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
   const [hostOnHostinger, setHostOnHostinger] = useState(true);
   const [devUpdates, setDevUpdates] = useState(true);
-  const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: true, marketing: true, advertising: true, analytics: true, influencers: true, social: true });
+  const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: false, marketing: false, advertising: false, analytics: false, influencers: false, social: false });
 
   // Reset + reload all data whenever sidebar opens or user changes.
   // dataKey forces a new "batch" on each open to discard any stale responses.
@@ -987,7 +994,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         setPropFields({ title: propRes.data.title || '', address: propRes.data.address || '', latitude: propRes.data.latitude?.toString() || '', longitude: propRes.data.longitude?.toString() || '', location_type: (propRes.data.location_type as 'address' | 'coordinates') || 'coordinates' });
       }
       if (profileRes.data) {
-        setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? true, marketing: profileRes.data.services_marketing ?? true, advertising: profileRes.data.services_advertising ?? true, analytics: profileRes.data.services_analytics ?? true, influencers: profileRes.data.services_influencers ?? true, social: profileRes.data.services_social ?? true });
+        setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
       }
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Failed to load data');
@@ -1344,7 +1351,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                         : 'bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30'
                     }`}
                   >
-                    {publishingFromBookings ? 'Publishing...' : 'Publish My Site'}
+                    {publishingFromBookings ? 'Creating...' : 'Create My Site'}
                   </button>
                   {sessionStorage.getItem('popup_website_name') && (
                     <p className="text-xs text-center text-gray-400 mt-2">

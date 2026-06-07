@@ -545,7 +545,14 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  host_name: null,
  });
  // Auto-open popup when scraped data arrives - but NOT if user explicitly closed it
+ // Also skip if user has an active subscription (they've already onboarded after Stripe)
  if (!isOpen && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
+ // Check if user already has an active subscription before auto-opening
+ const { data: profile } = await supabase.from('profiles').select('stripe_subscription_status').eq('id', user?.id).single();
+ if (profile?.stripe_subscription_status === 'active' || profile?.stripe_subscription_status === 'trialing') {
+ // User already subscribed — don't open popup
+ return;
+ }
  setIsOpen(true);
  }
  return;
