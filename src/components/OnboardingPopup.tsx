@@ -1020,7 +1020,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    if (!user) { console.error('[handleSaveSiteInPopup] ❌ No user, returning'); return; }
    setSavingSite(true);
    try {
-     const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml, duplicateSiteAfterPayment } = await import('../services/siteDuplicationService');
+     const { createNewSiteRecords, deployReactTemplate } = await import('../services/siteDuplicationService');
      console.log('[handleSaveSiteInPopup] ✅ imported services, starting site creation...');
      // Use popup's live scrapedData state (freshest — set when parent passes scrapedProperty)
      // Don't rely on sessionStorage which may be empty/stale
@@ -1041,11 +1041,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        bankChoice: bankChoice,
      };
      console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData:', !!scrapedData);
-     const template = await loadTemplateHtml();
-     console.log('[handleSaveSiteInPopup] ✅ template loaded');
-     const html = generateSiteHtml(template, data);
-     console.log('[handleSaveSiteInPopup] ✅ HTML generated, size:', html.length);
-     sessionStorage.setItem('popup_generated_html', html);
      const result = await createNewSiteRecords(data);
      console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);
      sessionStorage.setItem('popup_site_url', result.siteUrl);
@@ -1080,17 +1075,22 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        // Non-fatal — site still deploys even if migration fails
      }
 
-     // ── Deploy to Hostinger ──
-     console.log('[handleSaveSiteInPopup] 🚀 Deploying to Hostinger...');
-     const dupResult = await duplicateSiteAfterPayment(result.slug, result.propertyId);
-     console.log('[handleSaveSiteInPopup] ✅ Deploy result:', JSON.stringify(dupResult));
+     // ── Deploy React template to Hostinger ──
+     console.log('[handleSaveSiteInPopup] 🚀 Deploying React template to Hostinger...');
+     const deployUrl = await deployReactTemplate(
+       result.propertyId,
+       result.slug,
+       supabaseUrl,
+       supabaseAnonKey
+     );
+     console.log('[handleSaveSiteInPopup] ✅ Deploy result:', deployUrl);
 
      // ── Open the admin sidebar immediately so they can see their data ──
      if (onOpenSidebar) onOpenSidebar();
 
      // Show success banner — Railway deploy triggered automatically
      setCongratsUrl(result.siteUrl);
-     setDeployUrl(dupResult.deployUrl);
+     setDeployUrl(deployUrl);
      setSavingSite(false);
      setIsOpen(false);
      setShowCongrats(true);

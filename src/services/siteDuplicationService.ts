@@ -187,6 +187,94 @@ export async function goLiveSite(propertyId: string, slug: string, html: string)
 }
 
 // ─────────────────────────────────────────────
+// STEP 4 (React) — Deploy React template to Hostinger
+// Reads template files from the app origin, injects config, pushes via SFTP
+// ─────────────────────────────────────────────
+export async function deployReactTemplate(
+  propertyId: string,
+  slug: string,
+  supabaseUrl: string,
+  supabaseAnonKey: string
+): Promise<string> {
+  const hostingerDir = `/home/u805830916/domains/propbook.pro/public_html/props/${slug}`;
+  const siteUrl = `https://www.propbook.pro/props/${slug}`;
+  const githubRawBase = 'https://raw.githubusercontent.com/millymollison-stack/surfhousebaja/main/src/public/template';
+
+  console.log(`[deployReactTemplate] 🚀 Deploying React template for slug=${slug}`);
+
+  // 1. Ensure directory exists on Hostinger
+  await new Promise<void>((resolve, reject) => {
+    const { exec } = require('child_process');
+    const cmd = `sshpass -p 'Clawbot12!' ssh -o StrictHostKeyChecking=no -p 65002 u805830916@82.29.86.252 "mkdir -p '${hostingerDir}' && echo DIR_OK"`;
+    exec(cmd, (err: Error | null, stdout: string, stderr: string) => {
+      if (err) reject(new Error(`mkdir SSH failed: ${stderr || err.message}`));
+      else resolve();
+    });
+  });
+
+  // 2. Fetch template files from GitHub raw content (always available after push)
+  const [indexHtml, appJs, stylesCss] = await Promise.all([
+    fetch(`${githubRawBase}/index.html`).then(r => { if (!r.ok) throw new Error('index.html not found in GitHub'); return r.text(); }),
+    fetch(`${githubRawBase}/app.js`).then(r => { if (!r.ok) throw new Error('app.js not found in GitHub'); return r.text(); }),
+    fetch(`${githubRawBase}/styles.css`).then(r => { if (!r.ok) throw new Error('styles.css not found in GitHub'); return r.text(); }),
+  ]);
+
+  // 3. Inject config into index.html
+  const configuredHtml = indexHtml
+    .replace('{{SUPABASE_URL}}', supabaseUrl)
+    .replace('{{SUPABASE_ANON_KEY}}', supabaseAnonKey)
+    .replace('{{PROPERTY_SLUG}}', slug);
+
+  // 4. Push all 3 files via SFTP
+  const sftpCmd = `sshpass -p 'Clawbot12!' sftp -o StrictHostKeyChecking=no -P 65002 u805830916@82.29.86.252 <<'SFTP_EOF'
+put /dev/stdin "${hostingerDir}/index.html"
+put /dev/stdin "${hostingerDir}/app.js"
+put /dev/stdin "${hostingerDir}/styles.css"
+bye
+SFTP_EOF`;
+
+  await new Promise<void>((resolve, reject) => {
+    const { exec: exec2 } = require('child_process');
+    const p = exec2(sftpCmd);
+    if (!p.stdin) { reject(new Error('No stdin')); return; }
+    // Write index.html, app.js, styles.css sequentially
+    p.stdin.write(configuredHtml, (err: Error | null) => {
+      if (err) { reject(err); return; }
+    });
+    p.stdin.write(appJs, (err: Error | null) => {
+      if (err) { reject(err); return; }
+    });
+    p.stdin.write(stylesCss, (err: Error | null) => {
+      if (err) { reject(err); return; }
+    });
+    p.stdin.end();
+    let stderr = '';
+    p.stderr?.on('data', (d: string) => (stderr += d));
+    p.on('close', (code: number) => {
+      if (code !== 0) reject(new Error(`SFTP write failed: ${stderr}`));
+      else resolve();
+    });
+  });
+
+  console.log('[deployReactTemplate] ✅ All files written to Hostinger');
+
+  // 5. Update property record
+  await supabaseAdmin
+    .from('properties')
+    .update({
+      status: 'active',
+      site_url: siteUrl,
+      server_ip: '82.29.86.252',
+      folder_path: hostingerDir,
+    })
+    .eq('id', propertyId);
+
+
+  console.log(`[deployReactTemplate] ✅ Site live: ${siteUrl}`);
+  return siteUrl;
+}
+
+// ─────────────────────────────────────────────
 // STEP 4 — Deploy to Hostinger via edge function
 // Calls deploy-site edge function which SSHs into Hostinger,
 // copies Migration template, builds the React app, and activates the site
