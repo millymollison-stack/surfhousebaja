@@ -37,16 +37,17 @@ Deno.serve(async (req: Request) => {
     // GET — return connect account data + balance for the user's property
     if (req.method === "GET") {
       // Find the property owned by this user
-      // First try property, then fall back to profile
+      // First try property owned by user
       const { data: property } = await supabase
         .from("properties")
         .select("id, stripe_account_id, stripe_account_status")
         .eq("owner_id", user.id)
         .maybeSingle();
 
+
       let accountId = property?.stripe_account_id;
 
-      // Fallback: check profile if no property-level account
+      // Fallback: check profile
       if (!accountId) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -54,6 +55,21 @@ Deno.serve(async (req: Request) => {
           .eq("id", user.id)
           .maybeSingle();
         accountId = profile?.stripe_account_id || null;
+      }
+
+
+      // Fallback: find any property (even without owner_id) that has a stripe_account_id
+      // This catches cases where Stripe onboarding was done from sidebar but owner_id
+      // was not set on the property — the account is still valid in Stripe.
+      if (!accountId) {
+        const { data: orphanedProperty } = await supabase
+          .from("properties")
+          .select("id, stripe_account_id")
+          .is("owner_id", null)
+          .not("stripe_account_id", "is", null)
+          .limit(1)
+          .maybeSingle();
+        accountId = orphanedProperty?.stripe_account_id || null;
       }
 
       if (!accountId) {

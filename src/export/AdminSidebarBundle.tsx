@@ -946,6 +946,18 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     }
   }, []);
 
+  // Broadcast Stripe account_id to popup whenever connectData is loaded/updated
+  useEffect(() => {
+    if (connectData?.account_id) {
+      window.dispatchEvent(new CustomEvent('stripe-connect-updated', {
+        detail: {
+          account_id: connectData.account_id,
+          charges_enabled: connectData.charges_enabled,
+        },
+      }));
+    }
+  }, [connectData]);
+
   const loadSubscriptionData = async () => {
     if (subLoading) return;
     setSubLoading(true);
@@ -1052,7 +1064,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   if (!displayUser) return null;
 
   const isPending = displayBooking?.status === 'pending';
-  const hasStripeAccount = !!(connectData?.charges_enabled && connectData?.payouts_enabled && connectData?.details_submitted);
+  const hasStripeAccount = !!(connectData?.account_id);
   const hasWebsite = hostOnHostinger;
   const hasEmail = !!displayUser.email;
   const hasSubscription = !!(subscriptionData?.status === 'active');
@@ -1122,6 +1134,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 <div className="sb-credential-label"><StatusDot ok={hasStripeAccount} /><p className="sb-credential-name">Stripe Payout Account</p></div>
                 {hasStripeAccount && connectData && <p className="sb-credential-balance">${connectData.available_balance > 0 ? (connectData.available_balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '$0.00'}</p>}
                 {!hasStripeAccount && <p className="sb-credential-name" style={{ color: '#999', fontSize: '0.8rem' }}>No account added</p>}
+                {hasStripeAccount && connectData && !connectData.details_submitted && <p className="sb-credential-name" style={{ color: '#f59e0b', fontSize: '0.75rem' }}>Onboarding pending</p>}
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">www.propbook.pro/surfhousebaja</p></div>
