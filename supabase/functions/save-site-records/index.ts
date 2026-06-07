@@ -59,6 +59,7 @@ Deno.serve(async (req: Request) => {
       .insert({
         title: title || "Untitled Property",
         slug,
+        owner_id: userId,  // Critical: set owner so deploy-site can verify ownership
         description: description || "",
         address: location || "",
         max_guests: maxGuests || 8,

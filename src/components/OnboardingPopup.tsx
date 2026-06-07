@@ -1015,8 +1015,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        hostingChoice: hostingChoice as 'our' | 'own',
        designChoice: designChoice,
        extras: { seo: extras.seo, ads: extras.ads, analytics: extras.analytics, social: extras.social },
-       // Use the React state scrapedData — it's always fresher than sessionStorage
-       scrapedData: scrapedData || null,
+       // Use the React state scrapedData — but fall back to sessionStorage if null
+       // (null happens when Stripe redirects back and React state was reset on remount)
+       scrapedData: scrapedData || JSON.parse(sessionStorage.getItem('popup_scraped_data') || 'null'),
        bankChoice: bankChoice,
      };
      const template = await loadTemplateHtml();
@@ -1032,7 +1033,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      try {
        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-       const { data: { session } } = await import('../lib/supabase').supabase.auth.getSession();
+       const { data: { session } } = await supabase.auth.getSession();
        if (session) {
          const migRes = await fetch(`${supabaseUrl}/functions/v1/migrate-property`, {
            method: 'POST',
