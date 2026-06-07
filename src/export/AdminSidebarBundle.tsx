@@ -1046,16 +1046,18 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (next === 'subscription') loadSubscriptionData();
   };
 
-  const navItems: { key: Section; label: string }[] = [
-    { key: 'property', label: 'Property' },
-    { key: 'edit', label: 'Edit' },
-    { key: 'publish', label: 'Publish' },
-    { key: 'website', label: 'Website' },
-    { key: 'contact', label: 'Contact' },
-    { key: 'banking', label: 'Banking' },
-    { key: 'services', label: 'Services' },
-    { key: 'subscription', label: 'Subscription' },
-  ];
+  const navItems: { key: Section; label: string }[] = isAdmin
+    ? [
+        { key: 'property', label: 'Property' },
+        { key: 'website', label: 'Website' },
+        { key: 'contact', label: 'Contact' },
+        { key: 'banking', label: 'Banking' },
+        { key: 'services', label: 'Services' },
+        { key: 'subscription', label: 'Subscription' },
+      ]
+    : [
+        { key: 'contact', label: 'Contact' },
+      ];
 
   const mockBooking: NextBooking = { guestName: 'Sarah Johnson', location: 'Surf House Baja, Ensenada', guestCount: 4, nights: 5, startDay: 14, endDay: 19, month: 'JUN', status: 'approved' };
   const displayBooking = mockMode ? mockBooking : nextBooking;
@@ -1077,7 +1079,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         <div className="sidebar-header">
           <h1 className="hero-title hero-title-edit">Profile</h1>
           <div className="sidebar-header-actions">
-            <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>
+            {isAdmin && <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>}
             {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel inline-flex-row"><X className="h-4 w-4" /><span className="btn-text">Cancel</span></button>}
             <button onClick={onClose} className="sidebar-btn-close"><X className="h-6 w-6" /></button>
           </div>
@@ -1125,8 +1127,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
             )}
           </div>
 
-          {/* Credentials Card */}
-          {showCredentials && (
+          {/* Credentials Card — admin only */}
+          {showCredentials && isAdmin && (
             <div className="sb-credentials">
               <button onClick={() => setShowCredentials(false)} className="sb-btn-close" style={{ position: 'absolute', top: 12, right: 12 }}><X className="h-4 w-4" /></button>
               <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Website Credentials</p>
