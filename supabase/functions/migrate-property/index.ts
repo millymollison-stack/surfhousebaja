@@ -74,8 +74,8 @@ Deno.serve(async (req: Request) => {
       beds: sourceProperty.beds,
       baths: sourceProperty.bathrooms,
       max_guests: sourceProperty.max_guests,
-      // Pricing
-      price: sourceProperty.price_per_night ? String(sourceProperty.price_per_night) : sourceProperty.price,
+      // Pricing — target uses price_per_night, not price
+      price_per_night: sourceProperty.price_per_night ?? (sourceProperty.price ? Number(sourceProperty.price) : null),
       // Media
       hero_image: sourceProperty.hero_image,
       images: sourceProperty.images || [],
