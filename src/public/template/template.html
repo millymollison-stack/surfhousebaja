@@ -8,10 +8,10 @@
   <meta property="og:title" content="Surf House Baja - Baja Beach House Vacation Rental" />
   <meta property="og:description" content="Luxury beachfront vacation rental in Baja California. Beautiful ocean views, 4 bedrooms, sleeps 8 guests." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://surfhousebaja.com" />
+  <meta property="og:url" content="https://propbook.pro" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@surfhousebaja" />
-  <link rel="canonical" href="https://surfhousebaja.com" />
+  <link rel="canonical" href="https://propbook.pro" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
@@ -48,7 +48,8 @@
       left: 0;
       right: 0;
       z-index: 100;
-      background: var(--white);
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--gray-200);
     }
 
@@ -63,10 +64,18 @@
     }
 
     .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-family: var(--font-serif);
       font-size: 1.25rem;
       color: var(--black);
       text-decoration: none;
+    }
+
+    .brand svg {
+      width: 20px;
+      height: 20px;
     }
 
     .header-nav {
@@ -75,127 +84,164 @@
       gap: 24px;
     }
 
+    .header-nav button,
     .header-nav a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 0.875rem;
       color: var(--black);
       text-decoration: none;
       font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
     }
 
+    .header-nav button:hover,
     .header-nav a:hover { text-decoration: underline; }
 
-    /* Announcement Banner */
-    .announcement {
-      background: var(--red);
-      color: var(--white);
-      text-align: center;
-      padding: 12px 16px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin-top: 64px;
+    .header-nav svg {
+      width: 16px;
+      height: 16px;
     }
 
-    /* Hero Section */
-    .hero {
-      position: relative;
-      height: 600px;
-      background: url('https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg') center/cover no-repeat;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5));
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      color: var(--white);
-      padding: 20px;
-    }
-
-    .hero-price {
-      font-size: 3rem;
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .hero-price-unit {
-      font-size: 1rem;
-      font-weight: 500;
-      opacity: 0.9;
-    }
-
-    .hero-title {
-      font-family: var(--font-serif);
-      font-size: 2.5rem;
-      margin-top: 16px;
-    }
-
-    .hero-location {
-      font-size: 1rem;
-      margin-top: 8px;
-      opacity: 0.9;
-    }
-
-    .hero-meta {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 16px;
-      font-size: 0.875rem;
-    }
-
-    .hero-rating {
-      color: var(--white);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .hero-rating span { opacity: 0.9; }
-
-    /* Main Content */
-    .main {
+    /* Main Layout */
+    .main-wrapper {
       max-width: 1280px;
       margin: 0 auto;
-      padding: 48px 80px;
+      padding: 96px 80px 0;
     }
 
-    .property-header {
-      margin-bottom: 32px;
+    /* Image Gallery */
+    .gallery {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
     }
 
-    .property-title {
-      font-family: var(--font-serif);
-      font-size: 2rem;
+    .gallery-main {
+      position: relative;
+      height: 500px;
+      background: #1a1a1a;
+    }
+
+    .gallery-main img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .gallery-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--white);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: transform 0.2s;
+    }
+
+    .gallery-nav:hover { transform: translateY(-50%) scale(1.05); }
+    .gallery-nav.prev { left: 16px; }
+    .gallery-nav.next { right: 16px; }
+
+    .gallery-nav svg {
+      width: 20px;
+      height: 20px;
       color: var(--black);
     }
 
-    .property-location {
-      color: var(--gray-600);
+    .gallery-counter {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(0,0,0,0.6);
+      color: var(--white);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .gallery-thumbnails {
+      display: flex;
+      gap: 8px;
       margin-top: 8px;
+    }
+
+    .gallery-thumb {
+      flex: 1;
+      height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .gallery-thumb.active { border-color: var(--red); }
+    .gallery-thumb:hover { border-color: var(--gray-400); }
+
+    .gallery-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Property Header */
+    .property-header {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 48px;
+      margin-bottom: 32px;
+    }
+
+    .property-info h1 {
+      font-family: var(--font-serif);
+      font-size: 2.25rem;
+      margin-bottom: 16px;
+    }
+
+    .property-price {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .property-price .price {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .property-price .unit {
+      color: var(--gray-600);
+    }
+
+    .property-description {
+      color: var(--gray-600);
+      margin-bottom: 16px;
     }
 
     .property-stats {
       display: flex;
       gap: 24px;
-      margin-top: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--gray-200);
     }
 
     .property-stat {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.875rem;
+      font-size: 0.9375rem;
     }
 
     .property-stat svg {
@@ -204,41 +250,79 @@
       color: var(--gray-600);
     }
 
-    .property-rating {
+    /* Booking Card */
+    .booking-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      position: sticky;
+      top: 96px;
+    }
+
+    .booking-card-header {
+      margin-bottom: 20px;
+    }
+
+    .booking-card .price {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .booking-card .rating {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-top: 16px;
+      margin-top: 8px;
+      font-size: 0.875rem;
     }
 
-    .stars {
-      color: var(--red);
- }
+    .booking-card .stars { color: var(--red); }
 
-    .rating-text {
+    .view-location-btn {
+      width: 100%;
+      padding: 12px;
+      background: none;
+      border: 1px solid var(--black);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+
+    .view-location-btn:hover { background: var(--gray-100); }
+
+    .view-location-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .book-now-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--red);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
       font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
     }
 
-    .review-count {
-      color: var(--gray-600);
-    }
-
-    /* Description */
-    .description {
-      padding: 32px 0;
-      border-bottom: 1px solid var(--gray-200);
-    }
-
-    .description p {
-      font-size: 1.0625rem;
-      line-height: 1.7;
-      color: var(--black);
-    }
+    .book-now-btn:hover { background: var(--red-dark); }
 
     /* Amenities */
-    .amenities {
+    .amenities-section {
       padding: 32px 0;
-      border-bottom: 1px solid var(--gray-200);
+      border-top: 1px solid var(--gray-200);
     }
 
     .section-title {
@@ -249,15 +333,15 @@
 
     .amenities-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
     }
 
     .amenity-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 0;
+      padding: 8px 0;
     }
 
     .amenity-icon {
@@ -270,53 +354,55 @@
       font-size: 0.9375rem;
     }
 
-    /* Property Details Sections */
-    .details-section {
-      padding: 32px 0;
-      border-bottom: 1px solid var(--gray-200);
+    /* Accordion Sections */
+    .accordion-section {
+      border-top: 1px solid var(--gray-200);
     }
 
-    .details-header {
+    .accordion-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 20px 0;
       cursor: pointer;
-      padding: 16px 0;
     }
 
-    .details-header h3 {
+    .accordion-header h3 {
       font-family: var(--font-serif);
-      font-size: 1.375rem;
+      font-size: 1.25rem;
     }
 
-    .details-toggle {
-      width: 24px;
-      height: 24px;
+    .accordion-header svg {
+      width: 20px;
+      height: 20px;
       color: var(--gray-600);
+      transition: transform 0.2s;
     }
 
-    .details-content {
-      padding: 16px 0;
-      font-size: 1rem;
+    .accordion-header.open svg { transform: rotate(180deg); }
+
+    .accordion-content {
+      padding: 0 0 20px;
+      color: var(--gray-600);
       line-height: 1.7;
-      color: var(--gray-600);
+      display: none;
     }
 
-    .details-content.hidden { display: none; }
+    .accordion-content.open { display: block; }
 
     /* Calendar */
     .calendar-section {
       padding: 32px 0;
-      border-bottom: 1px solid var(--gray-200);
+      border-top: 1px solid var(--gray-200);
     }
 
     .calendar-title {
       font-family: var(--font-serif);
       font-size: 1.375rem;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
-    .calendar-nav {
+    .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -326,6 +412,11 @@
     .calendar-month {
       font-size: 1rem;
       font-weight: 600;
+    }
+
+    .calendar-nav {
+      display: flex;
+      gap: 8px;
     }
 
     .calendar-nav button {
@@ -343,6 +434,11 @@
     .calendar-nav button:disabled {
       opacity: 0.3;
       cursor: not-allowed;
+    }
+
+    .calendar-nav svg {
+      width: 16px;
+      height: 16px;
     }
 
     .calendar-grid {
@@ -367,14 +463,8 @@
       cursor: pointer;
     }
 
-    .calendar-day:hover:not(.disabled) {
-      background: var(--gray-100);
-    }
-
-    .calendar-day.disabled {
-      color: var(--gray-400);
-      cursor: not-allowed;
-    }
+    .calendar-day:hover:not(.disabled) { background: var(--gray-100); }
+    .calendar-day.disabled { color: var(--gray-400); cursor: not-allowed; }
 
     .calendar-legend {
       display: flex;
@@ -399,19 +489,44 @@
     /* Reviews */
     .reviews-section {
       padding: 32px 0;
-      border-bottom: 1px solid var(--gray-200);
+      border-top: 1px solid var(--gray-200);
     }
 
     .reviews-header {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
       margin-bottom: 24px;
     }
 
     .reviews-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-family: var(--font-serif);
       font-size: 1.375rem;
+    }
+
+    .reviews-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .reviews-nav button {
+      background: none;
+      border: 1px solid var(--gray-400);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .reviews-nav svg {
+      width: 16px;
+      height: 16px;
     }
 
     .review-card {
@@ -437,59 +552,40 @@
       margin-top: 4px;
     }
 
-    /* Footer */
-    .footer {
-      background: var(--gray-100);
-      padding: 48px 80px;
-      text-align: center;
-    }
-
-    .footer-brand {
-      font-family: var(--font-serif);
-      font-size: 1.25rem;
-      margin-bottom: 8px;
-    }
-
-    .footer-copyright {
-      color: var(--gray-600);
-      font-size: 0.875rem;
-    }
-
-    /* Book Now Button */
-    .book-btn {
-      display: inline-block;
-      background: var(--red);
-      color: var(--white);
-      padding: 14px 32px;
+    .leave-review-btn {
+      margin-top: 16px;
+      background: none;
+      border: 1px solid var(--black);
+      padding: 10px 20px;
       border-radius: 8px;
-      font-weight: 600;
-      font-size: 1rem;
-      text-decoration: none;
-      margin-top: 24px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
       transition: background 0.2s;
     }
 
-    .book-btn:hover {
-      background: var(--red-dark);
+    .leave-review-btn:hover { background: var(--gray-100); }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 32px;
+      color: var(--gray-600);
+      font-size: 0.875rem;
     }
 
     /* Responsive */
     @media (max-width: 1024px) {
       .header-inner { padding: 0 40px; }
-      .main { padding: 32px 40px; }
-      .footer { padding: 48px 40px; }
+      .main-wrapper { padding: 80px 40px 0; }
+      .property-header { grid-template-columns: 1fr; }
+      .booking-card { position: static; }
     }
 
     @media (max-width: 768px) {
       .header-inner { padding: 0 24px; }
-      .main { padding: 24px; }
-      .footer { padding: 32px 24px; }
-      .amenities-grid { grid-template-columns: repeat(2, 1fr); }
-      .hero-title { font-size: 1.75rem; }
-      .hero-price { font-size: 2.5rem; }
-    }
-
-    @media (max-width: 480px) {
+      .main-wrapper { padding: 72px 24px 0; }
+      .gallery-main { height: 300px; }
       .amenities-grid { grid-template-columns: 1fr; }
       .property-stats { flex-wrap: wrap; gap: 12px; }
     }
@@ -499,87 +595,127 @@
   <!-- Header -->
   <header class="header">
     <div class="header-inner">
-      <a href="/" class="brand">@surfhousebaja</a>
+      <a href="/" class="brand">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+        </svg>
+        @surfhousebaja
+      </a>
       <nav class="header-nav">
-        <a href="#">Share</a>
-        <a href="#">Sign In</a>
+        <button>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          Share
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          English (en-US)
+        </button>
+        <a href="/?auth=login">Sign In</a>
       </nav>
     </div>
   </header>
 
-  <!-- Announcement Banner -->
-  <div class="announcement">
-    Book Direct, No Airbnb Fees, Chat with Host
-  </div>
-
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-content">
-      <div class="hero-price">$200<span class="hero-price-unit"> USD /night</span></div>
-      <h1 class="hero-title">Surf House Baja</h1>
-      <p class="hero-location">Lot 3, Punta San Jacinto, San Jacinto, Baja Norte, Mexico</p>
-      <div class="hero-meta">
-        <span>4 Beds</span>
-        <span>·</span>
-        <span>1 Bath</span>
-        <span>·</span>
-        <span>9 Persons</span>
-      </div>
-      <div class="hero-rating">
-        <span class="stars">★★★★★</span>
-        <span>4.97</span>
-        <span>(128 reviews)</span>
-      </div>
-      <a href="#book" class="book-btn">Book Now</a>
-    </div>
-  </section>
-
   <!-- Main Content -->
-  <main class="main">
-    <!-- Property Header -->
+  <main class="main-wrapper">
     <div class="property-header">
-      <h2 class="property-title">Surf House Baja</h2>
-      <p class="property-location">Lot 3, Punta San Jacinto, San Jacinto, Baja Norte, Mexico</p>
-      <div class="property-stats">
-        <div class="property-stat">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-          <span>4 Beds</span>
+      <!-- Left Column: Property Info -->
+      <div class="property-info">
+        <h1>@surfhousebaja</h1>
+        <div class="property-price">
+          <span class="price">$200</span>
+          <span class="unit">USD /night</span>
         </div>
-        <div class="property-stat">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 12h16a11 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"></path>
-            <path d="M6 12V5a2 2 0 0 1 2-2h3v2.25"></path>
-          </svg>
-          <span>1 Bath</span>
-        </div>
-        <div class="property-stat">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          <span>9 Persons</span>
+        <p class="property-description">Welcome to Surf House Baja, a 4-bedroom beach house sitting directly in front of the iconic Shipwrecks surf spot just 4 hours south of the border.</p>
+        <div class="property-stats">
+          <div class="property-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>4 Beds</span>
+          </div>
+          <div class="property-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"></path>
+              <path d="M6 12V5a2 2 0 0 1 2-2h3v2.25"></path>
+            </svg>
+            <span>1 Bath</span>
+          </div>
+          <div class="property-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>9 Persons</span>
+          </div>
         </div>
       </div>
-      <div class="property-rating">
-        <span class="stars">★★★★★</span>
-        <span class="rating-text">4.97</span>
-        <span class="review-count">(128 reviews)</span>
+
+      <!-- Right Column: Booking Card -->
+      <div class="booking-card">
+        <div class="booking-card-header">
+          <div class="price">$200 <span style="font-weight:400; font-size:1rem;">USD /night</span></div>
+          <div class="rating">
+            <span class="stars">★★★★★</span>
+            <span>4.97</span>
+            <span style="color:var(--gray-600)">(128 reviews)</span>
+          </div>
+        </div>
+        <button class="view-location-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          View Location
+        </button>
+        <button class="book-now-btn">Book Now</button>
       </div>
     </div>
 
-    <!-- Description -->
-    <section class="description">
-      <p>Welcome to Surf House Baja, a 4-bedroom beach house sitting directly in front of the iconic Shipwrecks surf spot just 4 hours south of the border.</p>
-      <p style="margin-top: 16px;">Surf House Baja is a 4-bedroom beach house designed for an elevated surf experience. The open-plan kitchen and resident, local fishermen give you a real opportunity to cook up a feast while friends hang out at the counter surrounded by playful swing seating suspended from the ceiling. In the day, watch surfers on the point break directly in front of the balcony loungers or unwind outside in the hammocks. By night, gather around the fire pit, perfect for stargazing and laughter. Welcome to your next surf vacation destination.</p>
+    <!-- Image Gallery -->
+    <div class="gallery">
+      <div class="gallery-main">
+        <img src="https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg" alt="Property view 1" id="mainImage">
+        <button class="gallery-nav prev" onclick="prevImage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <button class="gallery-nav next" onclick="nextImage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+        <div class="gallery-counter"><span id="imageCounter">1</span> / 3</div>
+      </div>
+      <div class="gallery-thumbnails">
+        <div class="gallery-thumb active" onclick="selectImage(0)">
+          <img src="https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg" alt="Property view 1">
+        </div>
+        <div class="gallery-thumb" onclick="selectImage(1)">
+          <img src="https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg" alt="Property view 2">
+        </div>
+        <div class="gallery-thumb" onclick="selectImage(2)">
+          <img src="https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg" alt="Property view 3">
+        </div>
+      </div>
+    </div>
+
+    <!-- Property Description -->
+    <section style="padding: 24px 0; border-top: 1px solid var(--gray-200);">
+      <p style="font-size: 1.0625rem; line-height: 1.7; color: var(--gray-600);">Surf House Baja is a 4-bedroom beach house designed for an elevated surf experience. The open-plan kitchen and resident, local fishermen give you a real opportunity to cook up a feast while friends hang out at the counter surrounded by playful swing seating suspended from the ceiling. In the day, watch surfers on the point break directly in front of the balcony loungers or unwind outside in the hammocks. By night, gather around the fire pit, perfect for stargazing and laughter. Welcome to your next surf vacation destination.</p>
     </section>
 
     <!-- Amenities -->
-    <section class="amenities">
+    <section class="amenities-section">
       <h3 class="section-title">Amenities</h3>
       <div class="amenities-grid">
         <div class="amenity-item">
@@ -615,9 +751,7 @@
         </div>
         <div class="amenity-item">
           <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1718a5 5 0 0 0-10 0"></path>
-            <line x1="12" y1="9" x2="12" y2="2"></line>
-            <line x1="4" y1="22" x2="20" y2="22"></line>
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
           </svg>
           <span class="amenity-text">Beach Access</span>
         </div>
@@ -630,92 +764,90 @@
         </div>
         <div class="amenity-item">
           <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M2 12h2m4 0h12M6 12v7m6-7v7"></path>
-            <path d="M4 12a8 8 0 0 1 16 0"></path>
+            <path d="M2.5 18.5 10 11l4 2 7.5-6.5M3 13.5l7-5 4 2.5 5-4.5M5 9l4 2"/>
           </svg>
           <span class="amenity-text">Surfboards</span>
         </div>
         <div class="amenity-item">
           <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2c1 3 2.5 3.5 3.5 4.5A5 5 0 0 1 17 10a5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 1.5-3.5C9.5 5.5 11 5 12 2z"></path>
-            <path d="M10 15v5a22 0 0 0 4 0v-5"></path>
+            <path d="M12 2c1 3 2.5 3.5 3.5 4.5A5 5 0 0 1 17 10a5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 1.5-3.5C9.5 5.5 11 5 12 2z"/>
+            <path d="M10 15v5a22 0 0 0 4 0v-5"/>
           </svg>
           <span class="amenity-text">Fire Pit</span>
         </div>
       </div>
     </section>
 
-    <!-- Property Details -->
-    <section class="details-section">
-      <div class="details-header" onclick="toggleDetails('property-details')">
-        <h3 class="section-title" style="margin-bottom: 0;">Property Details</h3>
-        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Accordion Sections -->
+    <div class="accordion-section">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <h3>Property Details</h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </div>
-      <div id="property-details" class="details-content">
-        <p>This beautiful4-bedroom beach house offers direct access to the famous Shipwrecks surf break. The property features an open-plan living area with stunning ocean views, a fully equipped kitchen with modern appliances, and comfortable sleeping arrangements for up to 9 guests.</p>
+      <div class="accordion-content">
+        <p>This beautiful 4-bedroom beach house offers direct access to the famous Shipwrecks surf break. The property features an open-plan living area with stunning ocean views, a fully equipped kitchen with modern appliances, and comfortable sleeping arrangements for up to 9 guests.</p>
         <p style="margin-top: 16px;">Each bedroom is thoughtfully furnished with quality bedding and ventilation to keep you comfortable during your stay. The outdoor areas include multiple balconies, hammocks, and a fire pit area perfect for evening gatherings under the stars.</p>
       </div>
-    </section>
+    </div>
 
-    <!-- Activities -->
-    <section class="details-section">
-      <div class="details-header" onclick="toggleDetails('activities')">
-        <h3 class="section-title" style="margin-bottom: 0;">Activities</h3>
-        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="accordion-section">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <h3>Activities</h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </div>
-      <div id="activities" class="details-content hidden">
+      <div class="accordion-content">
         <p>Surfing is the main attraction at Shipwrecks, a world-class point break suitable for intermediate to advanced surfers. The break works best during the fall and winter months when swells are most consistent.</p>
-        <p style="margin-top: 16px;">Beyond surfing, guests can enjoy beach walks, fishing with local fishermen, whale watching (seasonal), stargazing from the fire pit, and exploring the local area. The nearby town offers authentic Mexican cuisine and local shops.</p>
+        <p style="margin-top: 16px;">Beyond surfing, guests can enjoy beach walks, fishing with local fishermen, whale watching (seasonal), stargazing from the fire pit, and exploring the local area.</p>
       </div>
-    </section>
+    </div>
 
-    <!-- Local Area -->
-    <section class="details-section">
-      <div class="details-header" onclick="toggleDetails('local-area')">
-        <h3 class="section-title" style="margin-bottom: 0;">Local Area</h3>
-        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="accordion-section">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <h3>Local Area</h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </div>
-      <div id="local-area" class="details-content hidden">
+      <div class="accordion-content">
         <p>Located in Punta San Jacinto, a traditional fishing village on the Pacific coast of Baja California. The area retains its authentic Mexican charm while offering modern amenities for visitors.</p>
-        <p style="margin-top: 16px;">Local restaurants serve fresh seafood caught daily by resident fishermen. The nearest store for supplies is a 10-minute drive away. For major shopping or medical needs, the nearest city is approximately 45 minutes away.</p>
+        <p style="margin-top: 16px;">Local restaurants serve fresh seafood caught daily by resident fishermen. The nearest store for supplies is a 10-minute drive away.</p>
       </div>
-    </section>
+    </div>
 
-    <!-- Getting There -->
-    <section class="details-section">
-      <div class="details-header" onclick="toggleDetails('getting-there')">
-        <h3 class="section-title" style="margin-bottom: 0;">Getting There</h3>
-        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="accordion-section">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <h3>Getting There</h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </div>
-      <div id="getting-there" class="details-content hidden">
+      <div class="accordion-content">
         <p>The property is approximately a 4-hour drive south of the US-Mexico border crossing at Tijuana. From the border, take Highway 1 south through Ensenada and continue to San Jacinto.</p>
-        <p style="margin-top: 16px;">A4x4 vehicle is recommended as some roads near the property are unpaved. Private parking is available on-site. The nearest major airport is in Tijuana (TIJ) with car rental options available.</p>
+        <p style="margin-top: 16px;">A 4x4 vehicle is recommended as some roads near the property are unpaved. Private parking is available on-site.</p>
       </div>
-    </section>
+    </div>
 
     <!-- Calendar -->
-    <section class="calendar-section" id="book">
+    <section class="calendar-section">
       <h3 class="calendar-title">Select your dates</h3>
-      <div class="calendar-nav">
-        <button disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        </button>
+      <div class="calendar-header">
         <span class="calendar-month">June 2026</span>
-        <button>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
+        <div class="calendar-nav">
+          <button disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="calendar-grid">
         <div class="calendar-day-header">Su</div>
@@ -733,7 +865,7 @@
         <div class="calendar-day disabled">5</div>
         <div class="calendar-day disabled">6</div>
         <div class="calendar-day">7</div>
- <div class="calendar-day">8</div>
+        <div class="calendar-day">8</div>
         <div class="calendar-day">9</div>
         <div class="calendar-day">10</div>
         <div class="calendar-day">11</div>
@@ -760,6 +892,7 @@
       <div class="calendar-legend">
         <div class="legend-item"><div class="legend-dot" style="background: var(--gray-200);"></div> Booked</div>
         <div class="legend-item"><div class="legend-dot" style="background: var(--gray-400);"></div> Pending</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--black);"></div> Blocked</div>
         <div class="legend-item"><div class="legend-dot" style="background: var(--red);"></div> Selected</div>
       </div>
     </section>
@@ -767,27 +900,71 @@
     <!-- Reviews -->
     <section class="reviews-section">
       <div class="reviews-header">
-        <span class="stars">★★★★★</span>
         <h3 class="reviews-title">What our guests say</h3>
+        <div class="reviews-nav">
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="review-card">
         <p class="review-quote">"The place is awesome, has everything you need with a little remote Mexico charm. David is very attentive and will make sure you have a great stay"</p>
         <p class="review-author">Larry Young</p>
         <p class="review-date">Stayed December 2025</p>
       </div>
+      <button class="leave-review-btn">Leave a review</button>
     </section>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
-    <div class="footer-brand">@surfhousebaja</div>
-    <p class="footer-copyright">© 1113 @surfhousebaja. All rights reserved.</p>
+    <p>© 1014 @surfhousebaja. All rights reserved.</p>
   </footer>
 
   <script>
-    function toggleDetails(id) {
-      const content = document.getElementById(id);
-      content.classList.toggle('hidden');
+    // Image Gallery
+    const images = [
+      'https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg',
+      'https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg',
+      'https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg'
+    ];
+    let currentImage = 0;
+
+    function updateImage() {
+      document.getElementById('mainImage').src = images[currentImage];
+      document.getElementById('imageCounter').textContent = currentImage + 1;
+      document.querySelectorAll('.gallery-thumb').forEach((thumb, i) => {
+        thumb.classList.toggle('active', i === currentImage);
+      });
+    }
+
+    function prevImage() {
+      currentImage = (currentImage - 1 + images.length) % images.length;
+      updateImage();
+    }
+
+    function nextImage() {
+      currentImage = (currentImage + 1) % images.length;
+      updateImage();
+    }
+
+    function selectImage(index) {
+      currentImage = index;
+      updateImage();
+    }
+
+    // Accordion
+    function toggleAccordion(header) {
+      const content = header.nextElementSibling;
+      header.classList.toggle('open');
+      content.classList.toggle('open');
     }
   </script>
 
@@ -797,7 +974,7 @@
     "@context": "https://schema.org",
     "@type": "VacationRental",
     "name": "Surf House Baja",
-    "description": "Luxury beachfront vacation rental in Baja California.4 bedrooms, sleeps 9 guests, direct access to Shipwrecks surf break.",
+    "description": "Luxury beachfront vacation rental in Baja California. 4 bedrooms, sleeps 9 guests, direct access to Shipwrecks surf break.",
     "image": "https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg",
     "address": {
       "@type": "PostalAddress",
@@ -805,11 +982,6 @@
       "addressLocality": "San Jacinto",
       "addressRegion": "Baja Norte",
       "addressCountry": "MX"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": "",
-      "longitude": ""
     },
     "starRating": {
       "@type": "Rating",
