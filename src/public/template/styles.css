@@ -14,7 +14,7 @@ body {
 .p-bg {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: url('{{HERO_IMAGE}}') center/cover no-repeat;
+    background: var(--hero-image, linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)) center/cover no-repeat;
     z-index: 0;
 }
 
@@ -221,7 +221,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.5);
     z-index: 30;
 }
 
@@ -229,6 +229,7 @@ body {
     color: white;
     font-size: 0.8rem;
     font-family: 'Inter', sans-serif;
+    letter-spacing: 0.05em;
 }
 
 .p-error {
@@ -239,7 +240,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.8);
     z-index: 30;
 }
 
@@ -252,4 +253,6 @@ body {
 .p-error-msg {
     color: rgba(255,255,255,0.7);
     font-size: 0.75rem;
+    max-width: 280px;
+    text-align: center;
 }
