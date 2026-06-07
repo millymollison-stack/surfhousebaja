@@ -384,75 +384,65 @@ function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDe
 
   return (
     <div>
-      {/* Hostinger toggle — when on, show site URL and subdomain */}
+      {/* 1. Host website on Hostinger */}
       <div className="sb-toggle-row">
         <p className="sb-toggle-label">Host website on Hostinger</p>
         <Toggle checked={hostOnHostinger} onChange={setHostOnHostinger} />
       </div>
-      {hostOnHostinger && (
-        <>
-          {/* Live site URL — always shown; falls back to current origin in dev */}
-          {(() => {
-            const liveUrl = siteUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-            return liveUrl ? (
-              <div className="sb-toggle-row" style={{ gap: 6 }}>
-                <p className="sb-mono" style={{ fontSize: '0.72rem', color: '#16a34a', wordBreak: 'break-all', flex: 1 }}>{liveUrl}</p>
-                <a href={liveUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" style={{ color: '#16a34a', flexShrink: 0 }} /></a>
-              </div>
-            ) : null;
-          })()}
 
-          {folderPath ? (
-            <div className="sb-field-row">
-              <h4 className="sb-h4-grey">File path on server</h4>
-              <p className="sb-mono">{folderPath}</p>
-            </div>
+      {/* 2. Current website location — always visible */}
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Current website location</h4>
+        {siteUrl ? (
+          <div className="sb-toggle-row" style={{ gap: 6, padding: '6px 0 0 0' }}>
+            <p className="sb-mono" style={{ fontSize: '0.78rem', color: '#16a34a', wordBreak: 'break-all', flex: 1 }}>{siteUrl}</p>
+            <a href={siteUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" style={{ color: '#16a34a', flexShrink: 0 }} /></a>
+          </div>
+        ) : (
+          <p className="sb-field-value" style={{ color: '#999' }}>Not yet published</p>
+        )}
+      </div>
+
+      {/* 3. Get a custom domain */}
+      <div className="sb-toggle-row">
+        <p className="sb-toggle-label">Get a custom domain</p>
+        <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6, background: 'var(--brand, #C47756)', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
+      </div>
+
+      {/* 4. Point your domain DNS here */}
+      <div className="sb-toggle-row">
+        <p className="sb-toggle-label">Point your domain DNS here</p>
+        <button
+          onClick={() => setShowDnsPanel(v => !v)}
+          className="sb-change-pw-btn"
+          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+        >
+          {showDnsPanel ? 'Hide' : 'Show DNS'}
+        </button>
+      </div>
+      {showDnsPanel && (
+        <div className="sb-field-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, background: '#f9fafb', borderRadius: 8, padding: '10px 12px', marginTop: 4 }}>
+          {ip ? (
+            <>
+              <p className="sb-h4-grey" style={{ marginBottom: 2 }}>Set an <strong>A record</strong> pointing to:</p>
+              <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>{ip}</p>
+              <p className="text-xs text-gray-500 mt-1">This is your server IP address on Hostinger</p>
+              <p className="sb-h4-grey" style={{ marginTop: 6, marginBottom: 2 }}>Or a <strong>CNAME</strong> pointing to:</p>
+              <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>cname.propbook.pro</p>
+            </>
           ) : (
-            <div className="sb-field-row">
-              <h4 className="sb-h4-grey">File path on server</h4>
-              <p className="sb-field-value">will be shown after first deploy to Hostinger</p>
-            </div>
+            <p className="text-sm text-gray-500">Deploy to Hostinger first to get your server IP. Use <strong>cname.propbook.pro</strong> as a temporary CNAME target.</p>
           )}
-
-          {/* Custom domain section */}
-          <div className="sb-toggle-row" style={{ marginTop: 4 }}>
-            <p className="sb-toggle-label">Use a custom domain</p>
-            <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6, background: 'var(--brand, #C47756)', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
-          </div>
-
-          {/* DNS info — revealed by button */}
-          <div className="sb-toggle-row" style={{ marginTop: 2 }}>
-            <p className="sb-toggle-label" style={{ color: '#6b7280' }}>Point your domain DNS here</p>
-            <button
-              onClick={() => setShowDnsPanel(v => !v)}
-              className="sb-change-pw-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-            >
-              {showDnsPanel ? 'Hide' : 'Show DNS'}
-            </button>
-          </div>
-          {showDnsPanel && (
-            <div className="sb-field-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, background: '#f9fafb', borderRadius: 8, padding: '10px 12px', marginTop: 4 }}>
-              {ip ? (
-                <>
-                  <p className="sb-h4-grey" style={{ marginBottom: 2 }}>Set an <strong>A record</strong> pointing to:</p>
-                  <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>{ip}</p>
-                  <p className="text-xs text-gray-500 mt-1">This is your server IP address on Hostinger</p>
-                  <p className="sb-h4-grey" style={{ marginTop: 6, marginBottom: 2 }}>Or a <strong>CNAME</strong> pointing to:</p>
-                  <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>cname.propbook.pro</p>
-                </>
-              ) : (
-                <p className="text-sm text-gray-500">Deploy to Hostinger first to get your server IP. Use <strong>cname.propbook.pro</strong> as a temporary CNAME target.</p>
-              )}
-            </div>
-          )}
-        </>
+        </div>
       )}
 
-      <div className="sb-toggle-row" style={{ marginTop: hostOnHostinger ? 8 : 0 }}>
+      {/* 5. Enable website dev updates */}
+      <div className="sb-toggle-row">
         <p className="sb-toggle-label">Enable website dev updates</p>
         <Toggle checked={devUpdates} onChange={setDevUpdates} />
       </div>
+
+      {/* 6. Dev notifications */}
       <div className="sb-field-row" style={{ borderBottom: 'none' }}>
         <h4 className="sb-h4-grey">Dev notifications</h4>
         <p className="sb-field-value">0</p>
