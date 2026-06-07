@@ -86,8 +86,9 @@ Deno.serve(async (req: Request) => {
       local_area: sourceProperty.local_area,
       getting_there: sourceProperty.getting_there,
       neighborhood_overview: sourceProperty.neighborhood_overview,
-      // Timestamps
-      last_scraped_at: new Date().toISOString(),
+      // NOTE: last_scraped_at column doesn't in the properties table
+      // If you add it later, uncomment this line:
+      // last_scraped_at: new Date().toISOString(),
     };
 
     // Remove undefined/null fields so we don't overwrite with nulls

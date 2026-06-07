@@ -141,7 +141,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         propertyId: propertyRecord.id,
-        siteUrl: `https://propbook.pro/props/${propertyRecord.slug}`,
+        siteUrl: `https://www.propbook.pro/props/${propertyRecord.slug}`,
         slug: propertyRecord.slug,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

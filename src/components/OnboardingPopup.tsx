@@ -984,6 +984,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('popup_extras_social', extras.social ? 'true' : 'false');
      sessionStorage.setItem('popup_website_name', websiteName);
      sessionStorage.setItem('popup_website_desc', websiteDesc);
+     // Pass property name to sidebar via sessionStorage
+     sessionStorage.setItem('popup_property_name', scrapedData?.title || websiteName || '');
      // Persist scraped data so it survives the Stripe redirect remount
      if (scrapedData) {
        sessionStorage.setItem('popup_scraped_data', JSON.stringify(scrapedData));
@@ -998,10 +1000,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  };
 
  const handleSaveSiteInPopup = async () => {
-   if (!user) return;
+   console.log('[handleSaveSiteInPopup] 🚀 START user:', user?.id, 'email:', user?.email);
+   if (!user) { console.error('[handleSaveSiteInPopup] ❌ No user, returning'); return; }
    setSavingSite(true);
    try {
      const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml, duplicateSiteAfterPayment } = await import('../services/siteDuplicationService');
+     console.log('[handleSaveSiteInPopup] ✅ imported services, starting site creation...');
      // Use popup's live scrapedData state (freshest — set when parent passes scrapedProperty)
      // Don't rely on sessionStorage which may be empty/stale
      const data = {
@@ -1020,10 +1024,14 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        scrapedData: scrapedData || JSON.parse(sessionStorage.getItem('popup_scraped_data') || 'null'),
        bankChoice: bankChoice,
      };
+     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData:', !!scrapedData);
      const template = await loadTemplateHtml();
+     console.log('[handleSaveSiteInPopup] ✅ template loaded');
      const html = generateSiteHtml(template, data);
+     console.log('[handleSaveSiteInPopup] ✅ HTML generated, size:', html.length);
      sessionStorage.setItem('popup_generated_html', html);
      const result = await createNewSiteRecords(data);
+     console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);
      sessionStorage.setItem('popup_site_url', result.siteUrl);
      sessionStorage.setItem('popup_site_phase', 'saved');
 
@@ -1057,7 +1065,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      }
 
      // ── Deploy to Hostinger ──
+     console.log('[handleSaveSiteInPopup] 🚀 Deploying to Hostinger...');
      const dupResult = await duplicateSiteAfterPayment(result.slug, result.propertyId);
+     console.log('[handleSaveSiteInPopup] ✅ Deploy result:', JSON.stringify(dupResult));
 
      // ── Open the admin sidebar immediately so they can see their data ──
      if (onOpenSidebar) onOpenSidebar();
@@ -1069,9 +1079,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      setIsOpen(false);
      setShowCongrats(true);
    } catch (err) {
-     console.error('[PopupSaveSite] error:', err);
-     setStripeError('Failed to save site. Check DevTools console.');
+     console.error('[handleSaveSiteInPopup] ❌ FATAL ERROR:', err);
+     setStripeError('Failed to save site. Check DevTools console: ' + (err instanceof Error ? err.message : String(err)));
      setSavingSite(false);
+     setIsOpen(true); // Re-open popup on fatal error so user can see the error
    }
  };
 

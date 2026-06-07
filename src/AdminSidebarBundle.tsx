@@ -363,59 +363,80 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   );
 }
 
-function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDevUpdates, serverIp, folderPath, siteUrl, websiteName }: {
+function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDevUpdates, serverIp, folderPath, siteUrl, websiteName, propertySlug }: {
   hostOnHostinger: boolean; setHostOnHostinger: (v: boolean) => void;
   devUpdates: boolean; setDevUpdates: (v: boolean) => void;
   serverIp?: string | null;
   folderPath?: string | null;
   siteUrl?: string | null;
   websiteName?: string;
+  propertySlug?: string;
 }) {
-  const domainName = websiteName ? websiteName.replace(/^@+/, '').trim() + '.com' : '';
-  const domainSearchUrl = domainName
-    ? `https://www.hostinger.com/domain-search?domain=${encodeURIComponent(domainName)}`
-    : 'https://www.hostinger.com/domain-search';
+  const hasDeployed = !!(siteUrl && folderPath);
+  const displayUrl = siteUrl || 'http://localhost:5173';
+  const hostingDisplay = propertySlug
+    ? `propbook.pro/props/${propertySlug}`
+    : websiteName
+    ? `propbook.pro/props/${websiteName.toLowerCase().replace(/\s+/g, '-')}`
+    : null;
 
   return (
     <div>
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">Host website on Hostinger</p>
-        <Toggle checked={hostOnHostinger} onChange={setHostOnHostinger} />
+      {/* Section title */}
+      <div className="sb-field-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+        <h4 className="sb-h4-grey" style={{ fontWeight: 600, fontSize: '0.95rem', color: '#111' }}>Website</h4>
       </div>
-      {siteUrl && (
-        <div className="sb-toggle-row">
-          <p className="sb-toggle-label">{siteUrl}</p>
-          <a href={siteUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" style={{ color: '#16a34a' }} /></a>
+
+      {/* Current website location */}
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Current website location</h4>
+        <p className="sb-mono" style={{ margin: '4px 0' }}>{displayUrl}</p>
+      </div>
+
+      {/* Website hosting */}
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Website hosting</h4>
+        <div className="flex items-center justify-between">
+          <p className="sb-field-value">{hostingDisplay || '—'}</p>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${hasDeployed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            {hasDeployed ? 'Y' : 'N'}
+          </span>
         </div>
-      )}
-      {serverIp && (
-        <div className="sb-field-row">
-          <h4 className="sb-h4-grey">Server IP address</h4>
-          <p className="sb-mono">{serverIp}</p>
-        </div>
-      )}
-      {folderPath && (
-        <div className="sb-field-row">
-          <h4 className="sb-h4-grey">File path on server</h4>
-          <p className="sb-mono">{folderPath}</p>
-        </div>
-      )}
+      </div>
+
+      {/* File Path On Server */}
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">File Path On Server</h4>
+        {folderPath
+          ? <p className="sb-mono" style={{ margin: '4px 0' }}>{folderPath}</p>
+          : <p className="sb-field-value-muted" style={{ fontSize: '0.85rem' }}>File path will be shown after first deploy to Hostinger.</p>
+        }
+      </div>
+
+      {/* Get a custom domain */}
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Get a custom domain</h4>
+        <a href="https://www.hostinger.com" target="_blank" rel="noopener noreferrer" className="sb-btn-gray" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 6, background: 'var(--brand, #C47756)', color: '#fff', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, width: 'auto', marginTop: 4 }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
+      </div>
+
+      {/* Point your custom domain DNS here */}
       <div className="sb-field-row">
         <h4 className="sb-h4-grey">Point your custom domain DNS here</h4>
-        <h4 className="sb-h4-grey">Set an A record or CNAME to this address</h4>
-        <p className="sb-mono">{serverIp || '82.29.86.252'}</p>
-        <h4 className="sb-h4-grey">CNAME: cname.propbook.pro</h4>
+        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: 2 }}>Deploy to Hostinger first to get your server IP. Use cname.propbook.pro as a temporary CNAME target.</p>
       </div>
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">Search for a domain</p>
-        <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 6, background: 'var(--brand, #C47756)', color: '#fff', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
+
+      {/* Site improvements */}
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Site improvements</h4>
+        <div className="flex items-center justify-between">
+          <p className="sb-toggle-label">Enable website developer updates</p>
+          <Toggle checked={devUpdates} onChange={setDevUpdates} />
+        </div>
       </div>
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">Enable website dev updates</p>
-        <Toggle checked={devUpdates} onChange={setDevUpdates} />
-      </div>
+
+      {/* Dev Notifications */}
       <div className="sb-field-row" style={{ borderBottom: 'none' }}>
-        <h4 className="sb-h4-grey">Dev notifications</h4>
+        <h4 className="sb-h4-grey">Dev Notifications</h4>
         <p className="sb-field-value">0</p>
       </div>
     </div>
@@ -857,8 +878,21 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const navigate = useNavigate();
   const setPropertyTitle = useProperty(s => s.setTitle);
 
-  const [openSection, setOpenSection] = useState<Section | null>(null);
-  const [bookingCardOpen, setBookingCardOpen] = useState(false);
+  // Restore sidebar nav state from sessionStorage (survives remount when sidebar re-opens)
+  const [openSection, setOpenSection] = useState<Section | null>(
+    () => (typeof window !== 'undefined' ? (sessionStorage.getItem('sidebar_open_section') as Section | null) : null) || null
+  );
+  const [bookingCardOpen, setBookingCardOpen] = useState(
+    () => (typeof window !== 'undefined' ? sessionStorage.getItem('sidebar_booking_card_open') === 'true' : false)
+  );
+  // Persist openSection and bookingCardOpen so they survive sidebar remount
+  useEffect(() => {
+    if (openSection !== null) sessionStorage.setItem('sidebar_open_section', openSection);
+    else sessionStorage.removeItem('sidebar_open_section');
+  }, [openSection]);
+  useEffect(() => {
+    sessionStorage.setItem('sidebar_booking_card_open', String(bookingCardOpen));
+  }, [bookingCardOpen]);
   const [showCredentials, setShowCredentials] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1154,6 +1188,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const toggleSection = (section: Section) => {
     console.log('[AdminSidebar] toggleSection called:', section);
     if (section === 'bookings') { onClose(); navigate('/admin'); return; }
+    if (section === 'edit') { setIsEditing(prev => !prev); return; }
     const next = openSection === section ? null : section;
     console.log('[AdminSidebar] openSection next:', next);
     setOpenSection(next);
@@ -1161,9 +1196,79 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (next === 'subscription') { console.log('[AdminSidebar] loading subscription data...'); loadSubscriptionData(); }
   };
 
+  // ── handlePublishFromBookings ── Publish site from the Bookings panel (no subscription check needed) ──
+  const [publishingFromBookings, setPublishingFromBookings] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  const handlePublishFromBookings = async () => {
+    if (!user) return;
+    setPublishingFromBookings(true);
+    setPublishError(null);
+    try {
+      const { createNewSiteRecords, loadTemplateHtml, generateSiteHtml, duplicateSiteAfterPayment } = await import('./services/siteDuplicationService');
+      // Get Stripe account ID from profile
+      const { data: profile } = await supabase.from('profiles').select('stripe_account_id').eq('id', user.id).single();
+      const scrapedRaw = sessionStorage.getItem('popup_scraped_data');
+      const scrapedData = scrapedRaw ? JSON.parse(scrapedRaw) : null;
+      const data = {
+        email: user.email,
+        userId: user.id,
+        userStripeAccountId: profile?.stripe_account_id || null,
+        bookingsEmail: user.email,
+        websiteName: sessionStorage.getItem('popup_website_name') || user.full_name || 'My Property',
+        websiteDesc: sessionStorage.getItem('popup_website_desc') || '',
+        planChoice: (sessionStorage.getItem('popup_plan') || 'starter') as 'starter' | 'pro' | 'agency',
+        hostingChoice: (sessionStorage.getItem('popup_hosting') || 'our') as 'our' | 'own',
+        designChoice: (sessionStorage.getItem('popup_design') || 'minimal') as string,
+        extras: {
+          seo: sessionStorage.getItem('popup_extras_seo') === 'true',
+          ads: sessionStorage.getItem('popup_extras_ads') === 'true',
+          analytics: sessionStorage.getItem('popup_extras_analytics') === 'true',
+          social: sessionStorage.getItem('popup_extras_social') === 'true',
+        },
+        scrapedData,
+        bankChoice: '',
+      };
+      const template = await loadTemplateHtml();
+      const html = generateSiteHtml(template, data);
+      sessionStorage.setItem('popup_generated_html', html);
+      const result = await createNewSiteRecords(data);
+      sessionStorage.setItem('popup_site_url', result.siteUrl);
+      sessionStorage.setItem('popup_site_phase', 'saved');
+      // Migrate scraped data from source property
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await fetch(`${supabaseUrl}/functions/v1/migrate-property`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}`, 'Apikey': supabaseAnonKey },
+            body: JSON.stringify({ targetPropertyId: result.propertyId }),
+          });
+        }
+      } catch { /* migration non-fatal */ }
+      // Deploy to Hostinger
+      const deployResult = await duplicateSiteAfterPayment(result.slug, result.propertyId);
+      // Update property with deployed site URL
+      if (property?.id) {
+        await supabase.from('properties').update({ site_url: result.siteUrl }).eq('id', property.id);
+        setProperty(p => p ? { ...p, site_url: result.siteUrl } : p);
+      }
+      sessionStorage.setItem('popup_site_url', result.siteUrl);
+      alert(`Site published!\nView it at: ${result.siteUrl}`);
+    } catch (err: any) {
+      setPublishError(err.message || 'Publish failed');
+    } finally {
+      setPublishingFromBookings(false);
+    }
+  };
+
   const navItems: { key: Section; label: string }[] = [
     { key: 'property', label: 'Property' },
+    { key: 'edit', label: 'Edit' },
     { key: 'publish', label: 'Publish' },
+    { key: 'website', label: 'Website' },
     { key: 'contact', label: 'Contact' },
     { key: 'banking', label: 'Banking' },
     { key: 'services', label: 'Services' },
@@ -1225,9 +1330,27 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between py-2">
-                  <p className="text-sm text-gray-500">No upcoming bookings</p>
-                  {bookingCardOpen ? <ChevronDown className="h-5 w-5 text-gray-500" /> : <ChevronRight className="h-5 w-5 text-gray-500" />}
+                <div className="py-5 px-3">
+                  <p className="text-sm text-gray-500 text-center mb-4">No upcoming bookings</p>
+                  {publishError && <p className="text-sm text-red-600 text-center mb-3">{publishError}</p>}
+                  <button
+                    onClick={handlePublishFromBookings}
+                    disabled={publishingFromBookings || !sessionStorage.getItem('popup_website_name')}
+                    className={`w-full py-4 px-6 rounded-xl font-bold text-base transition-all duration-200 ${
+                      publishingFromBookings
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : !sessionStorage.getItem('popup_website_name')
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30'
+                    }`}
+                  >
+                    {publishingFromBookings ? 'Publishing...' : 'Publish My Site'}
+                  </button>
+                  {sessionStorage.getItem('popup_website_name') && (
+                    <p className="text-xs text-center text-gray-400 mt-2">
+                      Ready to publish: {sessionStorage.getItem('popup_website_name')}
+                    </p>
+                  )}
                 </div>
               )}
             </button>
@@ -1242,7 +1365,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           {showCredentials && (
             <div className="sb-credentials">
               <button onClick={() => setShowCredentials(false)} className="sb-btn-close" style={{ position: 'absolute', top: 12, right: 12 }}><X className="h-4 w-4" /></button>
-              <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Credentials</p>
+              <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Website Credentials</p>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasStripeAccount} /><p className="sb-credential-name">Stripe Payout Account</p></div>
                 {hasStripeAccount && (
@@ -1282,6 +1405,19 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                     {key === 'banking' && <BankingSection balance={balance} connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}
                     {key === 'subscription' && <SubscriptionSection subscription={subscriptionData} loading={subLoading} checkoutLoading={checkoutLoading} onSubscribe={handleSubscribeCheckout} />}
+                    {key === 'website' && (
+                      <WebsiteSection
+                        hostOnHostinger={hostOnHostinger}
+                        setHostOnHostinger={setHostOnHostinger}
+                        devUpdates={devUpdates}
+                        setDevUpdates={setDevUpdates}
+                        serverIp={property?.server_ip || null}
+                        folderPath={property?.folder_path || null}
+                        siteUrl={property?.site_url || null}
+                        websiteName={propFields.title || property?.title || undefined}
+                        propertySlug={property?.slug || undefined}
+                      />
+                    )}
                   </div>
                 )}
               </div>
