@@ -1,1563 +1,829 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="{{PROPERTY_INTRO}} — {{TITLE}} in {{ADDRESS}}. {{BEDROOMS}} bedroom vacation rental with ratings of {{RATING}} stars from {{REVIEW_COUNT}} reviews. Book your perfect getaway today.">
-  <meta name="keywords" content="vacation rental, holiday home, {{TITLE}}, {{ADDRESS}}, surf house, beach villa">
-  <meta name="author" content="{{HOST_NAME}}">
-  <meta name="robots" content="index, follow">
-
-  <!-- Open Graph / Social Sharing -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="{{TITLE}} — {{PROPERTY_INTRO}}">
-  <meta property="og:description" content="{{PROPERTY_INTRO}} — {{BEDROOMS}} bedroom property in {{ADDRESS}} rated {{RATING}} stars.">
-  <meta property="og:image" content="{{HERO_IMAGE}}">
-  <meta property="og:url" content="https://propbook.com/property/{{SLUG}}">
-  <meta property="og:site_name" content="{{BRAND_NAME}}">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="{{TITLE}} — {{PROPERTY_INTRO}}">
-  <meta name="twitter:description" content="{{PROPERTY_INTRO}} — {{BEDROOMS}} bedroom property in {{ADDRESS}}.">
-  <meta name="twitter:image" content="{{HERO_IMAGE}}">
-
-  <!-- Canonical URL -->
-  <link rel="canonical" href="https://propbook.com/property/{{SLUG}}">
-
-  <title>{{TITLE}} — {{BEDROOMS}} Bedrooms in {{ADDRESS}} | {{BRAND_NAME}}</title>
-
-  <!-- Google Fonts -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Surf House Baja - Baja Beach House Vacation Rental</title>
+  <meta name="description" content="Luxury beachfront vacation rental in Baja California. Beautiful ocean views, 4 bedrooms, sleeps 8 guests. Book your perfect beach getaway today." />
+  <meta property="og:title" content="Surf House Baja - Baja Beach House Vacation Rental" />
+  <meta property="og:description" content="Luxury beachfront vacation rental in Baja California. Beautiful ocean views, 4 bedrooms, sleeps 8 guests." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://surfhousebaja.com" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@surfhousebaja" />
+  <link rel="canonical" href="https://surfhousebaja.com" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- JSON-LD Structured Data for Schema.org -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "VacationRental",
-    "name": "{{TITLE}}",
-    "description": "{{PROPERTY_INTRO}}",
-    "image": "{{HERO_IMAGE}}",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "{{ADDRESS}}"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": "0",
-      "longitude": "0"
-    },
-    "starRating": {
-      "@type": "Rating",
-      "ratingValue": "{{RATING}}"
-    },
-    "numberOfRooms": {{BEDROOMS}},
-    "occupancy": {
-      "@type": "QuantitativeValue",
-      "maxValue": {{MAX_GUESTS}}
-    },
-    "amenityFeature": [
-      {{#AMENITIES}}
-      {"@type": "LocationFeatureSpecification", "name": "{{.}}"},
-      {{/AMENITIES}}
-    ],
-    "host": {
-      "@type": "Person",
-      "name": "{{HOST_NAME}}"
-    },
-    "url": "{{BOOKING_URL}}",
-    "pricePerNight": "{{PRICE_PER_NIGHT}}"
-  }
-  </script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
   <style>
-    /* ========================================
-       CSS Custom Properties / Design Tokens
-       ======================================== */
+    *, *:before, *:after { box-sizing: border-box; margin: 0; padding: 0; }
+    
     :root {
-      --brand-color: {{BRAND_COLOR}};
-      --brand-color-light: color-mix(in srgb, {{BRAND_COLOR}} 15%, white);
-      --brand-color-dark: color-mix(in srgb, {{BRAND_COLOR}} 85%, black);
-
-      --bg-primary: #FAFAF8;
-      --bg-white: #FFFFFF;
-      --bg-section-alt: #F5F3F0;
-
-      --text-primary: #1A1A1A;
-      --text-secondary: #5C5C5C;
-      --text-muted: #8A8A8A;
-      --text-inverse: #FFFFFF;
-
-      --border-color: #E8E4E0;
-      --border-color-light: #F0EDEA;
-
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-      --shadow-lg: 0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
-      --shadow-lift: 0 20px 60px rgba(0,0,0,0.15);
-
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 16px;
-
-      --font-heading: 'Playfair Display', Georgia, serif;
-      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-
-      --max-width: 1200px;
-      --content-width: 900px;
-
-      --transition-fast: 150ms ease;
-      --transition-base: 250ms ease;
-      --transition-slow: 400ms ease;
+      --red: #FF385C;
+      --red-dark: #E00B41;
+      --black: #222222;
+      --gray-600: #6A6A6A;
+      --gray-400: #B0B0B0;
+      --gray-200: #EBEBEB;
+      --gray-100: #F7F7F7;
+      --white: #FFFFFF;
+      --font-serif: 'Rye', serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* ========================================
-       Reset & Base Styles
-       ======================================== */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      scroll-behavior: smooth;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
+    html { scroll-behavior: smooth; }
+    
     body {
-      font-family: var(--font-body);
-      font-size: 16px;
-      line-height: 1.6;
-      color: var(--text-primary);
-      background-color: var(--bg-primary);
+      font-family: var(--font-sans);
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
-    img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-      background: none;
-    }
-
-    ul, ol {
-      list-style: none;
-    }
-
-    /* ========================================
-       Typography
-       ======================================== */
-    h1, h2, h3, h4, h5, h6 {
-      font-family: var(--font-heading);
-      font-weight: 600;
-      line-height: 1.3;
-      color: var(--text-primary);
-    }
-
-    h1 { font-size: clamp(2rem, 5vw, 3rem); }
-    h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); }
-    h3 { font-size: clamp(1.25rem, 2.5vw, 1.5rem); }
-
-    p {
-      color: var(--text-secondary);
-      margin-bottom: 1rem;
-    }
-
-    p:last-child {
-      margin-bottom: 0;
-    }
-
-    /* ========================================
-       Layout Utilities
-       ======================================== */
-    .container {
-      max-width: var(--max-width);
-      margin: 0 auto;
-      padding: 0 1.5rem;
-    }
-
-    .container--narrow {
-      max-width: var(--content-width);
-    }
-
-    .section {
-      padding: 4rem 0;
-    }
-
-    .section--alt {
-      background-color: var(--bg-white);
-    }
-
-    .section__header {
-      margin-bottom: 2.5rem;
-    }
-
-    .section__title {
-      position: relative;
-      display: inline-block;
-    }
-
-    .section__title::after {
-      content: '';
-      position: absolute;
-      bottom: -8px;
-      left: 0;
-      width: 40px;
-      height: 3px;
-      background-color: var(--brand-color);
-      border-radius: 2px;
-    }
-
-    .divider {
-      height: 1px;
-      background-color: var(--border-color);
-      margin: 2rem 0;
-    }
-
-    /* ========================================
-       Navigation Bar
-       ======================================== */
-    .navbar {
+    /* Header */
+    .header {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      z-index: 1000;
-      padding: 1.25rem 0;
-      transition: background-color var(--transition-base), box-shadow var(--transition-base);
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
     }
 
-    .navbar.scrolled {
-      background-color: var(--bg-white);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .navbar__inner {
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 80px;
+      height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .navbar__logo {
-      font-family: var(--font-heading);
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
+    .brand {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      color: var(--black);
+      text-decoration: none;
     }
 
-    .navbar__logo span {
-      color: var(--brand-color);
-    }
-
-    .navbar__actions {
+    .header-nav {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 24px;
     }
 
-    .btn {
-      display: inline-flex;
+    .header-nav a {
+      font-size: 0.875rem;
+      color: var(--black);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .header-nav a:hover { text-decoration: underline; }
+
+    /* Announcement Banner */
+    .announcement {
+      background: var(--red);
+      color: var(--white);
+      text-align: center;
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-top: 64px;
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      height: 600px;
+      background: url('https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg') center/cover no-repeat;
+      display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border-radius: var(--radius-md);
-      transition: all var(--transition-fast);
     }
 
-    .btn--primary {
-      background-color: var(--brand-color);
-      color: var(--text-inverse);
-    }
-
-    .btn--primary:hover {
-      background-color: var(--brand-color-dark);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .btn--outline {
-      border: 1.5px solid var(--border-color);
-      color: var(--text-primary);
-      background-color: var(--bg-white);
-    }
-
-    .btn--outline:hover {
-      border-color: var(--brand-color);
-      color: var(--brand-color);
-    }
-
-    .btn--large {
-      padding: 1rem 2rem;
-      font-size: 1rem;
-    }
-
-    /* ========================================
-       Image Gallery / Slider
-       ======================================== */
-    .gallery {
-      position: relative;
-      margin-top: 60px; /* Offset for fixed navbar */
-    }
-
-    .gallery__hero {
-      position: relative;
-      height: 60vh;
-      min-height: 400px;
-      max-height: 700px;
-      overflow: hidden;
-      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    }
-
-    .gallery__hero-image {
+    .hero::before {
+      content: '';
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: opacity var(--transition-slow);
+      background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5));
     }
 
-    /* CSS Checkbox Hack for Slider */
-    .gallery__radio {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      color: var(--white);
+      padding: 20px;
     }
 
-    .gallery__nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 10;
-      width: 44px;
-      height: 44px;
+    .hero-price {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .hero-price-unit {
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    .hero-title {
+      font-family: var(--font-serif);
+      font-size: 2.5rem;
+      margin-top: 16px;
+    }
+
+    .hero-location {
+      font-size: 1rem;
+      margin-top: 8px;
+      opacity: 0.9;
+    }
+
+    .hero-meta {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 16px;
+      font-size: 0.875rem;
+    }
+
+    .hero-rating {
+      color: var(--white);
       display: flex;
       align-items: center;
-      justify-content: center;
-      background-color: var(--bg-white);
-      border-radius: 50%;
-      box-shadow: var(--shadow-md);
-      cursor: pointer;
-      transition: all var(--transition-fast);
+      gap: 4px;
     }
 
-    .gallery__nav:hover {
-      background-color: var(--brand-color);
-      color: var(--text-inverse);
+    .hero-rating span { opacity: 0.9; }
+
+    /* Main Content */
+    .main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 80px;
     }
 
-    .gallery__nav svg {
+    .property-header {
+      margin-bottom: 32px;
+    }
+
+    .property-title {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      color: var(--black);
+    }
+
+    .property-location {
+      color: var(--gray-600);
+      margin-top: 8px;
+    }
+
+    .property-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .property-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+    }
+
+    .property-stat svg {
       width: 20px;
       height: 20px;
+      color: var(--gray-600);
     }
 
-    .gallery__nav--prev {
-      left: 1rem;
+    .property-rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
     }
 
-    .gallery__nav--next {
-      right: 1rem;
+    .stars {
+      color: var(--red);
+ }
+
+    .rating-text {
+      font-weight: 600;
     }
 
-    .gallery__counter {
-      position: absolute;
-      bottom: 1rem;
-      right: 1rem;
-      padding: 0.5rem 0.75rem;
-      background-color: rgba(0,0,0,0.6);
-      color: var(--text-inverse);
-      font-size: 0.85rem;
-      font-weight: 500;
-      border-radius: var(--radius-sm);
-      backdrop-filter: blur(4px);
+    .review-count {
+      color: var(--gray-600);
     }
 
-    .gallery__thumbnails {
+    /* Description */
+    .description {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .description p {
+      font-size: 1.0625rem;
+      line-height: 1.7;
+      color: var(--black);
+    }
+
+    /* Amenities */
+    .amenities {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 1.375rem;
+      margin-bottom: 24px;
+    }
+
+    .amenities-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 0.75rem;
-      margin-top: 0.75rem;
-      border-radius: var(--radius-md);
-      overflow: hidden;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
     }
 
-    .gallery__thumb {
-      position: relative;
-      aspect-ratio: 16/10;
-      overflow: hidden;
-      border-radius: var(--radius-sm);
+    .amenity-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+    }
+
+    .amenity-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--gray-600);
+    }
+
+    .amenity-text {
+      font-size: 0.9375rem;
+    }
+
+    /* Property Details Sections */
+    .details-section {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .details-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       cursor: pointer;
-      border: 2px solid transparent;
-      transition: all var(--transition-fast);
+      padding: 16px 0;
     }
 
-    .gallery__thumb:hover {
-      border-color: var(--brand-color);
+    .details-header h3 {
+      font-family: var(--font-serif);
+      font-size: 1.375rem;
     }
 
-    .gallery__thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform var(--transition-base);
+    .details-toggle {
+      width: 24px;
+      height: 24px;
+      color: var(--gray-600);
     }
 
-    .gallery__thumb:hover img {
-      transform: scale(1.05);
+    .details-content {
+      padding: 16px 0;
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--gray-600);
     }
 
-    /* Thumbnail click labels - positioned over each thumbnail */
-    .gallery__thumb-label {
-      position: absolute;
-      inset: 0;
-      cursor: pointer;
-      z-index: 5;
+    .details-content.hidden { display: none; }
+
+    /* Calendar */
+    .calendar-section {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--gray-200);
     }
 
-    /* Hidden radio buttons for thumbnail selection */
-    .gallery__thumb-radio {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
+    .calendar-title {
+      font-family: var(--font-serif);
+      font-size: 1.375rem;
+      margin-bottom: 24px;
     }
 
-    /* Active thumbnail state */
-    #img-1:checked ~ .gallery__thumbnails .gallery__thumb:nth-child(1),
-    #img-2:checked ~ .gallery__thumbnails .gallery__thumb:nth-child(2),
-    #img-3:checked ~ .gallery__thumbnails .gallery__thumb:nth-child(3),
-    #img-4:checked ~ .gallery__thumbnails .gallery__thumb:nth-child(4),
-    #img-5:checked ~ .gallery__thumbnails .gallery__thumb:nth-child(5) {
-      border-color: var(--brand-color);
+    .calendar-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
     }
 
-    /* Hero image visibility based on selection */
-    #img-1:checked ~ .gallery__hero .hero-img-1,
-    #img-2:checked ~ .gallery__hero .hero-img-2,
-    #img-3:checked ~ .gallery__hero .hero-img-3,
-    #img-4:checked ~ .gallery__hero .hero-img-4,
-    #img-5:checked ~ .gallery__hero .hero-img-5 {
-      opacity: 1;
+    .calendar-month {
+      font-size: 1rem;
+      font-weight: 600;
     }
 
-    .hero-img-2, .hero-img-3, .hero-img-4, .hero-img-5 {
-      opacity: 0;
-    }
-
-    /* Nav arrow functionality via labels */
-    .gallery__nav-prev-label,
-    .gallery__nav-next-label {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 10;
-      width: 44px;
-      height: 44px;
+    .calendar-nav button {
+      background: none;
+      border: 1px solid var(--gray-400);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: var(--bg-white);
-      border-radius: 50%;
-      box-shadow: var(--shadow-md);
       cursor: pointer;
-      transition: all var(--transition-fast);
     }
 
-    .gallery__nav-prev-label:hover,
-    .gallery__nav-next-label:hover {
-      background-color: var(--brand-color);
-      color: var(--text-inverse);
+    .calendar-nav button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
     }
 
-    .gallery__nav-prev-label {
-      left: 1rem;
-    }
-
-    .gallery__nav-next-label {
-      right: 1rem;
-    }
-
-    /* ========================================
-       Property Header
-       ======================================== */
-    .property-header {
-      padding: 2.5rem 0 1.5rem;
-    }
-
-    .property-header__title {
-      font-size: clamp(2rem, 4vw, 2.75rem);
-      margin-bottom: 0.5rem;
-      letter-spacing: -0.02em;
-    }
-
-    .property-header__location {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-secondary);
-      font-size: 1.05rem;
-      margin-bottom: 1rem;
-    }
-
-    .property-header__location svg {
-      width: 18px;
-      height: 18px;
-      color: var(--brand-color);
-    }
-
-    .property-header__meta {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .property-header__rating {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .property-header__stars {
-      display: flex;
-      gap: 2px;
-    }
-
-    .property-header__star {
-      width: 16px;
-      height: 16px;
-      color: var(--brand-color);
-    }
-
-    .property-header__star--empty {
-      color: var(--border-color);
-    }
-
-    .property-header__rating-text {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .property-header__reviews {
-      color: var(--text-secondary);
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-
-    .property-header__host {
-      color: var(--text-secondary);
-    }
-
-    .property-header__host strong {
-      color: var(--text-primary);
-      font-weight: 600;
-    }
-
-    /* ========================================
-       Key Stats Bar
-       ======================================== */
-    .stats-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      padding: 1.5rem 0;
-      border-top: 1px solid var(--border-color);
-      border-bottom: 1px solid var(--border-color);
-      margin: 1.5rem 0;
-    }
-
-    .stats-bar__item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .stats-bar__icon {
-      width: 24px;
-      height: 24px;
-      color: var(--brand-color);
-    }
-
-    .stats-bar__label {
-      font-size: 1rem;
-      color: var(--text-primary);
-      font-weight: 500;
-    }
-
-    .stats-bar__value {
-      color: var(--text-secondary);
-    }
-
-    /* ========================================
-       Description Section
-       ======================================== */
-    .description__lead {
-      font-size: 1.15rem;
-      line-height: 1.7;
-      color: var(--text-primary);
-      margin-bottom: 1.5rem;
-    }
-
-    .description__text {
-      color: var(--text-secondary);
-      line-height: 1.8;
-      white-space: pre-line;
-    }
-
-    /* ========================================
-       Property Details Grid (Amenities)
-       ======================================== */
-    .amenities {
+    .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1rem;
-      margin-top: 2rem;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
     }
 
-    .amenity {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem 1.25rem;
-      background-color: var(--bg-section-alt);
-      border-radius: var(--radius-md);
-      transition: all var(--transition-fast);
-    }
-
-    .amenity:hover {
-      background-color: var(--brand-color-light);
-      transform: translateY(-2px);
-    }
-
-    .amenity__icon {
-      width: 24px;
-      height: 24px;
-      color: var(--brand-color);
-      flex-shrink: 0;
-    }
-
-    .amenity__label {
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: var(--text-primary);
-    }
-
-    /* ========================================
-       Activities & Local Area
-       ======================================== */
-    .activities__grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 2rem;
-      margin-top: 2rem;
-    }
-
-    .activity-block {
-      padding: 1.5rem;
-      background-color: var(--bg-white);
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-color-light);
-    }
-
-    .activity-block__title {
-      font-family: var(--font-heading);
-      font-size: 1.15rem;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
-      color: var(--text-primary);
-    }
-
-    .activity-block__text {
-      color: var(--text-secondary);
-      line-height: 1.7;
-      white-space: pre-line;
-    }
-
-    /* ========================================
-       Similar Properties
-       ======================================== */
-    .similar-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-
-    .property-card {
-      background-color: var(--bg-white);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      transition: all var(--transition-base);
-    }
-
-    .property-card:hover {
-      box-shadow: var(--shadow-lg);
-      transform: translateY(-4px);
-    }
-
-    .property-card__image {
-      position: relative;
-      aspect-ratio: 16/10;
-      overflow: hidden;
-    }
-
-    .property-card__image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform var(--transition-slow);
-    }
-
-    .property-card:hover .property-card__image img {
-      transform: scale(1.05);
-    }
-
-    .property-card__badge {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      padding: 0.35rem 0.75rem;
-      background-color: var(--bg-white);
-      border-radius: var(--radius-sm);
+    .calendar-day-header {
+      text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: var(--text-primary);
-      box-shadow: var(--shadow-sm);
+      color: var(--gray-600);
+      padding: 8px;
     }
 
-    .property-card__content {
-      padding: 1.25rem;
-    }
-
-    .property-card__title {
-      font-family: var(--font-heading);
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: var(--text-primary);
-    }
-
-    .property-card__location {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      margin-bottom: 0.75rem;
-    }
-
-    .property-card__location svg {
-      width: 14px;
-      height: 14px;
-      color: var(--brand-color);
-    }
-
-    .property-card__footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 0.75rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--border-color-light);
-    }
-
-    .property-card__price {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .property-card__price span {
-      font-weight: 400;
-      color: var(--text-secondary);
-    }
-
-    .property-card__rating {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.9rem;
-    }
-
-    .property-card__rating svg {
-      width: 14px;
-      height: 14px;
-      color: var(--brand-color);
-    }
-
-    .property-card__rating-value {
-      font-weight: 600;
-    }
-
-    /* ========================================
-       Booking Footer / Sticky CTA
-       ======================================== */
-    .booking-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 900;
-      background-color: var(--bg-white);
-      border-top: 1px solid var(--border-color);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-      padding: 1rem 0;
-      transform: translateY(100%);
-      transition: transform var(--transition-base);
-    }
-
-    .booking-bar.visible {
-      transform: translateY(0);
-    }
-
-    .booking-bar__inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-    }
-
-    .booking-bar__price {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .booking-bar__price-main {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-
-    .booking-bar__price-main span {
-      font-weight: 400;
-      font-size: 1rem;
-      color: var(--text-secondary);
-    }
-
-    .booking-bar__actions {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .booking-bar__contact {
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      transition: color var(--transition-fast);
-    }
-
-    .booking-bar__contact:hover {
-      color: var(--brand-color);
-    }
-
-    /* Mobile adjustments for booking bar */
-    @media (max-width: 640px) {
-      .booking-bar__inner {
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .booking-bar__actions {
-        width: 100%;
-        flex-direction: column;
-      }
-
-      .booking-bar__actions .btn {
-        width: 100%;
-      }
-    }
-
-    /* ========================================
-       Footer
-       ======================================== */
-    .footer {
-      background-color: var(--text-primary);
-      color: var(--text-inverse);
-      padding: 3rem 0;
-      margin-top: 6rem;
-    }
-
-    .footer__inner {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .footer__brand {
-      font-family: var(--font-heading);
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-
-    .footer__brand span {
-      color: var(--brand-color);
-    }
-
-    .footer__links {
-      display: flex;
-      gap: 2rem;
-    }
-
-    .footer__link {
-      color: rgba(255,255,255,0.7);
-      font-size: 0.9rem;
-      transition: color var(--transition-fast);
-    }
-
-    .footer__link:hover {
-      color: var(--text-inverse);
-    }
-
-    .footer__copy {
-      width: 100%;
+    .calendar-day {
       text-align: center;
-      padding-top: 2rem;
-      margin-top: 2rem;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.5);
-      font-size: 0.85rem;
+      padding: 8px;
+      font-size: 0.875rem;
+      border-radius: 50%;
+      cursor: pointer;
     }
 
-    /* ========================================
-       Responsive Design
-       ======================================== */
+    .calendar-day:hover:not(.disabled) {
+      background: var(--gray-100);
+    }
+
+    .calendar-day.disabled {
+      color: var(--gray-400);
+      cursor: not-allowed;
+    }
+
+    .calendar-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: var(--gray-600);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Reviews */
+    .reviews-section {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .reviews-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .reviews-title {
+      font-family: var(--font-serif);
+      font-size: 1.375rem;
+    }
+
+    .review-card {
+      background: var(--gray-100);
+      padding: 24px;
+      border-radius: 12px;
+    }
+
+    .review-quote {
+      font-size: 1rem;
+      line-height: 1.6;
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+
+    .review-author {
+      font-weight: 600;
+    }
+
+    .review-date {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+      margin-top: 4px;
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--gray-100);
+      padding: 48px 80px;
+      text-align: center;
+    }
+
+    .footer-brand {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+
+    .footer-copyright {
+      color: var(--gray-600);
+      font-size: 0.875rem;
+    }
+
+    /* Book Now Button */
+    .book-btn {
+      display: inline-block;
+      background: var(--red);
+      color: var(--white);
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      margin-top: 24px;
+      transition: background 0.2s;
+    }
+
+    .book-btn:hover {
+      background: var(--red-dark);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .header-inner { padding: 0 40px; }
+      .main { padding: 32px 40px; }
+      .footer { padding: 48px 40px; }
+    }
+
     @media (max-width: 768px) {
-      .navbar__actions .btn--outline {
-        display: none;
-      }
-
-      .gallery__hero {
-        height: 50vh;
-        min-height: 300px;
-      }
-
-      .gallery__thumbnails {
-        grid-template-columns: repeat(4, 1fr);
-      }
-
-      .gallery__thumb:last-child {
-        display: none;
-      }
-
-      .stats-bar {
-        gap: 1.25rem;
-      }
-
-      .amenities {
-        grid-template-columns: 1fr;
-      }
-
-      .section {
-        padding: 3rem 0;
-      }
-
-      .footer__inner {
-        flex-direction: column;
-        text-align: center;
-      }
-
-      .footer__links {
-        justify-content: center;
-      }
+      .header-inner { padding: 0 24px; }
+      .main { padding: 24px; }
+      .footer { padding: 32px 24px; }
+      .amenities-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-title { font-size: 1.75rem; }
+      .hero-price { font-size: 2.5rem; }
     }
 
     @media (max-width: 480px) {
-      .gallery__thumbnails {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.5rem;
-      }
-
-      .stats-bar {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-      }
-
-      .property-header__meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-      }
-    }
-
-    /* ========================================
-       Print Styles
-       ======================================== */
-    @media print {
-      .navbar,
-      .booking-bar,
-      .gallery__nav,
-      .gallery__thumbnails {
-        display: none;
-      }
-
-      .gallery {
-        margin-top: 0;
-      }
-
-      .gallery__hero {
-        height: auto;
-        max-height: none;
-      }
-
-      .section {
-        padding: 1.5rem 0;
-      }
+      .amenities-grid { grid-template-columns: 1fr; }
+      .property-stats { flex-wrap: wrap; gap: 12px; }
     }
   </style>
 </head>
 <body>
-
-  <!-- ========================================
-       Navigation Bar
-       ======================================== -->
-  <header class="navbar" id="navbar">
-    <div class="container">
-      <div class="navbar__inner">
-        <a href="/" class="navbar__logo">{{BRAND_NAME}}<span>.</span></a>
-        <div class="navbar__actions">
-          <a href="#" class="btn btn--outline">Log in</a>
-          <a href="#" class="btn btn--primary">Sign up</a>
-        </div>
-      </div>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="brand">@surfhousebaja</a>
+      <nav class="header-nav">
+        <a href="#">Share</a>
+        <a href="#">Sign In</a>
+      </nav>
     </div>
   </header>
 
-  <!-- ========================================
-       Image Gallery / Slider
-       ======================================== -->
-  <section class="gallery">
-    <!-- Radio inputs for image selection (CSS-only slider) -->
-    <input type="radio" name="gallery-image" id="img-1" class="gallery__radio" checked>
-    <input type="radio" name="gallery-image" id="img-2" class="gallery__radio">
-    <input type="radio" name="gallery-image" id="img-3" class="gallery__radio">
-    <input type="radio" name="gallery-image" id="img-4" class="gallery__radio">
-    <input type="radio" name="gallery-image" id="img-5" class="gallery__radio">
+  <!-- Announcement Banner -->
+  <div class="announcement">
+    Book Direct, No Airbnb Fees, Chat with Host
+  </div>
 
-    <!-- Hero Images -->
-    <div class="gallery__hero">
-      <img src="{{HERO_IMAGE}}" alt="Photo of {{TITLE}}" class="gallery__hero-image hero-img-1">
-      <img src="{{IMAGES_1}}" alt="Photo 2 of {{TITLE}}" class="gallery__hero-image hero-img-2" {{#IMAGES_1}}loading="lazy"{{/IMAGES_1}}>
-      <img src="{{IMAGES_2}}" alt="Photo 3 of {{TITLE}}" class="gallery__hero-image hero-img-3" {{#IMAGES_2}}loading="lazy"{{/IMAGES_2}}>
-      <img src="{{IMAGES_3}}" alt="Photo 4 of {{TITLE}}" class="gallery__hero-image hero-img-4" {{#IMAGES_3}}loading="lazy"{{/IMAGES_3}}>
-      <img src="{{IMAGES_4}}" alt="Photo 5 of {{TITLE}}" class="gallery__hero-image hero-img-5" {{#IMAGES_4}}loading="lazy"{{/IMAGES_4}}>
-
-      <!-- Navigation Arrows (CSS checkbox hack) -->
-      <label for="img-5" class="gallery__nav-prev-label" aria-label="Previous image">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </label>
-      <label for="img-2" class="gallery__nav-next-label" aria-label="Next image">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </label>
-
-      <!-- Image Counter -->
-      <div class="gallery__counter">
-        <span class="gallery__counter-current">1</span> / <span class="gallery__counter-total">5</span>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-price">$200<span class="hero-price-unit"> USD /night</span></div>
+      <h1 class="hero-title">Surf House Baja</h1>
+      <p class="hero-location">Lot 3, Punta San Jacinto, San Jacinto, Baja Norte, Mexico</p>
+      <div class="hero-meta">
+        <span>4 Beds</span>
+        <span>·</span>
+        <span>1 Bath</span>
+        <span>·</span>
+        <span>9 Persons</span>
       </div>
-    </div>
-
-    <!-- Thumbnail Strip -->
-    <div class="container">
-      <div class="gallery__thumbnails">
-        <div class="gallery__thumb">
-          <label for="img-1" class="gallery__thumb-label" aria-label="View image 1"></label>
-          <img src="{{HERO_IMAGE}}" alt="Thumbnail 1">
-        </div>
-        {{#IMAGES_1}}
-        <div class="gallery__thumb">
-          <label for="img-2" class="gallery__thumb-label" aria-label="View image 2"></label>
-          <img src="{{IMAGES_1}}" alt="Thumbnail 2" loading="lazy">
-        </div>
-        {{/IMAGES_1}}
-        {{#IMAGES_2}}
-        <div class="gallery__thumb">
-          <label for="img-3" class="gallery__thumb-label" aria-label="View image 3"></label>
-          <img src="{{IMAGES_2}}" alt="Thumbnail 3" loading="lazy">
-        </div>
-        {{/IMAGES_2}}
-        {{#IMAGES_3}}
-        <div class="gallery__thumb">
-          <label for="img-4" class="gallery__thumb-label" aria-label="View image 4"></label>
-          <img src="{{IMAGES_3}}" alt="Thumbnail 4" loading="lazy">
-        </div>
-        {{/IMAGES_3}}
-        {{#IMAGES_4}}
-        <div class="gallery__thumb">
-          <label for="img-5" class="gallery__thumb-label" aria-label="View image 5"></label>
-          <img src="{{IMAGES_4}}" alt="Thumbnail 5" loading="lazy">
-        </div>
-        {{/IMAGES_4}}
+      <div class="hero-rating">
+        <span class="stars">★★★★★</span>
+        <span>4.97</span>
+        <span>(128 reviews)</span>
       </div>
+      <a href="#book" class="book-btn">Book Now</a>
     </div>
   </section>
 
-  <main>
-    <!-- ========================================
-         Property Header
-         ======================================== -->
-    <section class="container">
-      <div class="property-header">
-        <h1 class="property-header__title">{{TITLE}}</h1>
-
-        <div class="property-header__location">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          <span>{{ADDRESS}}</span>
-        </div>
-
-        <div class="property-header__meta">
-          <div class="property-header__rating">
-            <div class="property-header__stars">
-              <!-- Generate star rating based on RATING value -->
-              <svg class="property-header__star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <svg class="property-header__star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <svg class="property-header__star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <svg class="property-header__star" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              <svg class="property-header__star property-header__star--empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-            </div>
-            <span class="property-header__rating-text">{{RATING}}</span>
-            <a href="#reviews" class="property-header__reviews">({{REVIEW_COUNT}} reviews)</a>
-          </div>
-
-          <span class="property-header__host">Hosted by <strong>{{HOST_NAME}}</strong></span>
-        </div>
-      </div>
-
-      <!-- Key Stats Bar -->
-      <div class="stats-bar">
-        <div class="stats-bar__item">
-          <svg class="stats-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Property Header -->
+    <div class="property-header">
+      <h2 class="property-title">Surf House Baja</h2>
+      <p class="property-location">Lot 3, Punta San Jacinto, San Jacinto, Baja Norte, Mexico</p>
+      <div class="property-stats">
+        <div class="property-stat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
-          <span class="stats-bar__label">{{BEDROOMS}} bedroom{{#BEDROOMS_plural}}s{{/BEDROOMS_plural}}</span>
+          <span>4 Beds</span>
         </div>
-
-        <div class="stats-bar__item">
-          <svg class="stats-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 4v16"></path>
-            <path d="M2 8h18a2 2 0 0 1 2 2v10"></path>
-            <path d="M2 17h20"></path>
-            <path d="M6 8v9"></path>
+        <div class="property-stat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 12h16a11 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"></path>
+            <path d="M6 12V5a2 2 0 0 1 2-2h3v2.25"></path>
           </svg>
-          <span class="stats-bar__label">{{BEDS}} bed{{#BEDS_plural}}s{{/BEDS_plural}}</span>
+          <span>1 Bath</span>
         </div>
-
-        <div class="stats-bar__item">
-          <svg class="stats-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"></path>
-            <line x1="10" y1="5" x2="8" y2="7"></line>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <line x1="7" y1="19" x2="7" y2="21"></line>
-            <line x1="17" y1="19" x2="17" y2="21"></line>
-          </svg>
-          <span class="stats-bar__label">{{BATHROOMS}} bathroom{{#BATHROOMS_plural}}s{{/BATHROOMS_plural}}</span>
-        </div>
-
-        <div class="stats-bar__item">
-          <svg class="stats-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+        <div class="property-stat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
-          <span class="stats-bar__label">Up to {{MAX_GUESTS}} guest{{#MAX_GUESTS_plural}}s{{/MAX_GUESTS_plural}}</span>
+          <span>9 Persons</span>
+        </div>
+      </div>
+      <div class="property-rating">
+        <span class="stars">★★★★★</span>
+        <span class="rating-text">4.97</span>
+        <span class="review-count">(128 reviews)</span>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <section class="description">
+      <p>Welcome to Surf House Baja, a 4-bedroom beach house sitting directly in front of the iconic Shipwrecks surf spot just 4 hours south of the border.</p>
+      <p style="margin-top: 16px;">Surf House Baja is a 4-bedroom beach house designed for an elevated surf experience. The open-plan kitchen and resident, local fishermen give you a real opportunity to cook up a feast while friends hang out at the counter surrounded by playful swing seating suspended from the ceiling. In the day, watch surfers on the point break directly in front of the balcony loungers or unwind outside in the hammocks. By night, gather around the fire pit, perfect for stargazing and laughter. Welcome to your next surf vacation destination.</p>
+    </section>
+
+    <!-- Amenities -->
+    <section class="amenities">
+      <h3 class="section-title">Amenities</h3>
+      <div class="amenities-grid">
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span class="amenity-text">Free Parking</span>
+        </div>
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+          <span class="amenity-text">Full Kitchen</span>
+        </div>
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+            <polyline points="17 2 12 7 7 2"></polyline>
+          </svg>
+          <span class="amenity-text">Smart TV</span>
+        </div>
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          </svg>
+          <span class="amenity-text">Coffee Maker</span>
+        </div>
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1718a5 5 0 0 0-10 0"></path>
+            <line x1="12" y1="9" x2="12" y2="2"></line>
+            <line x1="4" y1="22" x2="20" y2="22"></line>
+          </svg>
+          <span class="amenity-text">Beach Access</span>
+        </div>
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <span class="amenity-text">Ocean View</span>
+        </div>
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 12h2m4 0h12M6 12v7m6-7v7"></path>
+            <path d="M4 12a8 8 0 0 1 16 0"></path>
+          </svg>
+          <span class="amenity-text">Surfboards</span>
+        </div>
+        <div class="amenity-item">
+          <svg class="amenity-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2c1 3 2.5 3.5 3.5 4.5A5 5 0 0 1 17 10a5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 1.5-3.5C9.5 5.5 11 5 12 2z"></path>
+            <path d="M10 15v5a22 0 0 0 4 0v-5"></path>
+          </svg>
+          <span class="amenity-text">Fire Pit</span>
         </div>
       </div>
     </section>
 
-    <!-- ========================================
-         Description Section
-         ======================================== -->
-    <section class="section container">
-      <div class="section__header">
-        <h2 class="section__title">About this property</h2>
+    <!-- Property Details -->
+    <section class="details-section">
+      <div class="details-header" onclick="toggleDetails('property-details')">
+        <h3 class="section-title" style="margin-bottom: 0;">Property Details</h3>
+        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </div>
-
-      <div class="description">
-        <p class="description__lead">{{PROPERTY_INTRO}}</p>
-        <div class="description__text">{{DESCRIPTION}}</div>
-      </div>
-    </section>
-
-    <!-- ========================================
-         Property Details Grid (Amenities)
-         ======================================== -->
-    <section class="section section--alt">
-      <div class="container">
-        <div class="section__header">
-          <h2 class="section__title">What this place offers</h2>
-        </div>
-
-        <div class="amenities">
-          <!-- Wifi -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
-              <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
-              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-              <line x1="12" y1="20" x2="12.01" y2="20"></line>
-            </svg>
-            <span class="amenity__label">Wifi</span>
-          </div>
-
-          <!-- Pool -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 12h20"></path>
-              <path d="M2 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"></path>
-              <path d="M12 2v4"></path>
-              <path d="M12 8v8"></path>
-            </svg>
-            <span class="amenity__label">Pool</span>
-          </div>
-
-          <!-- Kitchen -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
-              <path d="M7 2v20"></path>
-              <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
-            </svg>
-            <span class="amenity__label">Kitchen</span>
-          </div>
-
-          <!-- Air Conditioning -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3v18"></path>
-              <path d="M8 8l4-5 4 5"></path>
-              <path d="M8 16l4 5 4-5"></path>
-            </svg>
-            <span class="amenity__label">Air conditioning</span>
-          </div>
-
-          <!-- Washer -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <circle cx="12" cy="7" r="2"></circle>
-            </svg>
-            <span class="amenity__label">Washer</span>
-          </div>
-
-          <!-- Free parking -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <path d="M9 17V7h4a3 3 0 0 1 0 6H9"></path>
-            </svg>
-            <span class="amenity__label">Free parking</span>
-          </div>
-
-          <!-- Beach access -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
-            </svg>
-            <span class="amenity__label">Beach access</span>
-          </div>
-
-          <!-- Ocean view -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M2 12h20"></path>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
-            <span class="amenity__label">Ocean view</span>
-          </div>
-
-          <!-- BBQ grill -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 12c-2 0-4-2-4-4s2-4 4-4 4 2 4 4-2 4-4 4z"></path>
-              <path d="M12 8v8"></path>
-              <path d="M8 20h8"></path>
-              <path d="M6 16h12"></path>
-            </svg>
-            <span class="amenity__label">BBQ grill</span>
-          </div>
-
-          <!-- Outdoor shower -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16v2a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V4z"></path>
-              <path d="M12 10v4"></path>
-              <path d="M8 14l4 4 4-4"></path>
-            </svg>
-            <span class="amenity__label">Outdoor shower</span>
-          </div>
-
-          <!-- Smart TV -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
-              <polyline points="17 2 12 7 7 2"></polyline>
-            </svg>
-            <span class="amenity__label">Smart TV</span>
-          </div>
-
-          <!-- Coffee maker -->
-          <div class="amenity">
-            <svg class="amenity__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 8h1a4 4 0 1 1 0 8h-1"></path>
-              <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path>
-              <line x1="6" y1="2" x2="6" y2="4"></line>
-              <line x1="10" y1="2" x2="10" y2="4"></line>
-              <line x1="14" y1="2" x2="14" y2="4"></line>
-            </svg>
-            <span class="amenity__label">Coffee maker</span>
-          </div>
-        </div>
+      <div id="property-details" class="details-content">
+        <p>This beautiful4-bedroom beach house offers direct access to the famous Shipwrecks surf break. The property features an open-plan living area with stunning ocean views, a fully equipped kitchen with modern appliances, and comfortable sleeping arrangements for up to 9 guests.</p>
+        <p style="margin-top: 16px;">Each bedroom is thoughtfully furnished with quality bedding and ventilation to keep you comfortable during your stay. The outdoor areas include multiple balconies, hammocks, and a fire pit area perfect for evening gatherings under the stars.</p>
       </div>
     </section>
 
-    <!-- ========================================
-         Activities & Local Area
-         ======================================== -->
-    <section class="section container">
-      <div class="section__header">
-        <h2 class="section__title">Things to do</h2>
+    <!-- Activities -->
+    <section class="details-section">
+      <div class="details-header" onclick="toggleDetails('activities')">
+        <h3 class="section-title" style="margin-bottom: 0;">Activities</h3>
+        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </div>
-
-      <div class="activities__grid">
-        <div class="activity-block">
-          <h3 class="activity-block__title">Activities & Attractions</h3>
-          <div class="activity-block__text">{{ACTIVITIES}}</div>
-        </div>
-
-        <div class="activity-block">
-          <h3 class="activity-block__title">Getting there</h3>
-          <div class="activity-block__text">{{GETTING_THERE}}</div>
-        </div>
-
-        {{#LOCAL_AREA}}
-        <div class="activity-block">
-          <h3 class="activity-block__title">Local area</h3>
-          <div class="activity-block__text">{{LOCAL_AREA}}</div>
-        </div>
-        {{/LOCAL_AREA}}
+      <div id="activities" class="details-content hidden">
+        <p>Surfing is the main attraction at Shipwrecks, a world-class point break suitable for intermediate to advanced surfers. The break works best during the fall and winter months when swells are most consistent.</p>
+        <p style="margin-top: 16px;">Beyond surfing, guests can enjoy beach walks, fishing with local fishermen, whale watching (seasonal), stargazing from the fire pit, and exploring the local area. The nearby town offers authentic Mexican cuisine and local shops.</p>
       </div>
     </section>
 
-    <!-- ========================================
-         Similar Properties
-         ======================================== -->
-    <section class="section section--alt">
-      <div class="container">
-        <div class="section__header">
-          <h2 class="section__title">Similar properties</h2>
-        </div>
+    <!-- Local Area -->
+    <section class="details-section">
+      <div class="details-header" onclick="toggleDetails('local-area')">
+        <h3 class="section-title" style="margin-bottom: 0;">Local Area</h3>
+        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+      <div id="local-area" class="details-content hidden">
+        <p>Located in Punta San Jacinto, a traditional fishing village on the Pacific coast of Baja California. The area retains its authentic Mexican charm while offering modern amenities for visitors.</p>
+        <p style="margin-top: 16px;">Local restaurants serve fresh seafood caught daily by resident fishermen. The nearest store for supplies is a 10-minute drive away. For major shopping or medical needs, the nearest city is approximately 45 minutes away.</p>
+      </div>
+    </section>
 
-        <div class="similar-cards">
-          <!-- Card 1 -->
-          <article class="property-card">
-            <a href="#" class="property-card__link">
-              <div class="property-card__image">
-                <img src="https://a0.muscache.com/im/pictures/miso/Hosting-49365020/original/15c2a24d-9b0e-4f8c-8c8a-5e6b3c3c3c3c.jpeg?aki_policy=large" alt="Modern beachfront villa with infinity pool" loading="lazy">
-                <span class="property-card__badge">Guest favorite</span>
-              </div>
-              <div class="property-card__content">
-                <h3 class="property-card__title">Modern beachfront villa with infinity pool</h3>
-                <div class="property-card__location">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  <span>Baja California Sur, Mexico</span>
-                </div>
-                <div class="property-card__footer">
-                  <div class="property-card__price">$285 <span>/ night</span></div>
-                  <div class="property-card__rating">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <span class="property-card__rating-value">4.96</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          </article>
+    <!-- Getting There -->
+    <section class="details-section">
+      <div class="details-header" onclick="toggleDetails('getting-there')">
+        <h3 class="section-title" style="margin-bottom: 0;">Getting There</h3>
+        <svg class="details-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+      <div id="getting-there" class="details-content hidden">
+        <p>The property is approximately a 4-hour drive south of the US-Mexico border crossing at Tijuana. From the border, take Highway 1 south through Ensenada and continue to San Jacinto.</p>
+        <p style="margin-top: 16px;">A4x4 vehicle is recommended as some roads near the property are unpaved. Private parking is available on-site. The nearest major airport is in Tijuana (TIJ) with car rental options available.</p>
+      </div>
+    </section>
 
-          <!-- Card 2 -->
-          <article class="property-card">
-            <a href="#" class="property-card__link">
-              <div class="property-card__image">
-                <img src="https://a0.muscache.com/im/pictures/miso/Hosting-48294721/original/8f8c9a1b-2c3d-4e5f-8a7b-9c0d1e2f3a4b.jpeg?aki_policy=large" alt="Cozy surf shack steps from the beach" loading="lazy">
-              </div>
-              <div class="property-card__content">
-                <h3 class="property-card__title">Cozy surf shack steps from the beach</h3>
-                <div class="property-card__location">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  <span>San Juanico, Mexico</span>
-                </div>
-                <div class="property-card__footer">
-                  <div class="property-card__price">$145 <span>/ night</span></div>
-                  <div class="property-card__rating">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <span class="property-card__rating-value">4.89</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          </article>
+    <!-- Calendar -->
+    <section class="calendar-section" id="book">
+      <h3 class="calendar-title">Select your dates</h3>
+      <div class="calendar-nav">
+        <button disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <span class="calendar-month">June 2026</span>
+        <button>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+      <div class="calendar-grid">
+        <div class="calendar-day-header">Su</div>
+        <div class="calendar-day-header">Mo</div>
+        <div class="calendar-day-header">Tu</div>
+        <div class="calendar-day-header">We</div>
+        <div class="calendar-day-header">Th</div>
+        <div class="calendar-day-header">Fr</div>
+        <div class="calendar-day-header">Sa</div>
+        
+        <div class="calendar-day disabled">1</div>
+        <div class="calendar-day disabled">2</div>
+        <div class="calendar-day disabled">3</div>
+        <div class="calendar-day disabled">4</div>
+        <div class="calendar-day disabled">5</div>
+        <div class="calendar-day disabled">6</div>
+        <div class="calendar-day">7</div>
+ <div class="calendar-day">8</div>
+        <div class="calendar-day">9</div>
+        <div class="calendar-day">10</div>
+        <div class="calendar-day">11</div>
+        <div class="calendar-day">12</div>
+        <div class="calendar-day">13</div>
+        <div class="calendar-day">14</div>
+        <div class="calendar-day">15</div>
+        <div class="calendar-day">16</div>
+        <div class="calendar-day">17</div>
+        <div class="calendar-day">18</div>
+        <div class="calendar-day">19</div>
+        <div class="calendar-day">20</div>
+        <div class="calendar-day">21</div>
+        <div class="calendar-day">22</div>
+        <div class="calendar-day">23</div>
+        <div class="calendar-day">24</div>
+        <div class="calendar-day">25</div>
+        <div class="calendar-day">26</div>
+        <div class="calendar-day">27</div>
+        <div class="calendar-day">28</div>
+        <div class="calendar-day">29</div>
+        <div class="calendar-day">30</div>
+      </div>
+      <div class="calendar-legend">
+        <div class="legend-item"><div class="legend-dot" style="background: var(--gray-200);"></div> Booked</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--gray-400);"></div> Pending</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--red);"></div> Selected</div>
+      </div>
+    </section>
 
-          <!-- Card 3 -->
-          <article class="property-card">
-            <a href="#" class="property-card__link">
-              <div class="property-card__image">
-                <img src="https://a0.muscache.com/im/pictures/miso/Hosting-50123456/original/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpeg?aki_policy=large" alt="Desert oasis villa with rooftop terrace" loading="lazy">
-                <span class="property-card__badge">New listing</span>
-              </div>
-              <div class="property-card__content">
-                <h3 class="property-card__title">Desert oasis villa with rooftop terrace</h3>
-                <div class="property-card__location">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                  <span>Todos Santos, Mexico</span>
-                </div>
-                <div class="property-card__footer">
-                  <div class="property-card__price">$195 <span>/ night</span></div>
-                  <div class="property-card__rating">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    <span class="property-card__rating-value">5.0</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          </article>
-        </div>
+    <!-- Reviews -->
+    <section class="reviews-section">
+      <div class="reviews-header">
+        <span class="stars">★★★★★</span>
+        <h3 class="reviews-title">What our guests say</h3>
+      </div>
+      <div class="review-card">
+        <p class="review-quote">"The place is awesome, has everything you need with a little remote Mexico charm. David is very attentive and will make sure you have a great stay"</p>
+        <p class="review-author">Larry Young</p>
+        <p class="review-date">Stayed December 2025</p>
       </div>
     </section>
   </main>
 
-  <!-- ========================================
-       Booking Footer / Sticky CTA
-       ======================================== -->
-  <div class="booking-bar" id="booking-bar">
-    <div class="container">
-      <div class="booking-bar__inner">
-        <div class="booking-bar__price">
-          <span class="booking-bar__price-main">${{PRICE_PER_NIGHT}} <span>/ night</span></span>
-        </div>
-        <div class="booking-bar__actions">
-          <a href="{{BOOKING_URL}}" class="btn btn--primary btn--large" target="_blank" rel="noopener">Check availability</a>
-          <a href="#" class="booking-bar__contact">Contact host</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================
-       Footer
-       ======================================== -->
+  <!-- Footer -->
   <footer class="footer">
-    <div class="container">
-      <div class="footer__inner">
-        <div class="footer__brand">{{BRAND_NAME}}<span>.</span></div>
-        <nav class="footer__links">
-          <a href="#" class="footer__link">About</a>
-          <a href="#" class="footer__link">Help Center</a>
-          <a href="#" class="footer__link">Terms</a>
-          <a href="#" class="footer__link">Privacy</a>
-          <a href="#" class="footer__link">Sitemap</a>
-        </nav>
-        <div class="footer__copy">
-          &copy; 2026 {{BRAND_NAME}}. All rights reserved.
-        </div>
-      </div>
-    </div>
+    <div class="footer-brand">@surfhousebaja</div>
+    <p class="footer-copyright">© 1113 @surfhousebaja. All rights reserved.</p>
   </footer>
 
-  <!-- ========================================
-       Minimal JavaScript
-       ======================================== -->
   <script>
-    // Navigation scroll effect
-    (function() {
-      const navbar = document.getElementById('navbar');
-      let lastScroll = 0;
-
-      window.addEventListener('scroll', function() {
-        const currentScroll = window.pageYOffset;
-
-        if (currentScroll > 50) {
-          navbar.classList.add('scrolled');
-        } else {
-          navbar.classList.remove('scrolled');
-        }
-
-        lastScroll = currentScroll;
-      }, { passive: true });
-    })();
-
-    // Show booking bar when user scrolls past hero
-    (function() {
-      const bookingBar = document.getElementById('booking-bar');
-      const gallery = document.querySelector('.gallery');
-
-      if (!bookingBar || !gallery) return;
-
-      const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            bookingBar.classList.remove('visible');
-          } else {
-            bookingBar.classList.add('visible');
-          }
-        });
-      }, { threshold: 0.1 });
-
-      observer.observe(gallery);
-    })();
-
-    // Update image counter based on selected radio
-    (function() {
-      const radios = document.querySelectorAll('.gallery__radio');
-      const counter = document.querySelector('.gallery__counter-current');
-
-      if (!radios.length || !counter) return;
-
-      radios.forEach(function(radio, index) {
-        radio.addEventListener('change', function() {
-          counter.textContent = index + 1;
-        });
-      });
-    })();
-
-    // Thumbnail click tracking for analytics (placeholder)
-    (function() {
-      const thumbs = document.querySelectorAll('.gallery__thumb-label');
-      thumbs.forEach(function(thumb, index) {
-        thumb.addEventListener('click', function() {
-          // Analytics tracking would go here
-          console.log('Gallery image viewed:', index + 1);
-        });
-      });
-    })();
+    function toggleDetails(id) {
+      const content = document.getElementById(id);
+      content.classList.toggle('hidden');
+    }
   </script>
 
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VacationRental",
+    "name": "Surf House Baja",
+    "description": "Luxury beachfront vacation rental in Baja California.4 bedrooms, sleeps 9 guests, direct access to Shipwrecks surf break.",
+    "image": "https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/1744912146997.jpg",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Lot 3, Punta San Jacinto",
+      "addressLocality": "San Jacinto",
+      "addressRegion": "Baja Norte",
+      "addressCountry": "MX"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "",
+      "longitude": ""
+    },
+    "starRating": {
+      "@type": "Rating",
+      "ratingValue": "4.97",
+      "bestRating": "5"
+    },
+    "price": "$200",
+    "priceCurrency": "USD",
+    "numberOfRooms": 4,
+    "occupancy": {
+      "@type": "QuantitativeValue",
+      "value": 9
+    }
+  }
+  </script>
 </body>
 </html>
