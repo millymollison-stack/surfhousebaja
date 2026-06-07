@@ -772,6 +772,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   // Must have a session ID from at least one source
   const sessionId = sessionIdFromUrl || sessionIdFromStorage;
   if (!sessionId) return;
+  // Guard: if we already handled a return in this tab session, don't re-trigger
+  if (sessionStorage.getItem('stripe_payment_returning')) return;
+  sessionStorage.setItem('stripe_payment_returning', '1');
 
   console.log('[DEBUG ?paid handler] Payment complete, session_id from URL:', sessionIdFromUrl, 'from storage:', sessionIdFromStorage);
 
@@ -791,6 +794,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       if (!session?.user) {
         setStripeError('Please sign in to complete your subscription.');
         setStripeProcessing(false);
+        sessionStorage.removeItem('stripe_payment_returning');
         return;
       }
 
@@ -812,6 +816,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       if (sessionData.status !== 'complete') {
         setStripeError('Payment not confirmed by Stripe. Status: ' + sessionData.status);
         setStripeProcessing(false);
+        sessionStorage.removeItem('stripe_payment_returning');
         return;
       }
 
@@ -847,9 +852,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       setStripeProcessing(false);
     } finally {
       setStripeProcessing(false);
+      sessionStorage.removeItem('stripe_payment_returning');
     }
   })();
- }, []); // fires once on mount when URL has ?paid=true
+ }, [window.location.search]); // re-fires if URL changes after mount
  
 
  // Save or update onboarding data in Supabase
