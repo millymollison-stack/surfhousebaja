@@ -239,16 +239,16 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
             .from('onboarding')
             .upload(filename, buffer, { contentType: 'image/jpeg' });
           if (uploadError) {
-            console.log('[Home] Upload error for image', i, uploadError.message);
-            imageUrls.push(imgUrl); // fallback to original URL
+            // Bucket may not exist — silently fall back to original Airbnb URL
+            imageUrls.push(imgUrl);
           } else {
             const { data: { publicUrl } } = supabase.storage
               .from('onboarding')
               .getPublicUrl(filename);
             imageUrls.push(publicUrl);
           }
-        } catch (e) {
-          console.log('[Home] Image fetch/upload failed, using original URL');
+        } catch {
+          // Network error — silently fall back to original URL
           imageUrls.push(imgUrl);
         }
       }
@@ -261,10 +261,11 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       // Use hero_image from images array if no separate hero_image
       const primaryImage = imageUrls[0] || imported.hero_image || '';
 
-      // Save to onboarding_data table (temp onboarding session data)
+      // Save to onboarding_data table — use upsert to handle re-onboarding (user already has a row)
       const { data: onboardingRecord, error: insertError } = await supabase
         .from('onboarding_data')
-        .insert({
+        .upsert({
+          user_id: user.id,
           property_name: imported.title,
           description: imported.description,
           location: imported.location,
@@ -278,14 +279,14 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           baths: imported.baths ? String(imported.baths) : null,
           rating: imported.rating ? String(imported.rating) : null,
           reviews: imported.reviews ? String(imported.reviews) : null,
-        })
+        }, { onConflict: 'user_id' })
         .select()
         .single();
 
       if (insertError) {
-        console.log('[Home] onboarding_data insert error:', insertError.message);
+        console.log('[Home] onboarding_data upsert error:', insertError.message);
       } else {
-        console.log('[Home] Saved to onboarding_data, id:', onboardingRecord.id);
+        console.log('[Home] Saved to onboarding_data, id:', onboardingRecord?.id);
       }
 
       // Build final image list: upload blob/base64 images to Supabase, keep existing URLs as-is
