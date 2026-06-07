@@ -81,8 +81,8 @@ const IconBath = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M9 6l3-3 3 3" />
     <path d="M12 3v3" />
-    <path d="M521v-4a7 7 0 0 1 140v4" />
-    <path d="M5 12h14" />
+    <path d="M3 12h18" />
+    <path d="M5 12v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
   </svg>
 );
 
