@@ -65,8 +65,8 @@ Deno.serve(async (req: Request) => {
       title: sourceProperty.property_title || sourceProperty.title,
       // Use property_intro as the description
       description: sourceProperty.property_intro || sourceProperty.description,
-      // Location fields
-      location: sourceProperty.address || sourceProperty.location,
+      // Location fields (location col doesn't exist on properties — use address directly)
+      address: sourceProperty.address || null,
       latitude: sourceProperty.latitude,
       longitude: sourceProperty.longitude,
       // Physical specs (source uses bedrooms/bathrooms, target uses beds/baths)

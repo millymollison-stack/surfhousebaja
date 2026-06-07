@@ -28,7 +28,6 @@ export interface Property {
   name: string;
   slug: string;
   description: string;
-  location: string;
   hero_image: string;
   images: string[];
   price_per_night: number;

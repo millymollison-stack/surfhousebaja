@@ -891,7 +891,11 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     const handler = (e: Event) => {
       const d = (e as CustomEvent).detail;
       if (d?.account_id) {
-        setConnectData(prev => prev ? { ...prev, account_id: d.account_id, charges_enabled: d.charges_enabled } : prev);
+        // Defer state update to avoid "Maximum update depth exceeded" when
+        // dispatchEvent fires synchronously during React's passive effect commit.
+        queueMicrotask(() => {
+          setConnectData(prev => prev ? { ...prev, account_id: d.account_id, charges_enabled: d.charges_enabled } : prev);
+        });
       }
     };
     window.addEventListener('stripe-connect-updated', handler);
