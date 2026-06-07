@@ -683,16 +683,24 @@ function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscri
   checkoutLoading: string | null; onSubscribe: (plan: 'starter' | 'growth' | 'pro') => void;
 }) {
   if (loading && !subscription) return <Loader />;
-  if (subscription?.status === 'active') {
+  if (subscription?.status === 'active' || subscription?.status === 'trialing') {
+    const isTrialing = subscription.status === 'trialing';
     return (
       <div>
         <div className="py-3">
-          <div className="flex items-center justify-between mb-0.5"><p className="text-xs text-gray-500">Plan</p><span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Active</span></div>
-          <p className="text-base font-bold text-gray-900">{subscription.plan}</p>
+          <p className="text-xs text-gray-500 mb-0.5">Plan</p>
+          <div className="flex items-center gap-2">
+            <p className="text-base font-bold text-gray-900">
+              {subscription.plan === 'starter' ? 'Prop Book Starter Plan' :
+               subscription.plan === 'pro' ? 'Pro' :
+               subscription.plan === 'agency' ? 'Agency' : subscription.plan}
+            </p>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isTrialing ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{isTrialing ? 'Trial' : 'Active'}</span>
+          </div>
         </div>
         <div className="py-3 grid grid-cols-2 gap-4">
-          <div><h4 className="sb-h4-grey">Amount</h4><p className="text-base font-bold text-gray-900">${(subscription.amount / 100).toFixed(2)}<span className="text-sm font-normal text-gray-500">/{subscription.interval}</span></p></div>
-          <div><h4 className="sb-h4-grey">Next Payment</h4><p className="text-base font-bold text-gray-900">{format(fromUnixTime(subscription.current_period_end), 'MMM d, yyyy')}</p></div>
+          <div><h4 className="sb-h4-grey">Amount</h4><p className="text-base font-bold text-gray-900">${subscription.amount > 0 ? (subscription.amount / 100).toFixed(2) : '–'}<span className="text-sm font-normal text-gray-500">/{subscription.interval}</span></p></div>
+          <div><h4 className="sb-h4-grey">{isTrialing ? 'Trial Ends' : 'Next Payment'}</h4><p className="text-base font-bold text-gray-900">{format(fromUnixTime(subscription.current_period_end), 'MMM d, yyyy')}</p></div>
         </div>
         {subscription.cancel_at_period_end && <div className="py-3"><div className="flex items-center gap-2 text-yellow-700 bg-yellow-50 rounded-lg px-3 py-2"><AlertCircle className="h-4 w-4" /><p className="text-xs font-medium">Cancels at end of billing period</p></div></div>}
         <div className="py-3"><h4 className="sb-h4-grey">Subscription ID</h4><p className="sb-mono">{subscription.id}</p></div>
@@ -732,7 +740,7 @@ interface AdminSidebarProps {
   mockMode?: boolean;
 }
 
-type Section = 'bookings' | 'property' | 'website' | 'contact' | 'banking' | 'services' | 'subscription';
+type Section = 'bookings' | 'property' | 'edit' | 'website' | 'contact' | 'banking' | 'services' | 'subscription';
 
 interface NextBooking {
   guestName: string; location: string; guestCount: number; nights: number;
@@ -772,14 +780,17 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
   const [hostOnHostinger, setHostOnHostinger] = useState(true);
   const [devUpdates, setDevUpdates] = useState(true);
-  const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: true, marketing: true, advertising: true, analytics: true, influencers: true, social: true });
+  const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: false, marketing: false, advertising: false, analytics: false, influencers: false, social: false });
 
   // Reset data each time sidebar opens to prevent stale-loader bug
   const [dataKey, setDataKey] = useState(0);
   useEffect(() => {
     if (!isOpen) return;
     setDataKey(k => k + 1);
-    if (user) loadData();
+    if (user) {
+      loadData();
+      loadConnectData(); // Always refresh Stripe Connect data so credentials panel is up to date
+    }
   }, [isOpen, user]);
 
   const loadData = async () => {
@@ -823,7 +834,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         setPropFields({ title: propRes.data.title || '', address: propRes.data.address || '', latitude: propRes.data.latitude?.toString() || '', longitude: propRes.data.longitude?.toString() || '', location_type: (propRes.data.location_type as 'address' | 'coordinates') || 'coordinates' });
       }
       if (profileRes.data) {
-        setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? true, marketing: profileRes.data.services_marketing ?? true, advertising: profileRes.data.services_advertising ?? true, analytics: profileRes.data.services_analytics ?? true, influencers: profileRes.data.services_influencers ?? true, social: profileRes.data.services_social ?? true });
+        setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
       }
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Failed to load data');
@@ -1016,6 +1027,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const toggleSection = (section: Section) => {
     if (section === 'bookings') { onClose(); navigate('/admin'); return; }
+    if (section === 'edit') { setIsEditing(prev => !prev); return; }
     const next = openSection === section ? null : section;
     setOpenSection(next);
     if (next === 'banking') loadConnectData();
@@ -1024,6 +1036,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const navItems: { key: Section; label: string }[] = [
     { key: 'property', label: 'Property' },
+    { key: 'edit', label: 'Edit' },
+    { key: 'publish', label: 'Publish' },
     { key: 'website', label: 'Website' },
     { key: 'contact', label: 'Contact' },
     { key: 'banking', label: 'Banking' },
@@ -1103,7 +1117,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           {showCredentials && (
             <div className="sb-credentials">
               <button onClick={() => setShowCredentials(false)} className="sb-btn-close" style={{ position: 'absolute', top: 12, right: 12 }}><X className="h-4 w-4" /></button>
-              <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Credentials</p>
+              <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Website Credentials</p>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasStripeAccount} /><p className="sb-credential-name">Stripe Payout Account</p></div>
                 {hasStripeAccount && connectData && <p className="sb-credential-balance">${connectData.available_balance > 0 ? (connectData.available_balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '$0.00'}</p>}
