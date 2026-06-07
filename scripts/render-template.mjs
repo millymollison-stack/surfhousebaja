@@ -48,6 +48,21 @@ function parseImages(imagesJson) {
   }
 }
 
+async function fetchPropertyImages(propertyId, supabaseUrl, anonKey) {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/property_images?property_id=eq.${propertyId}&select=url,position&order=position&limit=30`,
+    {
+      headers: {
+        'apikey': anonKey,
+        'Authorization': `Bearer ${anonKey}`,
+      },
+    }
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
 function renderStars(rating) {
   const r = parseFloat(rating || 0);
   const full = Math.floor(r);
@@ -107,9 +122,10 @@ function renderAmenities(amenitiesStr) {
   return `<div class="amenities-grid">${badges}</div>`;
 }
 
-function buildImageGallery(property) {
-  const hero = property.hero_image || '';
-  const allImages = [hero, ...parseImages(property.images)].filter(Boolean);
+function buildImageGallery(property, dbImageUrls) {
+  // Prefer DB images (from property_images table), fall back to hero_image + images JSON column
+  const hero = dbImageUrls[0] || property.hero_image || '';
+  const allImages = dbImageUrls.length > 0 ? dbImageUrls : [hero, ...parseImages(property.images)].filter(Boolean);
   const total = allImages.length;
 
   if (total === 0) return { galleryHtml: '', heroFallback: '' };
@@ -157,9 +173,13 @@ function replaceToken(template, token, value) {
   return template.replace(regex, value !== undefined && value !== null ? String(value) : '');
 }
 
-function renderTemplate(template, property) {
+function renderTemplate(template, property, propertyImages) {
   const p = property;
   const slug = p.slug || 'property';
+
+  // propertyImages: array from property_images table [{url, position}, ...]
+  const dbImages = Array.isArray(propertyImages) ? propertyImages : [];
+  const dbImageUrls = dbImages.map(img => img.url).filter(Boolean);
   const brandColor = p.brand_color || '#C47756';
   const brandName = p.name || 'PropBook';
   const price = p.price_per_night || p.price || '0';
@@ -181,10 +201,13 @@ function renderTemplate(template, property) {
   const propertyTitle = p.property_title || `@${slug}`;
   const bookingUrl = p.booking_url || p.airbnb_url || '#';
   const heroImage = p.hero_image || '';
-  const allImages = [heroImage, ...parseImages(p.images)].filter(Boolean);
+  // Prefer property_images table, fall back to hero_image + images JSON column
+  const allImages = dbImageUrls.length > 0
+    ? dbImageUrls
+    : [heroImage, ...parseImages(p.images)].filter(Boolean);
 
   // Build image gallery
-  const { galleryHtml } = buildImageGallery(p);
+  const { galleryHtml } = buildImageGallery(p, dbImageUrls);
 
   let html = template;
 
@@ -212,10 +235,14 @@ function renderTemplate(template, property) {
   html = replaceToken(html, 'BOOKING_URL', bookingUrl);
   html = replaceToken(html, 'PROPERTY_ID', p.id || '');
 
-  // Individual images
-  for (let i = 1; i <= 5; i++) {
-    html = replaceToken(html, `IMAGES_${i}`, allImages[i - 1] || '');
+  // Individual images (IMAGE_1, IMAGE_2, etc.)
+  for (let i = 1; i <= 20; i++) {
+    html = replaceToken(html, `IMAGE_${i}`, allImages[i - 1] || '');
   }
+
+  // Background images for sections (use images[1] and images[2] if available)
+  html = replaceToken(html, 'AMENITIES_BG_IMAGE', allImages[1] || allImages[0] || '');
+  html = replaceToken(html, 'REVIEWS_BG_IMAGE', allImages[2] || allImages[0] || '');
 
   // Star rating HTML
   html = replaceToken(html, 'STAR_RATING_HTML', renderStars(rating));
@@ -338,13 +365,24 @@ async function main() {
 
   console.error(`Got: "${property.title}" (${property.slug})`);
 
+  // Fetch property images from property_images table
+  let propertyImages = [];
+  if (property.id) {
+    try {
+      propertyImages = await fetchPropertyImages(property.id, supabaseUrl, anonKey);
+      console.error(`Got ${propertyImages.length} images from property_images table`);
+    } catch(e) {
+      console.error(`Warning: could not fetch property images: ${e.message}`);
+    }
+  }
+
   // Load template
   const templatePath = join(PROJECT_ROOT, 'src', 'public', 'template', 'template.html');
   const template = readFileSync(templatePath, 'utf8');
   console.error(`Template loaded: ${template.length} bytes`);
 
   // Render
-  const rendered = renderTemplate(template, property);
+  const rendered = renderTemplate(template, property, propertyImages);
   console.error(`Rendered HTML: ${rendered.length} bytes`);
 
   // Output to stdout

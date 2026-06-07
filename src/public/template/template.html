@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surf House Baja - Lot 3, Punta San Jacinto</title>
+    <title>{{TITLE}} - {{ADDRESS}}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -300,7 +300,7 @@
         .amenities-bg-image {
             position: absolute;
             inset: 0;
-            background-image: url('https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/houseatnight.jpg');
+            background-image: url('{{AMENITIES_BG_IMAGE}}');
             background-size: cover;
             background-position: center;
             opacity: 0.6;
@@ -347,7 +347,7 @@
         }
 
         .reviews-bg-image {
-            background-image: url('https://jtzagpbdrqfifdisxipr.supabase.co/storage/v1/object/public/property-images/f3d3e867-e0c6-4cc5-a05d-b5e368f8c766/Bedroom%20view.jpg');
+            background-image: url('{{REVIEWS_BG_IMAGE}}');
             background-size: cover;
             background-position: center;
             opacity: 0.6;
@@ -815,7 +815,7 @@
         <!-- Main image -->
         <div style="position: absolute; inset: 0;">
             <img
-                src="https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=1600&q=80"
+                src="{{IMAGE_1}}"
                 alt="Surf House Baja - Ocean view"
                 style="width: 100%; height: 100%; object-fit: cover;"
             />
@@ -829,9 +829,9 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
                 <!-- Title and price row -->
                 <div class="titleandpricebox">
-                    <h1 class="hero-title text-white" id="overview">Surf House Baja</h1>
+                    <h1 class="hero-title text-white" id="overview">{{TITLE}}</h1>
                     <div class="flex items-baseline">
-                        <h1 class="hero-title-price text-white">$200</h1>
+                        <h1 class="hero-title-price text-white">${{PRICE_PER_NIGHT}}</h1>
                         <span class="text-white/80 text-base font-normal" style="margin-left: 0.25rem;">USD / night</span>
                     </div>
                 </div>
@@ -874,10 +874,10 @@
     <!-- Thumbnail grid -->
     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0;">
         <div style="position: relative; height: 12rem; overflow: hidden;">
-            <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80" alt="Property view 2" style="width: 100%; height: 100%; object-fit: cover;" />
+            <img src="{{IMAGE_2}}" alt="Property view 2" style="width: 100%; height: 100%; object-fit: cover;" />
         </div>
         <div style="position: relative; height: 12rem; overflow: hidden;">
-            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80" alt="Property view 3" style="width: 100%; height: 100%; object-fit: cover;" />
+            <img src="{{IMAGE_3}}" alt="Property view 3" style="width: 100%; height: 100%; object-fit: cover;" />
         </div>
     </div>
 
@@ -1132,7 +1132,7 @@
                             </select>
                         </div>
                         <div style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.125rem;">
-                            <p style="font-size: 0.75rem; color: #6b7280;">Base price: 2 nights × $200</p>
+                            <p style="font-size: 0.75rem; color: #6b7280;">Base price: 2 nights × ${{PRICE_PER_NIGHT}}</p>
                             <p style="font-size: 0.875rem; font-weight: 600; color: #111;">Total: $400</p>
                         </div>
                         <button style="width: 100%; margin-top: 0.75rem; padding: 0.625rem 1rem; background: var(--brand); color: #fff; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
