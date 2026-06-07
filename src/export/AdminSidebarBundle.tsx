@@ -751,6 +751,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const { user, signOut, refreshUser } = useAuth();
   const navigate = useNavigate();
   const setPropertyTitle = useProperty(s => s.setTitle);
+  const isAdmin = user?.role === 'admin';
 
   const [openSection, setOpenSection] = useState<Section | null>(null);
   const [bookingCardOpen, setBookingCardOpen] = useState(false);
