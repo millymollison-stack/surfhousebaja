@@ -555,8 +555,8 @@ function ContactSection({ user, isEditing, fields, onChange }: {
   );
 }
 
-function BankingSection({ balance, connectData, connectLoading, connectOnboarding, payoutLoading, payoutSuccess, onOnboard, onRequestPayout }: {
-  balance: number; connectData: StripeConnectData | null; connectLoading: boolean;
+function BankingSection({ connectData, connectLoading, connectOnboarding, payoutLoading, payoutSuccess, onOnboard, onRequestPayout }: {
+  connectData: StripeConnectData | null; connectLoading: boolean;
   connectOnboarding: boolean; payoutLoading: boolean; payoutSuccess: boolean;
   onOnboard: () => void; onRequestPayout: () => void;
 }) {
@@ -565,10 +565,6 @@ function BankingSection({ balance, connectData, connectLoading, connectOnboardin
   const payoutAmount = connectData ? connectData.available_balance - platformFee : 0;
   return (
     <div>
-      <div className="py-3">
-        <h4 className="sb-h4-grey">Total Booking Revenue to Date</h4>
-        <p className="text-base font-bold text-gray-900">${balance.toLocaleString()}</p>
-      </div>
       <div className="py-3 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
           <h4 className="sb-h4-grey">Stripe Payout Account</h4>
@@ -763,7 +759,6 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [nextBooking, setNextBooking] = useState<NextBooking | null>(null);
-  const [balance, setBalance] = useState(0);
   const [imageCount, setImageCount] = useState(0);
   const [property, setProperty] = useState<Property | null>(null);
 
@@ -1182,7 +1177,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
                     {key === 'website' && <WebsiteSection hostOnHostinger={hostOnHostinger} setHostOnHostinger={setHostOnHostinger} devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} folderPath={property?.folder_path} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
-                    {key === 'banking' && <BankingSection balance={balance} connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
+                    {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}
                     {key === 'subscription' && <SubscriptionSection subscription={subscriptionData} loading={subLoading} checkoutLoading={checkoutLoading} onSubscribe={handleSubscribeCheckout} />}
                   </div>
