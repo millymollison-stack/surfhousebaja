@@ -258,6 +258,17 @@ SFTP_EOF`;
 
   console.log('[deployReactTemplate] ✅ All files written to Hostinger');
 
+  // 5b. Chmod to 644 so LiteSpeed web server can serve them
+  await new Promise<void>((resolve, reject) => {
+    const { exec } = require('child_process');
+    const cmd = `sshpass -p 'Clawbot12!' ssh -o StrictHostKeyChecking=no -p 65002 u805830916@82.29.86.252 "chmod 644 '${hostingerDir}/index.html' '${hostingerDir}/app.js' '${hostingerDir}/styles.css' && echo CHMOD_OK"`;
+    exec(cmd, (err: Error | null, _stdout: string, stderr: string) => {
+      if (err) reject(new Error(`chmod failed: ${stderr || err.message}`));
+      else resolve();
+    });
+  });
+  console.log('[deployReactTemplate] ✅ File permissions set to 644');
+
   // 5. Update property record
   await supabaseAdmin
     .from('properties')
