@@ -802,12 +802,19 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setBookingError(null);
     setBookingsLoading(true);
     try {
-      const [bookingsRes, imagesRes, propRes, profileRes] = await Promise.all([
-        supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }),
-        supabase.from('property_images').select('id'),
-        supabase.from('properties').select('*').limit(1).maybeSingle(),
-        supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(),
-      ]);
+      // Non-admin: only load bookings (filtered to this user) + profile
+      // Admin: load everything including property + images
+      const [bookingsRes, profileRes, imagesRes, propRes] = isAdmin
+        ? await Promise.all([
+            supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }),
+            supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(),
+            supabase.from('property_images').select('id'),
+            supabase.from('properties').select('*').limit(1).maybeSingle(),
+          ])
+        : await Promise.all([
+            supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
+            supabase.from('profiles').select('full_name, phone_number').eq('id', user.id).maybeSingle(),
+          ]).then(([br, pr]) => [br, pr, { data: null }, { data: null }] as const);
 
       if (key !== dataKey) return; // stale response, discard
       if (bookingsRes.data) {
@@ -1008,10 +1015,11 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setSaving(true);
     try {
       const saves: Promise<unknown>[] = [];
-      if (property) saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type }).eq('id', property.id));
+      // Admins save property fields too; non-admins only save contact info
+      if (isAdmin && property) saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type }).eq('id', property.id));
       if (user) saves.push(supabase.from('profiles').update({ full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null }).eq('id', user.id));
       await Promise.all(saves);
-      if (propFields.title) setPropertyTitle(propFields.title);
+      if (isAdmin && propFields.title) setPropertyTitle(propFields.title);
       await loadData();
     } catch (err) { console.error('Save failed', err); } finally { setIsEditing(false); setSaving(false); }
   };
@@ -1079,7 +1087,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         <div className="sidebar-header">
           <h1 className="hero-title hero-title-edit">Profile</h1>
           <div className="sidebar-header-actions">
-            {isAdmin && <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>}
+            <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>
             {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel inline-flex-row"><X className="h-4 w-4" /><span className="btn-text">Cancel</span></button>}
             <button onClick={onClose} className="sidebar-btn-close"><X className="h-6 w-6" /></button>
           </div>
