@@ -497,7 +497,7 @@ function ContactSection({ user, isEditing, fields, onChange }: {
 
   return (
     <div>
-      <div className="py-3 border-b border-gray-100">
+      <div className="py-3">
         <h4 className="sb-h4-grey">Role</h4>
         <p className="text-base text-gray-900"><span className="font-bold">Super Host</span><span className="font-normal text-gray-500"> (New Site Admin)</span></p>
       </div>
@@ -684,14 +684,16 @@ function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscri
     return (
       <div>
         <div className="py-3">
-          <p className="text-xs text-gray-500 mb-0.5">Plan</p>
-          <div className="flex items-center gap-2">
-            <p className="text-base font-bold text-gray-900">
-              {subscription.plan === 'starter' ? 'Prop Book Starter Plan' :
-               subscription.plan === 'pro' ? 'Pro' :
-               subscription.plan === 'agency' ? 'Agency' : subscription.plan}
-            </p>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isTrialing ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{isTrialing ? 'Trial' : 'Active'}</span>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500 mb-0.5">Plan</p>
+              <p className="text-base font-bold text-gray-900">
+                {subscription.plan === 'starter' ? 'Prop Book Starter Plan' :
+                 subscription.plan === 'pro' ? 'Pro' :
+                 subscription.plan === 'agency' ? 'Agency' : subscription.plan}
+              </p>
+            </div>
+            <span className={`text-sm font-semibold px-3 py-1 rounded-full ${isTrialing ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{isTrialing ? 'Trial' : 'Active'}</span>
           </div>
         </div>
         <div className="py-3 grid grid-cols-2 gap-4">
@@ -700,6 +702,15 @@ function SubscriptionSection({ subscription, loading, checkoutLoading, onSubscri
         </div>
         {subscription.cancel_at_period_end && <div className="py-3"><div className="flex items-center gap-2 text-yellow-700 bg-yellow-50 rounded-lg px-3 py-2"><AlertCircle className="h-4 w-4" /><p className="text-xs font-medium">Cancels at end of billing period</p></div></div>}
         <div className="py-3"><h4 className="sb-h4-grey">Subscription ID</h4><p className="sb-mono">{subscription.id}</p></div>
+        <div className="py-3" style={{ borderTop: '1px solid #f3f4f6', marginTop: 4 }}>
+          <button
+            onClick={() => onSubscribe('starter')}
+            disabled={!!checkoutLoading}
+            className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-lg py-2 disabled:opacity-50"
+          >
+            {checkoutLoading ? 'Loading...' : 'Change Plan / Resubscribe'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -1147,19 +1158,17 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
               <p className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Website Credentials</p>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasStripeAccount} /><p className="sb-credential-name">Stripe Payout Account</p></div>
-                {hasStripeAccount && connectData && <p className="sb-credential-balance">${connectData.available_balance > 0 ? (connectData.available_balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '$0.00'}</p>}
                 {!hasStripeAccount && <p className="sb-credential-name" style={{ color: '#999', fontSize: '0.8rem' }}>No account added</p>}
                 {hasStripeAccount && connectData && !connectData.details_submitted && <p className="sb-credential-name" style={{ color: '#f59e0b', fontSize: '0.75rem' }}>Onboarding pending</p>}
               </div>
               <div className="sb-credential-row">
-                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">www.propbook.pro/surfhousebaja</p></div>
+                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">{property?.site_url ? new URL(property.site_url).pathName.slice(1) : 'No site published yet'}</p></div>
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasEmail} /><p className="sb-credential-name">{displayUser.email}</p></div>
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasSubscription} /><p className="sb-credential-name">Live Subscription</p></div>
-                {hasSubscription && subscriptionData && <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full ml-2 whitespace-nowrap">{subscriptionData.plan}</span>}
               </div>
             </div>
           )}

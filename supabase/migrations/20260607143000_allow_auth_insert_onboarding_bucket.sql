@@ -2,7 +2,6 @@
 CREATE POLICY "allow_auth_insert_onboarding"
 ON storage.objects FOR INSERT
 TO authenticated
-USING (bucket_id = 'onboarding')
 WITH CHECK (bucket_id = 'onboarding');
 
 -- Allow authenticated users to read from the onboarding bucket

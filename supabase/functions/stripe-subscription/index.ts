@@ -180,9 +180,18 @@ Deno.serve(async (req: Request) => {
           canceled: "canceled",
           unpaid: "unpaid",
         };
+        // Reverse-map price IDs to plan names so we always get a correct plan label
+        const priceToPlan: Record<string, string> = {
+          [priceIds.starter || '']: 'starter',
+          [priceIds.pro || '']: 'pro',
+          [priceIds.agency || '']: 'agency',
+        };
+        const priceId = sub.items?.data?.[0]?.price?.id;
+        const planFromPrice = priceId ? (priceToPlan[priceId] || null) : null;
+        const plan = sub.metadata.plan || planFromPrice || profileStatus || "starter";
         return new Response(
           JSON.stringify({
-            subscription: { id: sub.id, status: statusMap[sub.status] || sub.status, plan: sub.metadata.plan || profileStatus || "starter", current_period_end: sub.current_period_end },
+            subscription: { id: sub.id, status: statusMap[sub.status] || sub.status, plan, current_period_end: sub.current_period_end },
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
