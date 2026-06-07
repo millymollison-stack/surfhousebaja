@@ -789,11 +789,15 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (!isOpen) return;
     setDataKey(k => k + 1);
     if (user) {
-      refreshUser(); // Re-fetch profile so role changes (e.g. admin upgrade) take effect without re-login
       loadData();
       loadConnectData(); // Always refresh Stripe Connect data so credentials panel is up to date
     }
-  }, [isOpen, user]);
+  }, [isOpen]);
+  // Refresh profile once on mount so role changes (e.g. admin upgrade) take effect without re-login
+  useEffect(() => {
+    if (!user) return;
+    refreshUser();
+  }, []);
 
   const loadData = async () => {
     if (!user) return;
