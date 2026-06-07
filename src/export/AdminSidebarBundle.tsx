@@ -821,7 +821,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
             supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }),
             supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(),
             supabase.from('property_images').select('id'),
-            supabase.from('properties').select('*').limit(1).maybeSingle(),
+            supabase.from('properties').select('*').eq('owner_id', user.id).limit(1).maybeSingle(),
           ])
         : await Promise.all([
             supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
