@@ -266,6 +266,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  const openStripeGateway = async () => {
   console.log('[openStripeGateway] running...');
+  // Clear any stale Stripe redirect state from previous page loads
+  sessionStorage.removeItem('stripe_payment_returning');
+  sessionStorage.removeItem('stripe_redirect_initiated');
   console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
    if (!user) {
      setStripeError('Please sign in or create an account above first.');
