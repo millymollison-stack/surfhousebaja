@@ -58,19 +58,10 @@ Deno.serve(async (req: Request) => {
       }
 
 
-      // Fallback: find any property (even without owner_id) that has a stripe_account_id
-      // This catches cases where Stripe onboarding was done from sidebar but owner_id
-      // was not set on the property — the account is still valid in Stripe.
-      if (!accountId) {
-        const { data: orphanedProperty } = await supabase
-          .from("properties")
-          .select("id, stripe_account_id")
-          .is("owner_id", null)
-          .not("stripe_account_id", "is", null)
-          .limit(1)
-          .maybeSingle();
-        accountId = orphanedProperty?.stripe_account_id || null;
-      }
+      // NOTE: The old "orphaned property" fallback was removed — it could pick up
+      // any user's Stripe account from properties with null owner_id, causing the wrong
+      // account to show in the Banking section. Stripe account must now be tied to
+      // either the user's property (owner_id = user.id) or their profile.
 
       if (!accountId) {
         return new Response(JSON.stringify({ account: null }), {
