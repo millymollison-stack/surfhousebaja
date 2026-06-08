@@ -428,7 +428,7 @@
             pointer-events: auto;
             padding: 0.5rem 0.75rem;
             background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(4px);
             border: 1px solid rgba(255,255,255,0.15);
             border-radius: 0.25rem;
             color: rgba(255,255,255,0.9);
@@ -1175,8 +1175,8 @@
 
         <!-- Bottom content overlay — matches propbook.pro exactly -->
         <div class="gallery-content-overlay bg-dark-overlay">
-            <!-- Title + Price on same line -->
-            <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;">
+            <!-- Title + Price on same line, price on right -->
+            <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap;">
                 <h1 class="hero-title" id="overview">{{PROPERTY_TITLE}}</h1>
                 <h1 class="hero-title-price">${{PRICE_PER_NIGHT}}</h1>
             </div>
