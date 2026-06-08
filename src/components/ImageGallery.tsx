@@ -14,7 +14,7 @@ interface ImageGalleryProps {
   onImageDelete?: (imageId: string) => Promise<void>;
   onImageUpdate?: (imageId: string, updates: Partial<PropertyImage>) => Promise<void>;
   onPropertyUpdate?: (updates: { property_title?: string; property_intro?: string }) => Promise<void>;
-  registerSaveHandler?: (handler: () => Promise<void>) => void;
+  registerSaveHandler?: (handler: () => Promise<void>) => boolean;
 }
 
 export function ImageGallery({

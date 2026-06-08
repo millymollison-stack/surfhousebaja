@@ -87,7 +87,7 @@ function AppContent() {
         onOpenSidebar={() => setSidebarOpen(true)}
       >
         <Routes>
-          <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; }} onSiteNameChange={setSiteName} onOpenSidebar={() => setSidebarOpen(true)} />} />
+          <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; return true; }} onSiteNameChange={setSiteName} onOpenSidebar={() => setSidebarOpen(true)} />} />
           <Route path="/auth/confirm" element={<EmailConfirmation />} />
           <Route path="/admin" element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
           <Route path="/property-admin" element={user ? <PropertyAdmin /> : <Navigate to="/login" replace />} />
