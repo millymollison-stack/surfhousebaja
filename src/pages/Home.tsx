@@ -112,10 +112,13 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     if (!property) { console.log('[DEBUG] property is null, returning'); return; }
     try {
       console.log('[DEBUG] About to call supabaseAdmin.from(properties).update [#', callId, ']');
+      // Use scrapedProperty.id if available (user's own property), otherwise fall back to property.id (demo)
+      const targetPropertyId = scrapedProperty?.id || property.id;
+      console.log('[DEBUG] Updating property ID:', targetPropertyId);
       const { error: updateError } = await supabaseAdmin
         .from('properties')
         .update(updates)
-        .eq('id', property.id);
+        .eq('id', targetPropertyId);
       console.log('[DEBUG] update result [#', callId, '] error:', updateError);
       if (updateError) throw updateError;
       const updated = { ...property, ...updates };
@@ -146,10 +149,11 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   }, [registerSaveAll]);
 
   const handleImageUpload = async (file: File) => {
-    if (!property) return;
+    const targetPropertyId = scrapedProperty?.id || property?.id;
+    if (!targetPropertyId) return;
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${property.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${targetPropertyId}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('property-images')
         .upload(fileName, file);
@@ -159,7 +163,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         .getPublicUrl(fileName);
       const { data: image, error: insertError } = await supabase
         .from('property_images')
-        .insert({ property_id: property.id, url: publicUrl, position: images.length + 1, is_featured: images.length < 3 })
+        .insert({ property_id: targetPropertyId, url: publicUrl, position: images.length + 1, is_featured: images.length < 3 })
         .select()
         .single();
       if (insertError) throw insertError;
@@ -350,15 +354,17 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     total_price: number;
     special_requests?: string;
   }) => {
-    if (!user || !property) return;
+    if (!user) return;
+    const targetPropertyId = scrapedProperty?.id || property?.id;
+    if (!targetPropertyId) return;
     const { error } = await supabase
       .from('bookings')
-      .insert({ property_id: property.id, user_id: user.id, ...bookingData });
+      .insert({ property_id: targetPropertyId, user_id: user.id, ...bookingData });
     if (error) throw error;
     const { data: updatedBookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('*')
-      .eq('property_id', property.id)
+      .eq('property_id', targetPropertyId)
       .in('status', ['approved', 'pending']);
     if (bookingsError) throw bookingsError;
     setBookings(updatedBookings || []);
