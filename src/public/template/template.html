@@ -1221,6 +1221,14 @@
         <div class="amenities-bg-overlay" style="position: absolute; inset: 0;"></div>
 
         <div class="amenities-content" style="padding-bottom: 20px;">
+            <!-- Location button (inside amenities bg section, above amenities) -->
+            <div class="location-button-container" style="margin-top: 1.5rem;">
+                <button class="view-location-btn" onclick="openLocationModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    View Location
+                </button>
+            </div>
+
             <!-- Amenities glass card -->
             <div class="glass-card mt-5">
                 <h1 class="hero-title text-white" id="amenities-title">Amenities</h1>
@@ -1342,13 +1350,6 @@
                 </div>
             </div>
 
-            <!-- Location button (inside dropdowns section, before calendar) -->
-            <div class="location-button-container" style="margin-top: 1.5rem;">
-                <button class="view-location-btn" onclick="openLocationModal()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    View Location
-                </button>
-            </div>
 
             <!-- Booking Calendar -->
             <div id="calendar-section" class="pb-5">
