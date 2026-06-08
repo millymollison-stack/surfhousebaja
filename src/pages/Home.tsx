@@ -441,15 +441,17 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         </div>
       </div>
 
-      <div className="reviews-section content-container relative reviews-bg">
+      <div className="reviews-section relative reviews-bg">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: backgroundImages[1] ? `url('${backgroundImages[1].url}')` : undefined,
-            opacity: backgroundImages[1] ? 0.6 : 0
+            opacity: backgroundImages[1] ? 0.6 : 0,
+            width: '100vw',
+            marginLeft: 'calc(-50vw + 50%)'
           }}
         ></div>
-        <div className="relative">
+        <div className="content-container relative">
           <div>
             <h1 className="reviews-section-heading">What our guests say</h1>
           </div>
