@@ -191,6 +191,8 @@ function renderTemplate(template, property, propertyImages) {
   const maxGuests = p.max_guests || 0;
   const title = p.title || 'Beach House';
   const address = p.address || p.location || '';
+  const latitude = p.latitude || '30.861383';
+  const longitude = p.longitude || '-116.167874';
   const description = p.description || '';
   const propertyIntro = p.property_intro || '';
   const hostName = p.host_name || 'your host';
@@ -216,6 +218,8 @@ function renderTemplate(template, property, propertyImages) {
   html = replaceToken(html, 'BRAND_COLOR', brandColor);
   html = replaceToken(html, 'TITLE', title);
   html = replaceToken(html, 'ADDRESS', address);
+  html = replaceToken(html, 'LATITUDE', latitude);
+  html = replaceToken(html, 'LONGITUDE', longitude);
   html = replaceToken(html, 'PRICE_PER_NIGHT', price);
   html = replaceToken(html, 'DESCRIPTION', description);
   html = replaceToken(html, 'BEDROOMS', bedrooms);
