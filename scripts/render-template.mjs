@@ -247,6 +247,7 @@ function renderTemplate(template, property, propertyImages) {
   // Background images for sections (use images[1] and images[2] if available)
   html = replaceToken(html, 'AMENITIES_BG_IMAGE', allImages[1] || allImages[0] || '');
   html = replaceToken(html, 'REVIEWS_BG_IMAGE', allImages[2] || allImages[0] || '');
+  html = replaceToken(html, 'DROPDOWNS_BG_IMAGE', allImages[3] || allImages[0] || '');
 
   // Star rating HTML
   html = replaceToken(html, 'STAR_RATING_HTML', renderStars(rating));
