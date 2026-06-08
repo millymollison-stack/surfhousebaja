@@ -125,6 +125,22 @@
             background: rgba(255,255,255,0.3);
             color: rgb(255,255,255);
         }
+        .nav-sign-up-link {
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.9);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px;
+            padding: 8px 16px;
+            margin-left: 12px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .nav-sign-up-link:hover {
+            background: rgba(255,255,255,0.3);
+            color: rgb(255,255,255);
+        }
         .nav-hamburger {
             background: none;
             border: none;
@@ -1085,10 +1101,8 @@
         <div class="nav-actions">
             <button class="nav-share-btn" aria-label="Share">Share</button>
             <a href="https://www.propbook.pro/?auth=edit" class="nav-edit-btn">Edit</a>
-            <a href="https://www.propbook.pro/?auth=signin" class="nav-sign-in-link">Sign In</a>
-            <button class="nav-hamburger" onclick="openSidebar()" aria-label="Open menu">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            </button>
+            <a href="https://www.propbook.pro/?auth=signup" class="nav-sign-up-link">Sign Up</a>
+            <a href="https://www.propbook.pro/props/surfhousebaja/" class="nav-sign-in-link">Sign In</a>
         </div>
     </nav>
 
