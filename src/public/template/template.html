@@ -61,7 +61,7 @@
         .top-nav {
             position: static;
             height: 64px;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -91,8 +91,24 @@
             font-weight: 400;
             cursor: pointer;
             padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .nav-share-btn:hover { color: rgb(255,255,255); }
+        .nav-lang-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0;
+        }
+        .nav-lang-btn:hover { color: rgb(255,255,255); }
         .nav-edit-btn {
             font-size: 14px;
             font-weight: 400;
@@ -1097,11 +1113,19 @@
          TOP NAVIGATION BAR
          ============================================ -->
     <nav class="top-nav" id="topNav">
-        <a href="/" class="nav-brand">@surfhousebaja</a>
+        <a href="/" class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            @surfhousebaja
+        </a>
         <div class="nav-actions">
-            <button class="nav-share-btn" aria-label="Share">Share</button>
-            <a href="https://www.propbook.pro/?auth=edit" class="nav-edit-btn">Edit</a>
-            <a href="https://www.propbook.pro/?auth=signup" class="nav-sign-up-link">Sign Up</a>
+            <button class="nav-share-btn" aria-label="Share">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Share
+            </button>
+            <button class="nav-lang-btn" aria-label="Language">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                English (en-US)
+            </button>
             <a href="https://www.propbook.pro/props/surfhousebaja/" class="nav-sign-in-link">Sign In</a>
         </div>
     </nav>
