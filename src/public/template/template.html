@@ -27,26 +27,36 @@
             background: #0f0f0f;
             color: #111;
             -webkit-font-smoothing: antialiased;
-            padding-top: 56px; /* fixed nav height */
+            padding-top: 0; /* nav is now absolute, not fixed */
         }
 
         /* ============================================
-           TOP NAV
+           TOP NAV — exact match to propbook.pro
            ============================================ */
         .top-nav {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            height: 56px;
-            background: #111;
+            height: 64px;
+            background: rgba(0,0,0,0);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 1.5rem;
+            padding: 0;
             z-index: 1000;
-            border-bottom: 1px solid #222;
         }
+        .top-nav > .nav-inner {
+            max-width: 80rem;
+            margin: 0 auto;
+            padding: 0 1rem;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        @media (min-width: 640px) { .top-nav > .nav-inner { padding: 0 2rem; } }
+        @media (min-width: 768px) { .top-nav > .nav-inner { padding: 0 3rem; } }
         .nav-brand {
             font-family: var(--font-accent), serif;
             color: #C47756;
@@ -256,6 +266,89 @@
             right: 0;
             z-index: 10;
             padding: 1.25rem;
+        }
+
+        /* ============================================
+           CSS-ONLY IMAGE SLIDER (radio input hack)
+           Works without JS on Safari/iPhone
+           ============================================ */
+        .gallery-track {
+            position: absolute;
+            inset: 0;
+        }
+        .gallery-slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .gallery-slide.active { opacity: 1; }
+        .slide-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Radio state → show corresponding slide (all slides are absolute, stacked) */
+        #slide1:checked ~ .gallery-track .gallery-slide:nth-child(1) { opacity: 1; }
+        #slide2:checked ~ .gallery-track .gallery-slide:nth-child(2) { opacity: 1; }
+        #slide3:checked ~ .gallery-track .gallery-slide:nth-child(3) { opacity: 1; }
+        #slide4:checked ~ .gallery-track .gallery-slide:nth-child(4) { opacity: 1; }
+        #slide5:checked ~ .gallery-track .gallery-slide:nth-child(5) { opacity: 1; }
+
+        /* Nav arrows */
+        .gallery-nav {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            pointer-events: none;
+            z-index: 15;
+        }
+        .gallery-arrow {
+            pointer-events: auto;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 0.25rem;
+            color: rgba(255,255,255,0.9);
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+            transition: background 0.2s;
+        }
+        .gallery-arrow:hover { background: rgba(255,255,255,0.35); }
+
+        /* Dot indicators */
+        .gallery-dots {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.5rem;
+            z-index: 15;
+        }
+        .gallery-dots .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .gallery-dots .dot:hover { background: rgba(255,255,255,0.7); }
+
+        /* Active dot */
+        #slide1:checked ~ .gallery-dots .dot:nth-child(1),
+        #slide2:checked ~ .gallery-dots .dot:nth-child(2),
+        #slide3:checked ~ .gallery-dots .dot:nth-child(3),
+        #slide4:checked ~ .gallery-dots .dot:nth-child(4),
+        #slide5:checked ~ .gallery-dots .dot:nth-child(5) {
+            background: white;
         }
 
         .bg-dark-overlay {
@@ -698,38 +791,46 @@
         .star-empty { fill: #E5E7EB; color: #E5E7EB; }
 
         /* ============================================
-           CONTENT DROPDOWNS
+           CONTENT DROPDOWNS — exact match to propbook.pro
            ============================================ */
         .content-dropdown {
-            background: #1a1a1a;
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 0.5rem;
             overflow: hidden;
-            border: 1px solid #333;
+            margin-bottom: 0.75rem;
         }
         .dropdown-header {
+            width: 100%;
+            padding: 6px 0px 0px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background-color 150ms;
+            min-height: 2rem;
             cursor: pointer;
             color: rgba(255,255,255,0.9);
             font-weight: 500;
             font-size: 0.95rem;
             list-style: none;
         }
+        .dropdown-header:hover { background: rgba(255, 255, 255, 0.2); }
         .dropdown-header::-webkit-details-marker { display: none; }
         .dropdown-arrow {
             font-size: 0.7rem;
             transition: transform 0.2s;
             color: rgba(255,255,255,0.5);
+            padding-right: 20px;
         }
         details[open] .dropdown-arrow { transform: rotate(180deg); }
         .dropdown-content {
-            padding: 0 1.25rem 1rem;
+            padding: 12px 20px 20px;
             color: rgba(255,255,255,0.7);
             font-size: 0.9rem;
             line-height: 1.7;
+            background: rgba(255, 255, 255, 0.05);
         }
         .dropdown-content p { margin-bottom: 0.5rem; }
         .dropdown-content p:last-child { margin-bottom: 0; }
@@ -770,18 +871,20 @@
          TOP NAVIGATION BAR
          ============================================ -->
     <nav class="top-nav" id="topNav">
-        <div class="nav-brand">PropBook.pro</div>
-        <div class="nav-links">
-            <a href="#overview">Overview</a>
-            <a href="#amenities">Amenities</a>
-            <a href="#reviews">Reviews</a>
-            <a href="#contact">Contact</a>
-        </div>
-        <div class="nav-actions">
-            <button class="nav-btn-book">Book Now</button>
-            <button class="nav-hamburger" onclick="openSidebar()" aria-label="Open menu">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            </button>
+        <div class="nav-inner">
+            <div class="nav-brand">PropBook.pro</div>
+            <div class="nav-links">
+                <a href="#overview">Overview</a>
+                <a href="#amenities">Amenities</a>
+                <a href="#reviews">Reviews</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <div class="nav-actions">
+                <button class="nav-btn-book">Book Now</button>
+                <button class="nav-hamburger" onclick="openSidebar()" aria-label="Open menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -809,22 +912,39 @@
     </aside>
 
     <!-- ============================================
-         SECTION 1: HERO IMAGE GALLERY
+         SECTION 1: HERO IMAGE GALLERY — CSS-only radio slider
          ============================================ -->
     <div class="gallery-container gallery-shadow">
-        <!-- Main image -->
-        <div style="position: absolute; inset: 0;">
-            <img
-                src="{{IMAGE_1}}"
-                alt="Surf House Baja - Ocean view"
-                style="width: 100%; height: 100%; object-fit: cover;"
-            />
+        <!-- Radio inputs (hidden) for CSS-only slide control -->
+        <input type="radio" name="gallery-slide" id="slide1" class="gallery-radio" checked style="display:none;"/>
+        <input type="radio" name="gallery-slide" id="slide2" class="gallery-radio" style="display:none;"/>
+        <input type="radio" name="gallery-slide" id="slide3" class="gallery-radio" style="display:none;"/>
+        <input type="radio" name="gallery-slide" id="slide4" class="gallery-radio" style="display:none;"/>
+        <input type="radio" name="gallery-slide" id="slide5" class="gallery-radio" style="display:none;"/>
+
+        <!-- Slide track -->
+        <div class="gallery-track">
+            <div class="gallery-slide active">
+                <img src="{{IMAGE_1}}" alt="Surf House Baja - Ocean view" class="slide-img"/>
+            </div>
+            <div class="gallery-slide">
+                <img src="{{IMAGE_2}}" alt="Property view 2" class="slide-img"/>
+            </div>
+            <div class="gallery-slide">
+                <img src="{{IMAGE_3}}" alt="Property view 3" class="slide-img"/>
+            </div>
+            <div class="gallery-slide">
+                <img src="{{IMAGE_4}}" alt="Property view 4" class="slide-img"/>
+            </div>
+            <div class="gallery-slide">
+                <img src="{{IMAGE_5}}" alt="Property view 5" class="slide-img"/>
+            </div>
         </div>
 
-        <!-- Gradient overlay on image -->
+        <!-- Gradient overlay -->
         <div class="gallery-gradient-overlay-light" style="position: absolute; inset: 0; pointer-events: none;"></div>
 
-        <!-- Bottom content overlay with blurred glass -->
+        <!-- Bottom content overlay -->
         <div class="gallery-content-overlay bg-dark-overlay">
             <div class="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
                 <!-- Title and price row -->
@@ -837,47 +957,39 @@
                 </div>
 
                 <!-- Tagline -->
-                <p class="hero-subtitle">Your ultimate Pacific coast escape · Lot 3, Punta San Jacinto, Baja California Sur, Mexico</p>
+                <p class="hero-subtitle">{{DESCRIPTION}}</p>
 
                 <!-- Property stats -->
                 <div class="flex flex-wrap gap-2 sm:gap-3 mt-3">
                     <span class="lozenge">
-                        <!-- Bed icon -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
-                        4 Beds
+                        {{BEDROOMS}} Bed{{#BEDROOMS_plural}}s{{/BEDROOMS_plural}}
                     </span>
                     <span class="lozenge">
-                        <!-- Bath icon -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5.5"/><path d="M22 19c0 1.105-1.343 2-3 2s-3-.895-3-2c0-1.1.895-2 2-2s2.9.9 2 2Z"/></svg>
-                        1 Bath
+                        {{BATHROOMS}} Bath{{#BATHROOMS_plural}}s{{/BATHROOMS_plural}}
                     </span>
                     <span class="lozenge">
-                        <!-- Users icon -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        Sleeps 9
+                        Sleeps {{MAX_GUESTS}}
                     </span>
                 </div>
             </div>
         </div>
 
-        <!-- Navigation arrows -->
-        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 1rem; pointer-events: none; z-index: 10;">
-            <button style="pointer-events: auto; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: rgba(255,255,255,0.9); cursor: pointer;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <button style="pointer-events: auto; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: rgba(255,255,255,0.9); cursor: pointer;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
+        <!-- CSS-only prev/next arrows using label[for] -->
+        <div class="gallery-nav">
+            <label for="slide5" class="gallery-arrow arrow-prev" id="prevBtn" aria-label="Previous photo">&#10094;</label>
+            <label for="slide2" class="gallery-arrow arrow-next" id="nextBtn" aria-label="Next photo">&#10095;</label>
         </div>
-    </div>
 
-    <!-- Thumbnail grid -->
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0;">
-        <div style="position: relative; height: 12rem; overflow: hidden;">
-            <img src="{{IMAGE_2}}" alt="Property view 2" style="width: 100%; height: 100%; object-fit: cover;" />
-        </div>
-        <div style="position: relative; height: 12rem; overflow: hidden;">
-            <img src="{{IMAGE_3}}" alt="Property view 3" style="width: 100%; height: 100%; object-fit: cover;" />
+        <!-- Dot indicators -->
+        <div class="gallery-dots">
+            <label for="slide1" class="dot"></label>
+            <label for="slide2" class="dot"></label>
+            <label for="slide3" class="dot"></label>
+            <label for="slide4" class="dot"></label>
+            <label for="slide5" class="dot"></label>
         </div>
     </div>
 
