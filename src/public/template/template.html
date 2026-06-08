@@ -426,8 +426,8 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 0px;
-            max-width: 1400px;
-            margin: 0 auto;
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
         }
         .two-image-grid img {
             width: 100%;
@@ -1056,8 +1056,8 @@
         </div>
     </div>
 
-    <!-- Two side-by-side images — exact match to propbook.pro -->
-    <div class="two-image-grid content-frame">
+    <!-- Two side-by-side images — full width breakout -->
+    <div class="two-image-grid">
         <img src="{{IMAGE_2}}" alt="Property view 2" />
         <img src="{{IMAGE_3}}" alt="Property view 3" />
     </div>
