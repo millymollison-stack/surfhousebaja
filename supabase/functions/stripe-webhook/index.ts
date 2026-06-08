@@ -168,6 +168,7 @@ Deno.serve(async (req: Request) => {
         const email   = session.metadata?.email || session.customer_email;
         const plan    = session.metadata?.plan;
         const subId   = session.subscription as string;
+        const slug    = session.metadata?.slug;
 
         if (!subId) break;
 
@@ -201,6 +202,32 @@ Deno.serve(async (req: Request) => {
         }
 
         console.log(`Subscription ${subId} linked to user ${userId || email}`);
+
+        // ── Trigger property deploy if slug is provided ────────────────────
+        if (userId && slug) {
+          console.log(`[stripe-webhook] Triggering deploy for slug=${slug}, user=${userId}`);
+          try {
+            const deployRes = await fetch(
+              `${Deno.env.get("SUPABASE_URL")}/functions/v1/stripe-subscription`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({ userId, slug }),
+              }
+            );
+            const deployData = await deployRes.json();
+            console.log(`[stripe-webhook] Deploy result:`, JSON.stringify(deployData));
+            if (!deployRes.ok) {
+              console.error(`[stripe-webhook] Deploy failed: ${deployData.error}`);
+            }
+          } catch (deployErr) {
+            console.error(`[stripe-webhook] Deploy error: ${deployErr.message}`);
+          }
+        }
+
         break;
       }
 
