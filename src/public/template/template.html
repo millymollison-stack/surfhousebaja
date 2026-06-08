@@ -223,28 +223,31 @@
            HERO & TITLE STYLES
            ============================================ */
         .hero-title {
-            font-family: var(--font-accent), serif !important;
-            font-size: clamp(1.5rem, 2.8vw, 1.875rem) !important;
-            font-weight: 400 !important;
-            text-transform: uppercase !important;
-            margin-bottom: 10px !important;
-            color: rgba(255, 255, 255, 0.9) !important;
-            padding: 0px 0px 0px 0px !important;
+            font-family: 'Playfair Display', serif;
+            font-size: 30px;
+            font-weight: 400;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0 0 10px 0;
+            padding: 0;
+            line-height: 45px;
         }
 
         .hero-title-price {
-            font-family: var(--font-accent), serif !important;
-            font-size: clamp(1.5rem, 2.8vw, 1.875rem) !important;
-            font-weight: 400 !important;
-            text-transform: uppercase !important;
-            color: rgba(255, 255, 255, 0.9) !important;
+            font-family: 'Playfair Display', serif;
+            font-size: 30px;
+            font-weight: 400;
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 45px;
         }
 
         .hero-subtitle {
-            font-family: var(--font-body), sans-serif;
+            font-family: 'Inter', sans-serif;
+            font-size: 17.6px;
             font-weight: 400;
             color: rgba(255, 255, 255, 0.73);
-            line-height: 1.6;
+            line-height: 28.16px;
             padding: 15px 0;
         }
 
@@ -263,10 +266,9 @@
            ============================================ */
         .gallery-container {
             position: relative;
-            height: 500px;
+            height: 600px;
             overflow: hidden;
         }
-        @media (min-width: 768px) { .gallery-container { height: 600px; } }
 
         .gallery-shadow { box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5); }
 
@@ -296,8 +298,9 @@
             left: 0;
             right: 0;
             z-index: 10;
-            padding: 1.25rem;
+            padding: 48px;
         }
+        @media (max-width: 640px) { .gallery-content-overlay { padding: 24px 16px; } }
 
         /* ============================================
            CSS-ONLY IMAGE SLIDER (radio input hack)
@@ -385,6 +388,41 @@
         .bg-dark-overlay {
             background: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(2px);
+        }
+
+        /* ============================================
+           TWO SIDE-BY-SIDE IMAGES (below gallery)
+           Exact match to propbook.pro
+           ============================================ */
+        .two-image-grid {
+            display: grid;
+            grid-template-columns: 555.5px 555.5px;
+            gap: 0px;
+        }
+        .two-image-grid img {
+            width: 556px;
+            height: 292px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* ============================================
+           BLACK PANEL — exact match to propbook.pro
+           ============================================ */
+        .black-panel {
+            background: rgb(0, 0, 0);
+            padding: 48px;
+            margin: -48px 0 0;
+        }
+        .black-panel p {
+            font-family: 'Inter', sans-serif;
+            font-size: 17.6px;
+            font-weight: 400;
+            line-height: 28.16px;
+            color: rgba(255, 255, 255, 0.73);
+            padding: 15px 0 0;
+            margin: 0;
+            max-width: 80rem;
         }
 
         /* ============================================
@@ -937,14 +975,12 @@
 
     <!-- ============================================
          SECTION 1: HERO IMAGE GALLERY — CSS-only radio slider
+         Exact match to propbook.pro
          ============================================ -->
     <div class="gallery-container gallery-shadow">
         <!-- Radio inputs (hidden) for CSS-only slide control -->
         <input type="radio" name="gallery-slide" id="slide1" class="gallery-radio" checked style="display:none;"/>
         <input type="radio" name="gallery-slide" id="slide2" class="gallery-radio" style="display:none;"/>
-        <input type="radio" name="gallery-slide" id="slide3" class="gallery-radio" style="display:none;"/>
-        <input type="radio" name="gallery-slide" id="slide4" class="gallery-radio" style="display:none;"/>
-        <input type="radio" name="gallery-slide" id="slide5" class="gallery-radio" style="display:none;"/>
 
         <!-- Slide track -->
         <div class="gallery-track">
@@ -952,69 +988,45 @@
                 <img src="{{IMAGE_1}}" alt="Surf House Baja - Ocean view" class="slide-img"/>
             </div>
             <div class="gallery-slide">
-                <img src="{{IMAGE_2}}" alt="Property view 2" class="slide-img"/>
-            </div>
-            <div class="gallery-slide">
-                <img src="{{IMAGE_3}}" alt="Property view 3" class="slide-img"/>
-            </div>
-            <div class="gallery-slide">
-                <img src="{{IMAGE_4}}" alt="Property view 4" class="slide-img"/>
-            </div>
-            <div class="gallery-slide">
-                <img src="{{IMAGE_5}}" alt="Property view 5" class="slide-img"/>
+                <img src="{{IMAGE_6}}" alt="Property view 2" class="slide-img"/>
             </div>
         </div>
 
         <!-- Gradient overlay -->
         <div class="gallery-gradient-overlay-light" style="position: absolute; inset: 0; pointer-events: none;"></div>
 
-        <!-- Bottom content overlay -->
+        <!-- Bottom content overlay — matches propbook.pro exactly -->
         <div class="gallery-content-overlay bg-dark-overlay">
-            <div class="max-w-7xl mx-auto px-4 sm:px-8 md:px-12">
-                <!-- Title and price row -->
-                <div class="titleandpricebox">
-                    <h1 class="hero-title text-white" id="overview">{{TITLE}}</h1>
-                    <div class="flex items-baseline">
-                        <h1 class="hero-title-price text-white">${{PRICE_PER_NIGHT}}</h1>
-                        <span class="text-white/80 text-base font-normal" style="margin-left: 0.25rem;">USD / night</span>
-                    </div>
-                </div>
-
-                <!-- Tagline -->
-                <p class="hero-subtitle">{{DESCRIPTION}}</p>
-
-                <!-- Property stats -->
-                <div class="flex flex-wrap gap-2 sm:gap-3 mt-3">
-                    <span class="lozenge">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
-                        {{BEDROOMS}} Bed{{#BEDROOMS_plural}}s{{/BEDROOMS_plural}}
-                    </span>
-                    <span class="lozenge">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5.5"/><path d="M22 19c0 1.105-1.343 2-3 2s-3-.895-3-2c0-1.1.895-2 2-2s2.9.9 2 2Z"/></svg>
-                        {{BATHROOMS}} Bath{{#BATHROOMS_plural}}s{{/BATHROOMS_plural}}
-                    </span>
-                    <span class="lozenge">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        Sleeps {{MAX_GUESTS}}
-                    </span>
-                </div>
-            </div>
+            <!-- Title: @surfhousebaja -->
+            <h1 class="hero-title" id="overview">{{PROPERTY_TITLE}}</h1>
+            <!-- Price: $200 -->
+            <h1 class="hero-title-price">${{PRICE_PER_NIGHT}}</h1>
+            <!-- Short description -->
+            <p class="hero-subtitle">{{DESCRIPTION}}</p>
         </div>
 
-        <!-- CSS-only prev/next arrows using label[for] -->
+        <!-- CSS-only prev/next arrows -->
         <div class="gallery-nav">
-            <label for="slide5" class="gallery-arrow arrow-prev" id="prevBtn" aria-label="Previous photo">&#10094;</label>
-            <label for="slide2" class="gallery-arrow arrow-next" id="nextBtn" aria-label="Next photo">&#10095;</label>
+            <label for="slide2" class="gallery-arrow arrow-prev" id="prevBtn" aria-label="Previous photo">&#10094;</label>
+            <label for="slide1" class="gallery-arrow arrow-next" id="nextBtn" aria-label="Next photo">&#10095;</label>
         </div>
 
         <!-- Dot indicators -->
         <div class="gallery-dots">
             <label for="slide1" class="dot"></label>
             <label for="slide2" class="dot"></label>
-            <label for="slide3" class="dot"></label>
-            <label for="slide4" class="dot"></label>
-            <label for="slide5" class="dot"></label>
         </div>
+    </div>
+
+    <!-- Two side-by-side images — exact match to propbook.pro -->
+    <div class="two-image-grid">
+        <img src="{{IMAGE_2}}" alt="Property view 2" />
+        <img src="{{IMAGE_3}}" alt="Property view 3" />
+    </div>
+
+    <!-- Black panel with property intro text — exact match to propbook.pro -->
+    <div class="black-panel">
+        <p>{{PROPERTY_INTRO}}</p>
     </div>
 
 
