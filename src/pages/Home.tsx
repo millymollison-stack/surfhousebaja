@@ -403,7 +403,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         onImageDelete={user?.role === 'admin' ? handleImageDelete : undefined}
         onImageUpdate={user?.role === 'admin' ? handleImageUpdate : undefined}
         onPropertyUpdate={user?.role === 'admin' ? handlePropertyUpdate : undefined}
-        registerSaveHandler={(fn) => { imageGallerySaveRef.current = fn; }}
+        registerSaveHandler={(fn) => { imageGallerySaveRef.current = fn; return true; }}
       />
 
       <div className="section-mt-neg bg-black section-padding">
