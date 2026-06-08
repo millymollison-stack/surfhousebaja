@@ -153,7 +153,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          email: authEmail,
          full_name: authFullName,
          phone_number: authPhone,
-         role: 'admin',
+         role: 'user',
        }, { onConflict: 'id' });
        setAccountCreated(true);
        await refreshUser();
