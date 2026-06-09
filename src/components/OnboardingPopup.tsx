@@ -849,6 +849,39 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       setIsOpen(true);
       setShowCongrats(true);
 
+      // ── Step 6: Poll for deployed site URL and redirect ───────────────────
+      const slug = sessionStorage.getItem('popup_website_name') || websiteName || 'surfhousebaja';
+      const userId = session.user.id;
+      console.log('[DEBUG ?paid handler] Polling for site_url, slug=', slug, ', user=', userId);
+      
+      // Poll for site_url (deploy happens async via webhook)
+      let siteUrl = null;
+      for (let attempt = 0; attempt < 15; attempt++) {
+        await new Promise(r => setTimeout(r, 2000)); // wait 2s between polls
+        const { data: prop } = await supabase
+          .from('properties')
+          .select('site_url')
+          .eq('slug', slug)
+          .eq('owner_id', userId)
+          .maybeSingle();
+        if (prop?.site_url) {
+          siteUrl = prop.site_url;
+          console.log('[DEBUG ?paid handler] Got site_url:', siteUrl, 'after', (attempt + 1) * 2, 'seconds');
+          break;
+        }
+        console.log('[DEBUG ?paid handler] Poll', attempt + 1, '- site_url not ready yet');
+      }
+      
+      if (siteUrl) {
+        // Redirect to the deployed site after a brief moment
+        setTimeout(() => {
+          console.log('[DEBUG ?paid handler] Redirecting to:', siteUrl);
+          window.location.href = siteUrl;
+        }, 1500); // 1.5s delay so user sees congrats first
+      } else {
+        console.warn('[DEBUG ?paid handler] site_url never appeared after 30s - user may need to refresh');
+      }
+
     } catch (err) {
       console.error('[DEBUG ?paid handler] Error:', err);
       setStripeError('Payment verified but failed to save. Please refresh and check your sidebar.');
