@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
     } catch {
       // No body — fine for GET requests
     }
-    const { action, plan, hosting_choice, extras, include_scrape, email, user_id, return_url, session_id } = body;
+    const { action, plan, hosting_choice, extras, include_scrape, email, user_id, slug, return_url, session_id } = body;
 
     // Price IDs — set in stripe-server .env
     const priceIds: Record<string, string | undefined> = {
@@ -134,6 +134,7 @@ Deno.serve(async (req: Request) => {
         metadata: {
           user_id: user_id || user.id,
           plan,
+          slug: slug || '',
           hosting_choice: hosting_choice || "",
           extras: Array.isArray(extras) ? extras.join(",") : "",
         },

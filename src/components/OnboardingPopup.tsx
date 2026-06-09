@@ -317,6 +317,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
+         slug: websiteName, // needed for post-payment deploy trigger
          return_url: window.location.origin + window.location.pathname + '?paid=true',
        }),
      });
@@ -1012,6 +1013,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          include_scrape: designChoice === 'airbnb',
          email: user.email,
          user_id: user.id,
+         slug: websiteName, // needed for post-payment deploy trigger
          return_url: window.location.origin + window.location.pathname + '?paid=true',
        }),
      });
