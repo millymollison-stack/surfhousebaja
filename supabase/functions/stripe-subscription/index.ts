@@ -26,11 +26,139 @@ Deno.serve(async (req: Request) => {
       throw new Error("Invalid JSON body");
     }
 
-    const { userId, slug, propertyId } = body;
+    const action = body.action;
+
+    // ── Handle get action FIRST (no userId/slug required) ───────────────────
+    // Called by AdminSidebarBundle to get subscription status from the user's profile.
+    if (action === 'get') {
+      const userId = body.userId || (await supabase.auth.getSession()).data.session?.user.id;
+      if (!userId) throw new Error("No userId provided and no session found");
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stripe_subscription_status, stripe_subscription_plan, stripe_subscription_id, stripe_customer_id, stripe_subscription_amount, stripe_subscription_interval, stripe_subscription_period_end')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!profile || !profile.stripe_subscription_status) {
+        return new Response(JSON.stringify({ subscription: null }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      return new Response(JSON.stringify({
+        subscription: {
+          id: profile.stripe_subscription_id,
+          status: profile.stripe_subscription_status,
+          plan: profile.stripe_subscription_plan,
+          amount: profile.stripe_subscription_amount ?? 1000,
+          interval: profile.stripe_subscription_interval ?? 'month',
+          current_period_end: profile.stripe_subscription_period_end,
+          customer_id: profile.stripe_customer_id,
+        }
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── Handle get_session action (verify Stripe checkout payment) ───────────
+    // No userId/slug required — just verify session_id with Stripe
+    if (action === 'get_session') {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
+      const sessionId = body.session_id;
+      if (!sessionId) throw new Error("Missing required field: session_id");
+
+      const stripeRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
+        headers: { "Authorization": `Bearer ${stripeKey}` },
+      });
+      if (!stripeRes.ok) {
+        const errText = await stripeRes.text();
+        console.error("[stripe-subscription] Stripe retrieve error:", errText);
+        throw new Error(`Stripe error: ${errText}`);
+      }
+      const session = await stripeRes.json();
+      console.log(`[stripe-subscription] Session ${sessionId} status: ${session.status}`);
+
+      return new Response(
+        JSON.stringify({
+          status: session.status,
+          subscription: {
+            status: session.subscription_status || 'active',
+            id: session.subscription,
+            customer_id: session.customer,
+            amount_total: session.amount_total,
+            currency: session.currency,
+          },
+          subscription_id: session.subscription,
+          customer_id: session.customer,
+          sub_status: session.subscription_status || 'active',
+          amount_total: session.amount_total,
+          currency: session.currency,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Actions below require userId + slug ───────────────────────────────────
+    const userId = body.userId || body.user_id;
+    const slug = body.slug;
+    const propertyId = body.propertyId || body.property_id;
     if (!userId || !slug) {
       throw new Error("Missing required fields: userId, slug");
     }
 
+    // ── Handle create_checkout_session action (Stripe checkout) ──────────────
+    if (action === 'create_checkout_session') {
+      console.log(`[stripe-subscription] Checkout for user=${userId}, slug=${slug}`);
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
+
+      const plan = body.plan || 'starter';
+      const priceId = plan === 'pro' ? 'price_1TfPfEK5ECFjIqP3XR3pnWBk'
+        : plan === 'agency' ? 'price_1TfPi0K5ECFjIqP3vq3VucLv'
+        : 'price_1TfPVpK5ECFjIqP3YR6XPpEG'; // starter default
+
+      // Use return_url from browser if provided, otherwise fall back to propbook.pro
+      const returnUrl = body.return_url || 'https://www.propbook.pro';
+      const successUrl = `${returnUrl.replace(/\?.*$/, '')}?paid=true&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${returnUrl.replace(/\?.*$/, '')}?step=cancelled`;
+
+      // Build Stripe checkout session
+      const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          "success_url": successUrl,
+          "cancel_url": cancelUrl,
+          "mode": "subscription",
+          "line_items[0][price]": priceId,
+          "line_items[0][quantity]": "1",
+          "customer_email": body.email || "",
+          "metadata[user_id]": userId,
+          "metadata[slug]": slug,
+          "metadata[plan]": plan,
+          "allow_promotion_codes": "true",
+          "billing_address_collection": "auto",
+        }).toString(),
+      });
+
+      if (!stripeRes.ok) {
+        const errText = await stripeRes.text();
+        console.error("[stripe-subscription] Stripe error:", errText);
+        throw new Error(`Stripe error: ${errText}`);
+      }
+
+      const session = await stripeRes.json();
+      console.log(`[stripe-subscription] Checkout session created: ${session.id}`);
+
+      return new Response(
+        JSON.stringify({ url: session.url, sessionId: session.id }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Handle deploy action (original flow) ─────────────────────────────────
     console.log(`[stripe-subscription] Deploy for user=${userId}, slug=${slug}`);
 
     // ── Step 1: Fetch source property ───────────────────────────────────────

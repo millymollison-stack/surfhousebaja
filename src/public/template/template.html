@@ -1631,62 +1631,9 @@
 
 
     <!-- ============================================
-         JAVASCRIPT
+         JAVASCRIPT (generated from app.js)
          ============================================ -->
-    <script>
-    function openSidebar() {
-        document.getElementById('sidebar').classList.add('open');
-        document.getElementById('sidebarOverlay').classList.add('open');
-    }
-    function closeSidebar() {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('sidebarOverlay').classList.remove('open');
-    }
-    // Close sidebar on overlay click
-    document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
-    // Smooth scroll for nav links
-    document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
-        anchor.addEventListener('click', function(e) {
-            var href = this.getAttribute('href');
-            if (href && href !== '#') {
-                e.preventDefault();
-                var target = document.querySelector(href);
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }
-        });
-    });
-
-    // Location Modal
-    var locationMap = null;
-    function openLocationModal() {
-        var modal = document.getElementById('location-modal');
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        // Initialize Leaflet map after modal is shown
-        if (!locationMap) {
-            var lat = {{LATITUDE}};
-            var lng = {{LONGITUDE}};
-            locationMap = L.map('location-map').setView([lat, lng], 14);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(locationMap);
-            L.marker([lat, lng]).addTo(locationMap);
-        }
-        // Force map to resize after modal is visible
-        setTimeout(function() { locationMap.invalidateSize(); }, 10);
-    }
-    function closeLocationModal() {
-        var modal = document.getElementById('location-modal');
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-    // Close modal on overlay click
-    document.getElementById('location-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeLocationModal();
-    });
-    </script>
+    <!--APP_JS-->
 
 </body>
 </html>

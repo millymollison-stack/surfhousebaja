@@ -366,86 +366,100 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   );
 }
 
-function WebsiteSection({ hostOnHostinger, setHostOnHostinger, devUpdates, setDevUpdates, serverIp, folderPath, siteUrl, websiteName }: {
-  hostOnHostinger: boolean; setHostOnHostinger: (v: boolean) => void;
+function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteName, propertySlug }: {
   devUpdates: boolean; setDevUpdates: (v: boolean) => void;
   serverIp?: string | null;
-  folderPath?: string | null;
   siteUrl?: string | null;
   websiteName?: string;
+  propertySlug?: string;
 }) {
-  const [showDnsPanel, setShowDnsPanel] = useState(false);
+  // Resolve property slug: prop > sessionStorage
+  const slug = propertySlug || sessionStorage.getItem('popup_website_name') || '';
+
+  // Resolve current website URL: siteUrl prop > sessionStorage popup_site_url > window.location.origin (dev)
+  const popupSiteUrl = sessionStorage.getItem('popup_site_url');
+  const currentUrl = siteUrl || popupSiteUrl || (typeof window !== 'undefined' ? window.location.origin : null);
+
+  const isDeployed = !!siteUrl;
+
+  // Domain search URL
   const domainName = websiteName ? websiteName.replace(/^@+/, '').trim() + '.com' : '';
   const domainSearchUrl = domainName
     ? `https://www.hostinger.com/domain-search?domain=${encodeURIComponent(domainName)}`
     : 'https://www.hostinger.com/domain-search';
-  const ip = serverIp || null;
 
+  // File path from siteUrl
+  const filePath = siteUrl || null;
 
   return (
-    <div>
-      {/* 1. Host website on Hostinger */}
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">Host website on Hostinger</p>
-        <Toggle checked={hostOnHostinger} onChange={setHostOnHostinger} />
-      </div>
-
-      {/* 2. Current website location — always visible */}
-      <div className="sb-field-row">
-        <h4 className="sb-h4-grey">Current website location</h4>
-        {siteUrl ? (
-          <div className="sb-toggle-row" style={{ gap: 6, padding: '6px 0 0 0' }}>
-            <p className="sb-mono" style={{ fontSize: '0.78rem', color: '#16a34a', wordBreak: 'break-all', flex: 1 }}>{siteUrl}</p>
-            <a href={siteUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" style={{ color: '#16a34a', flexShrink: 0 }} /></a>
+    <div style={{ paddingTop: 4 }}>
+      {/* 1. Current website location */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Current website location</p>
+        {currentUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <a href={currentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#111827', textDecoration: 'none', wordBreak: 'break-all', flex: 1 }}>{currentUrl}</a>
+            <ExternalLink className="h-3.5 w-3.5" style={{ color: '#6b7280', flexShrink: 0 }} />
           </div>
         ) : (
-          <p className="sb-field-value" style={{ color: '#999' }}>Not yet published</p>
+          <p style={{ fontSize: '0.85rem', color: '#9ca3af' }}>Not deployed yet</p>
         )}
       </div>
 
-      {/* 3. Get a custom domain */}
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">Get a custom domain</p>
-        <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6, background: 'var(--brand, #C47756)', color: '#fff', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>Hostinger <ExternalLink className="h-3 w-3" /></a>
-      </div>
-
-      {/* 4. Point your domain DNS here */}
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">Point your domain DNS here</p>
-        <button
-          onClick={() => setShowDnsPanel(v => !v)}
-          className="sb-change-pw-btn"
-          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-        >
-          {showDnsPanel ? 'Hide' : 'Show DNS'}
-        </button>
-      </div>
-      {showDnsPanel && (
-        <div className="sb-field-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, background: '#f9fafb', borderRadius: 8, padding: '10px 12px', marginTop: 4 }}>
-          {ip ? (
-            <>
-              <p className="sb-h4-grey" style={{ marginBottom: 2 }}>Set an <strong>A record</strong> pointing to:</p>
-              <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>{ip}</p>
-              <p className="text-xs text-gray-500 mt-1">This is your server IP address on Hostinger</p>
-              <p className="sb-h4-grey" style={{ marginTop: 6, marginBottom: 2 }}>Or a <strong>CNAME</strong> pointing to:</p>
-              <p className="sb-mono" style={{ fontSize: '0.9rem', userSelect: 'all' }}>cname.propbook.pro</p>
-            </>
-          ) : (
-            <p className="text-sm text-gray-500">Deploy to Hostinger first to get your server IP. Use <strong>cname.propbook.pro</strong> as a temporary CNAME target.</p>
-          )}
+      {/* 2. Website hosting */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Website hosting</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.85rem', color: '#111827' }}>propbook.pro/props/{slug || 'yoursitename'}</span>
+          <span style={{
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            padding: '2px 8px',
+            borderRadius: 9999,
+            background: isDeployed ? '#d1fae5' : '#f3f4f6',
+            color: isDeployed ? '#16a34a' : '#9ca3af',
+          }}>
+            {isDeployed ? 'Y' : 'N'}
+          </span>
         </div>
-      )}
-
-      {/* 5. Enable website dev updates */}
-      <div className="sb-toggle-row">
-        <p className="sb-toggle-label">Enable website dev updates</p>
-        <Toggle checked={devUpdates} onChange={setDevUpdates} />
       </div>
 
-      {/* 6. Dev notifications */}
-      <div className="sb-field-row" style={{ borderBottom: 'none' }}>
-        <h4 className="sb-h4-grey">Dev notifications</h4>
-        <p className="sb-field-value">0</p>
+      {/* 3. File Path On Server */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>File Path On Server</p>
+        {filePath ? (
+          <p style={{ fontSize: '0.8rem', color: '#374151', wordBreak: 'break-all' }}>{filePath}</p>
+        ) : (
+          <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>File path will be shown after first deploy to Hostinger.</p>
+        )}
+      </div>
+
+      {/* 4. Get a custom domain */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Get a custom domain</p>
+        <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#2563eb', textDecoration: 'underline' }}>Hostinger</a>
+      </div>
+
+      {/* 5. Point your custom domain DNS here */}
+      <div style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Point your custom domain DNS here</p>
+        <p style={{ fontSize: '0.8rem', color: '#374151', lineHeight: 1.5 }}>
+          Deploy to Hostinger first to get your server IP. Use cname.propbook.pro as a temporary CNAME target.
+        </p>
+      </div>
+
+      {/* 6. Site improvements */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ fontSize: '0.85rem', color: '#111827' }}>Enable website developer updates</p>
+          <Toggle checked={devUpdates} onChange={setDevUpdates} />
+        </div>
+      </div>
+
+      {/* 7. Dev Notifications */}
+      <div style={{ marginBottom: 0 }}>
+        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Dev Notifications</p>
+        <p style={{ fontSize: '0.85rem', color: '#111827' }}>0</p>
       </div>
     </div>
   );
@@ -775,7 +789,6 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates' });
   const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
-  const [hostOnHostinger, setHostOnHostinger] = useState(true);
   const [devUpdates, setDevUpdates] = useState(true);
   const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: false, marketing: false, advertising: false, analytics: false, influencers: false, social: false });
 
@@ -1081,7 +1094,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const isPending = displayBooking?.status === 'pending';
   const hasStripeAccount = !!(connectData?.account_id);
-  const hasWebsite = hostOnHostinger;
+  const hasWebsite = !!(property?.site_url);
   const hasEmail = !!displayUser.email;
   const hasSubscription = !!(subscriptionData?.status === 'active');
 
@@ -1174,7 +1187,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {openSection === key && (
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'website' && <WebsiteSection hostOnHostinger={hostOnHostinger} setHostOnHostinger={setHostOnHostinger} devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} folderPath={property?.folder_path} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} />}
+                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={sessionStorage.getItem('popup_website_name') || undefined} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}

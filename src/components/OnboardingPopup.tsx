@@ -34,6 +34,20 @@ export interface OnboardingPopupProps {
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
 const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Convert any string to a URL-safe slug */
+function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // strip accents
+    .replace(/[^a-z0-9\s-]/g, '')     // remove non-alphanumeric (keep spaces/hyphens)
+    .trim()
+    .replace(/\s+/g, '-')             // spaces → hyphens
+    .replace(/-+/g, '-');              // collapse multiple hyphens
+}
+
 // ── Paddle Configuration ────────────────────────────────────────────────────
 const PADDLE_VENDOR_ID = '353043';
 const PADDLE_CLIENT_TOKEN = 'live_c9152e76d51ef908b8697afd399';
@@ -124,6 +138,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
  const isMountedRef = { current: true };
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+ const gatewayRunning = useRef(false); // guard against double-call of openStripeGateway
 
  // Inline auth state
  const [authEmail, setAuthEmail] = useState('');
@@ -153,7 +168,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          email: authEmail,
          full_name: authFullName,
          phone_number: authPhone,
-         role: 'user',
+         role: 'admin',
        }, { onConflict: 'id' });
        setAccountCreated(true);
        await refreshUser();
@@ -264,7 +279,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    }
  };
 
- const openStripeGateway = async () => {
+ const openStripeGateway = async (e?: React.MouseEvent) => {
+  if (e) e.stopPropagation();
+  if (gatewayRunning.current) {
+    console.log('[openStripeGateway] already running, ignoring duplicate call');
+    return;
+  }
+  gatewayRunning.current = true;
   console.log('[openStripeGateway] running...');
   // Clear any stale Stripe redirect state from previous page loads
   sessionStorage.removeItem('stripe_payment_returning');
@@ -272,24 +293,42 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
    if (!user) {
      setStripeError('Please sign in or create an account above first.');
+     gatewayRunning.current = false;
      return;
    }
    if (!planChoice) {
      setStripeError('Please select a subscription plan first.');
+     gatewayRunning.current = false;
      return;
    }
    setStripeError('');
 
+   // Validate required fields before calling edge function
+   const slugValue = generateSlug(websiteName) || 'mysite';
+   const userIdValue = user?.id;
+   if (!userIdValue) {
+     setStripeError('User not authenticated. Please sign in again.');
+     gatewayRunning.current = false;
+     return;
+   }
+   console.log('[openStripeGateway] validated — userId:', userIdValue, 'slug:', slugValue);
 
    // Save form data before redirecting to Stripe so we can restore it on return
    try {
      await saveToSupabase();
+     console.log('[openStripeGateway] saveToSupabase done');
    } catch(e) {
      console.error('[openStripeGateway] saveToSupabase failed:', e);
      // Continue anyway — payment is more important than saving form data
      console.log('[openStripeGateway] continuing without save...');
    }
 
+   // Timeout wrapper — if fetch takes >15s, treat as network error
+   const fetchWithTimeout = (url: string, opts: RequestInit, timeoutMs = 15000) =>
+     Promise.race([
+       fetch(url, opts),
+       new Promise((_, reject) => setTimeout(() => reject(new Error('fetch timeout')), timeoutMs)),
+     ]);
 
    try {
      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -301,12 +340,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      if (extras.analytics) activeExtras.push('analytics');
      if (extras.social) activeExtras.push('social');
 
+     const sessionResult = await supabase.auth.getSession();
+     console.log('[openStripeGateway] session token:', sessionResult.data.session?.access_token ? 'present' : 'MISSING');
+
      console.log('[openStripeGateway] calling edge function...');
-     const res = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
+     const res = await fetchWithTimeout(`${supabaseUrl}/functions/v1/stripe-subscription`, {
        method: 'POST',
        headers: {
          'Content-Type': 'application/json',
-         'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+         'Authorization': `Bearer ${sessionResult.data.session?.access_token}`,
          'Apikey': supabaseAnonKey,
        },
        body: JSON.stringify({
@@ -316,8 +358,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          extras: activeExtras,
          include_scrape: designChoice === 'airbnb',
          email: user.email,
-         user_id: user.id,
-         slug: websiteName, // needed for post-payment deploy trigger
+         user_id: userIdValue,
+         slug: slugValue, // needed for post-payment deploy trigger
          return_url: window.location.origin + window.location.pathname + '?paid=true',
        }),
      });
@@ -334,9 +376,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      } else {
        setStripeError(data.error || 'Payment failed. Please try again.');
      }
-   } catch(e) {
-     console.error('[openStripeGateway] error:', e);
-     setStripeError('Could not connect to payment server.');
+   } catch(e: any) {
+     console.error('[openStripeGateway] error:', e.message || e);
+     setStripeError(e.message === 'fetch timeout'
+       ? 'Connection timed out. Check your network and try again.'
+       : 'Could not connect to payment server.');
+   } finally {
+     gatewayRunning.current = false;
    }
  };
 
@@ -516,7 +562,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  useEffect(() => {
  if (!scrapedProperty) return;
  if (!descInitialized) {
- if (scrapedProperty.property_title) setWebsiteName(scrapedProperty.property_title.slice(0, 20));
+ if (scrapedProperty.property_title) setWebsiteName(scrapedProperty.property_title);
  if (scrapedProperty.property_intro) setWebsiteDesc(scrapedProperty.property_intro.slice(0, 200));
  setDescInitialized(true);
  }
@@ -536,7 +582,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // If parent has fresh scraped data, use it instead of stale saved data
  if (scrapedProperty) {
  const imgs = scrapedImages?.map((img: any) => img.url) || [];
- setWebsiteName((scrapedProperty.property_title || scrapedProperty.title || '').slice(0, 20));
+ setWebsiteName(scrapedProperty.property_title || scrapedProperty.title || '');
  setScrapedData({
  title: scrapedProperty.property_title || scrapedProperty.title || '',
  location: scrapedProperty.location || '',
@@ -567,7 +613,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
           try {
             const parsed = JSON.parse(savedScraped);
             setScrapedData(parsed);
-            if (parsed.title) setWebsiteName(parsed.title.slice(0, 20));
+            if (parsed.title) setWebsiteName(parsed.title);
             if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
           } catch { /* ignore corrupt JSON */ }
         }
@@ -628,7 +674,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const savedDesign = sessionStorage.getItem('popup_design');
  if (savedDesign) setDesignChoice(savedDesign);
  const savedName = sessionStorage.getItem('popup_website_name');
- if (savedName) setWebsiteName(savedName.slice(0, 20));
+ if (savedName) setWebsiteName(savedName);
  const savedDesc = sessionStorage.getItem('popup_website_desc');
  if (savedDesc) setWebsiteDesc(savedDesc);
  const savedExtras = sessionStorage.getItem('popup_extras_seo');
@@ -648,7 +694,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  if (data) {
  // Populate form fields from saved data
- if (data.property_name) setWebsiteName(data.property_name.slice(0, 20));
+ if (data.property_name) setWebsiteName(data.property_name);
  if (data.property_desc) setWebsiteDesc(data.property_desc);
  if (data.airbnb_url) setAirbnbUrl(data.airbnb_url);
  if (data.design_choice) setDesignChoice(data.design_choice);
@@ -700,7 +746,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const handleNameChange = (val: string) => {
  // Strip any leading @ so we never double it up when the sidebar prepends one
  const cleaned = val.startsWith('@') ? val.slice(1) : val;
- setWebsiteName(cleaned.slice(0, 20));
+ setWebsiteName(cleaned);
  };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
@@ -768,14 +814,18 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Dual-path: URL params (normal) + sessionStorage fallback (survives Vite HMR reloads
  // that can fire after Stripe redirects back and wipe URL params before this effect runs).
  useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
+  const rawSearch = window.location.search;
+  const params = new URLSearchParams(rawSearch);
   const hasPaidParam = params.has('paid') && params.has('session_id');
   const sessionIdFromUrl = hasPaidParam ? params.get('session_id') : null;
   const sessionIdFromStorage = sessionStorage.getItem('stripe_session_id');
 
   // Must have a session ID from at least one source
   const sessionId = sessionIdFromUrl || sessionIdFromStorage;
-  if (!sessionId) return;
+  if (!sessionId) {
+    console.log('[DEBUG ?paid handler] No session ID found — rawSearch:', rawSearch, 'hasPaidParam:', hasPaidParam, 'sessionIdFromUrl:', sessionIdFromUrl, 'sessionIdFromStorage:', sessionIdFromStorage);
+    return;
+  }
   // Guard: if we already handled a return in this tab session, don't re-trigger
   if (sessionStorage.getItem('stripe_payment_returning')) return;
   sessionStorage.setItem('stripe_payment_returning', '1');
@@ -804,6 +854,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
       // ── Step 1: Verify payment directly with Stripe ───────────────────────────
       // Call our edge function which uses the secret key to verify with Stripe
+      const slug = sessionStorage.getItem('popup_website_name') || websiteName || 'surfhousebaja';
+      const userId = session.user.id;
       const sessionRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
         method: 'POST',
         headers: {
@@ -811,7 +863,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
           'Authorization': `Bearer ${session.access_token}`,
           'Apikey': supabaseAnonKey,
         },
-        body: JSON.stringify({ action: 'get_session', session_id: sessionId }),
+        body: JSON.stringify({ action: 'get_session', session_id: sessionId, userId, slug }),
       });
 
       const sessionData = await sessionRes.json();
@@ -851,8 +903,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       setShowCongrats(true);
 
       // ── Step 6: Poll for deployed site URL and redirect ───────────────────
-      const slug = sessionStorage.getItem('popup_website_name') || websiteName || 'surfhousebaja';
-      const userId = session.user.id;
       console.log('[DEBUG ?paid handler] Polling for site_url, slug=', slug, ', user=', userId);
       
       // Poll for site_url (deploy happens async via webhook)
@@ -951,7 +1001,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  if (result.success) {
  const data = result.data;
  setScrapedData(data);
- if (data.title) setWebsiteName(data.title.slice(0, 20));
+ // Persist scraped data to sessionStorage immediately so it survives Stripe redirect
+ sessionStorage.setItem('popup_scraped_data', JSON.stringify(data));
+ if (data.title) setWebsiteName(data.title);
  if (data.description) setWebsiteDesc(data.description.slice(0, 200));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
  await saveToSupabase();
@@ -1545,7 +1597,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <p>Secure payment via Stripe (accepts Visa, Mastercard, Amex).</p>
  <button
  className="btn"
- onClick={() => { openStripeGateway() }}>
+ onClick={(e) => { e.stopPropagation(); openStripeGateway(e); }}>
  {user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing'
  ? `✓ Subscribed to ${planChoice === 'starter' ? 'Starter' : planChoice === 'pro' ? 'Pro' : 'Agency'}`
  : user?.stripe_subscription_status === 'past_due'

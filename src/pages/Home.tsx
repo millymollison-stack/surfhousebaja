@@ -104,6 +104,54 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     loadProperty();
   }, []);
 
+  // ── Restore scraped data from sessionStorage after Stripe redirect ─────────
+  // This survives the Home component remount that happens when Stripe redirects
+  // back to the app with ?paid=true&session_id=...
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const savedProp = sessionStorage.getItem('home_scraped_property');
+      const savedImgs = sessionStorage.getItem('home_scraped_images');
+      if (savedProp) {
+        const prop = JSON.parse(savedProp);
+        // Only restore if it looks like a real scraped property (has title or property_title)
+        if (prop.title || prop.property_title) {
+          console.log('[Home] Restoring scrapedProperty from sessionStorage:', prop.title || prop.property_title);
+          setScrapedProperty(prop);
+        }
+      }
+      if (savedImgs) {
+        const imgs = JSON.parse(savedImgs);
+        if (Array.isArray(imgs) && imgs.length > 0) {
+          console.log('[Home] Restoring scrapedImages from sessionStorage:', imgs.length, 'images');
+          setScrapedImages(imgs);
+        }
+      }
+    } catch (e) {
+      console.warn('[Home] Could not restore scraped data from sessionStorage:', e);
+    }
+  }, [user]);
+
+
+  // ── Persist scraped data to sessionStorage whenever it changes ──────────────
+  // This ensures scraped data survives Stripe redirect page remounts
+  useEffect(() => {
+    if (scrapedProperty) {
+      sessionStorage.setItem('home_scraped_property', JSON.stringify(scrapedProperty));
+    } else {
+      sessionStorage.removeItem('home_scraped_property');
+    }
+  }, [scrapedProperty]);
+
+
+  useEffect(() => {
+    if (scrapedImages && scrapedImages.length > 0) {
+      sessionStorage.setItem('home_scraped_images', JSON.stringify(scrapedImages));
+    } else {
+      sessionStorage.removeItem('home_scraped_images');
+    }
+  }, [scrapedImages]);
+
   const handlePropertyUpdate = async (updates: Partial<Property>, onUpdated?: (updated: Property) => void) => {
     const callId = Math.random().toString(36).slice(2,8);
     console.log('[DEBUG] handlePropertyUpdate called [#', callId, '] with:', JSON.stringify(updates));
@@ -309,7 +357,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       if (realUrls.length > 0 || (scrapedImages && scrapedImages.length === 0)) {
         const newImages: PropertyImage[] = realUrls.map((url: string, idx: number) => ({
           id: `scraped-${Date.now()}-${idx}`,
-          property_id: property?.id || '',
+          property_id: 'scrape', // placeholder — will be replaced with real property_id on publish
           url,
           position: idx + 1,
           is_featured: idx === 0,
@@ -324,7 +372,8 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
       const descText = (imported.description || '').slice(200);
       console.log('[Home] setScrapedProperty:', { description: descText, property_intro: heroText, title: imported.title });
       setScrapedProperty({
-        id: property?.id || '',
+        // NOTE: do NOT set id to property?.id — that points to the old demo property.
+        // A real id will be assigned when the site is published.
         title: imported.title || property?.title || '',
         description: descText,
         property_title: imported.title || property?.property_title || '',

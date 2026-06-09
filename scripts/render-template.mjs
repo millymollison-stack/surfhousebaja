@@ -293,6 +293,17 @@ function renderTemplate(template, property, propertyImages) {
   return html;
 }
 
+// ── Process app.js ─────────────────────────────────────────────────
+
+function processAppJs(supabaseUrl, anonKey) {
+  const appJsPath = join(PROJECT_ROOT, 'src', 'public', 'template', 'app.js');
+  let js = readFileSync(appJsPath, 'utf8');
+  // Replace config tokens
+  js = js.replace(/\{\{SUPABASE_URL\}\}/g, supabaseUrl);
+  js = js.replace(/\{\{SUPABASE_ANON_KEY\}\}/g, anonKey);
+  return js;
+}
+
 // ── Supabase fetch ─────────────────────────────────────────────────
 
 async function fetchPropertyBySlug(slug, supabaseUrl, anonKey) {
@@ -390,8 +401,15 @@ async function main() {
   const rendered = renderTemplate(template, property, propertyImages);
   console.error(`Rendered HTML: ${rendered.length} bytes`);
 
+
+  // Inject app.js
+  const appJs = processAppJs(supabaseUrl, anonKey);
+  const withAppJs = rendered.replace('<!--APP_JS-->', '<script>' + appJs + '</script>');
+  console.error(`APP_JS injected: ${appJs.length} bytes`);
+
+
   // Output to stdout
-  process.stdout.write(rendered);
+  process.stdout.write(withAppJs);
 }
 
 main().catch(err => {

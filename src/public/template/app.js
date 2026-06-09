@@ -1,16 +1,34 @@
 'use strict';
 
-const {
-  useState,
-  useEffect
-} = React;
+// ── Config (replaced at render time) ───────────────────────────────
+const SUPABASE_URL = '{{SUPABASE_URL}}';
+const SUPABASE_ANON_KEY = '{{SUPABASE_ANON_KEY}}';
 
-// ── Config (injected at deploy time) ──
-const SUPABASE_URL = window.__SUPABASE_URL__ || '';
-const SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__ || '';
-const PROPERTY_SLUG = window.__PROPERTY_SLUG__ || '';
+// ── Helpers ───────────────────────────────────────────────────────
 
-// ── Supabase REST fetch ──
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, '&#039;');
+}
+
+function parseImages(imagesJson) {
+  if (!imagesJson) return [];
+  if (Array.isArray(imagesJson)) return imagesJson;
+  try {
+    const parsed = JSON.parse(imagesJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+// ── Supabase REST fetch ────────────────────────────────────────────
+
 async function fetchProperty(slug) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/properties?slug=eq.${encodeURIComponent(slug)}&select=*&limit=1`, {
     headers: {
@@ -23,250 +41,258 @@ async function fetchProperty(slug) {
   return data?.[0] || null;
 }
 
-// ── Star rating component ──
-function StarRating({
-  rating
-}) {
-  const fullStars = Math.floor(rating || 0);
-  return /*#__PURE__*/React.createElement("div", {
-    className: "p-banner-stars"
-  }, [...Array(5)].map((_, i) => /*#__PURE__*/React.createElement("svg", {
-    key: i,
-    viewBox: "0 0 24 24"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-  }))));
-}
+// ── Stripe session verification ────────────────────────────────────
 
-// ── Detail pill ──
-function DetailPill({
-  icon,
-  label
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    className: "p-detail"
-  }, icon, /*#__PURE__*/React.createElement("span", null, label));
-}
-
-// ── Icons (inline SVG) ──
-const IconGuests = () => /*#__PURE__*/React.createElement("svg", {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-}), /*#__PURE__*/React.createElement("circle", {
-  cx: "9",
-  cy: "7",
-  r: "4"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M23 21v-2a4 4 0 0 0-3-3.87"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M16 3.13a4 4 0 0 1 0 7.75"
-}));
-const IconBedroom = () => /*#__PURE__*/React.createElement("svg", {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M2 4v16"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M2 8h18a2 2 0 0 1 2 2v10"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M2 17h20"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M6 8v9"
-}));
-const IconBed = () => /*#__PURE__*/React.createElement("svg", {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M2 4v16"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M22 4v16"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M2 8h20"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M2 16h20"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M6 4v4"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M6 12v4"
-}));
-const IconBath = () => /*#__PURE__*/React.createElement("svg", {
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: "2"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M9 6l3-3 3 3"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M12 3v3"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M3 12h18"
-}), /*#__PURE__*/React.createElement("path", {
-  d: "M5 12v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"
-}));
-
-// ── Main Property Page ──
-function PropertyPage({
-  property
-}) {
-  if (!property) return null;
-  const {
-    title = '',
-    address = '',
-    price_per_night: pricePerNight = 0,
-    hero_image: heroImage = '',
-    images = [],
-    description = '',
-    max_guests: maxGuests = 0,
-    bedrooms = 0,
-    beds = 0,
-    baths = 0,
-    rating = 0,
-    reviews = 0,
-    brand_color: brandColor = '#C47756',
-    name: brandName = 'PropBook'
-  } = property;
-  const allImages = [heroImage, ...images].filter(Boolean);
-  const reviewPlural = reviews === 1 ? '' : 's';
-  const price = typeof pricePerNight === 'number' ? pricePerNight.toFixed(0) : pricePerNight;
-
-  // Set CSS variable so .p-bg background updates from the hero image
-  if (heroImage) {
-    document.documentElement.style.setProperty('--hero-image', `url('${heroImage}')`);
+async function verifyStripeSession(sessionId) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/stripe-subscription`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({
+      action: 'get_session',
+      session_id: sessionId
+    })
+  });
+  if (!res.ok) {
+    let errMsg = `Verification failed: ${res.status}`;
+    try {
+      const errData = await res.json();
+      if (errData && errData.error) errMsg = errData.error;
+    } catch {}
+    throw new Error(errMsg);
   }
-  const handleBookNow = () => {
-    window.location.href = `https://www.propbook.pro/book/${property.slug}`;
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      width: '100%',
-      height: '100vh',
-      overflow: 'hidden'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "p-bg"
-  }), /*#__PURE__*/React.createElement("img", {
-    className: "p-bg-img",
-    src: heroImage,
-    alt: title
-  }), /*#__PURE__*/React.createElement("nav", {
-    className: "p-nav"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "p-nav-logo"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "p-nav-icon"
-  }, "\u25C8"), /*#__PURE__*/React.createElement("span", {
-    className: "p-nav-brand"
-  }, brandName)), /*#__PURE__*/React.createElement("div", {
-    className: "p-nav-links"
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "#",
-    className: "p-nav-link p-nav-cta"
-  }, "Sign up"))), /*#__PURE__*/React.createElement("div", {
-    className: "p-bottom"
-  }, /*#__PURE__*/React.createElement("h1", {
-    className: "p-title"
-  }, title), /*#__PURE__*/React.createElement("p", {
-    className: "p-location"
-  }, address), /*#__PURE__*/React.createElement("div", {
-    className: "p-price"
-  }, "$", price, " ", /*#__PURE__*/React.createElement("span", null, "/ night")), /*#__PURE__*/React.createElement("p", {
-    className: "p-description"
-  }, description), /*#__PURE__*/React.createElement("div", {
-    className: "p-details"
-  }, /*#__PURE__*/React.createElement(DetailPill, {
-    icon: /*#__PURE__*/React.createElement(IconGuests, null),
-    label: `${maxGuests} guests`
-  }), /*#__PURE__*/React.createElement(DetailPill, {
-    icon: /*#__PURE__*/React.createElement(IconBedroom, null),
-    label: `${bedrooms} bedroom${bedrooms !== 1 ? 's' : ''}`
-  }), /*#__PURE__*/React.createElement(DetailPill, {
-    icon: /*#__PURE__*/React.createElement(IconBed, null),
-    label: `${beds} bed${beds !== 1 ? 's' : ''}`
-  }), /*#__PURE__*/React.createElement(DetailPill, {
-    icon: /*#__PURE__*/React.createElement(IconBath, null),
-    label: `${baths} bath${baths !== 1 ? 's' : ''}`
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "p-banner"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "p-banner-left"
-  }, /*#__PURE__*/React.createElement(StarRating, {
-    rating: rating
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "p-banner-text"
-  }, reviews, " review", reviewPlural)), /*#__PURE__*/React.createElement("button", {
-    className: "p-book-btn",
-    onClick: handleBookNow
-  }, "Book Now")));
+  return res.json();
 }
 
-// ── Loading screen ──
-function LoadingScreen() {
-  return /*#__PURE__*/React.createElement("div", {
-    className: "p-loading"
-  }, /*#__PURE__*/React.createElement("p", {
-    className: "p-loading-text"
-  }, "Loading property..."));
-}
+// ── Site URL polling ───────────────────────────────────────────────
 
-// ── Error screen ──
-function ErrorScreen({
-  message
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    className: "p-error"
-  }, /*#__PURE__*/React.createElement("p", {
-    className: "p-error-title"
-  }, "Property not found"), /*#__PURE__*/React.createElement("p", {
-    className: "p-error-msg"
-  }, message));
-}
-
-// ── App root ──
-function App() {
-  const [property, setProperty] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    // Extract slug from URL path: /props/slug-here → slug-here
-    const match = window.location.pathname.match(/\/props\/([^\/]+)/);
-    const slug = match ? match[1] : PROPERTY_SLUG || '';
-    if (!slug) {
-      setError('No property slug found in URL.');
-      setLoading(false);
-      return;
-    }
-    document.title = `${slug} — PropBook`;
-    fetchProperty(slug).then(prop => {
-      if (!prop) {
-        setError(`No property found for "${slug}".`);
-      } else {
-        setProperty(prop);
-        document.title = `${prop.title || slug} — PropBook`;
+async function pollForSiteUrl(maxAttempts = 20, intervalMs = 2000) {
+  const slug = getSlugFromUrl();
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const prop = await fetchProperty(slug);
+      if (prop?.site_url) {
+        return prop.site_url;
       }
-    }).catch(err => {
-      setError(err.message);
-    }).finally(() => {
-      setLoading(false);
-    });
-  }, []);
-  if (loading) return /*#__PURE__*/React.createElement(LoadingScreen, null);
-  if (error) return /*#__PURE__*/React.createElement(ErrorScreen, {
-    message: error
+    } catch {
+      // keep polling
+    }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  return null;
+}
+
+// ── URL helpers ───────────────────────────────────────────────────
+
+function getSlugFromUrl() {
+  const match = window.location.pathname.match(/\/props\/([^\/]+)/);
+  return match ? match[1] : '';
+}
+
+// ── Success Modal ───────────────────────────────────────────────────
+
+function showSuccessModal(siteUrl) {
+  // Remove existing modal if any
+  const existing = document.getElementById('p-stripe-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'p-stripe-modal';
+  overlay.style.cssText = [
+    'position:fixed;top:0;left:0;width:100%;height:100%;',
+    'background:rgba(0,0,0,0.7);z-index:99999;',
+    'display:flex;align-items:center;justify-content:center;',
+    'font-family:Inter,sans-serif'
+  ].join('');
+
+  const modal = document.createElement('div');
+  modal.style.cssText = [
+    'background:#fff;border-radius:16px;padding:40px;max-width:480px;width:90%;',
+    'text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);'
+  ].join('');
+
+  modal.innerHTML = [
+    '<div style="font-size:48px;margin-bottom:16px;">✓</div>',
+    '<h2 style="font-family:Playfair Display,serif;font-size:28px;margin:0 0 12px;color:#111;">Well done!</h2>',
+    '<p style="color:#555;font-size:16px;margin:0 0 24px;line-height:1.5;">',
+ 'Your subscription is active. You can now publish your site!</p>',
+    siteUrl ? [
+      '<p style="color:#888;font-size:13px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;">Your live site:</p>',
+      '<a href="' + escapeHtml(siteUrl) + '" target="_blank" rel="noopener noreferrer"',
+      ' style="color:#C47756;font-size:15px;font-weight:500;word-break:break-all;">' + escapeHtml(siteUrl) + '</a>'
+    ].join('') : '',
+    '<button id="p-modal-close-btn"',
+    ' style="margin-top:24px;padding:12px 32px;background:#C47756;color:#fff;',
+    ' border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;',
+    ' transition:background 0.2s;">Close</button>'
+  ].join('');
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  document.getElementById('p-modal-close-btn').addEventListener('click', function() {
+    overlay.remove();
   });
-  return /*#__PURE__*/React.createElement(PropertyPage, {
-    property: property
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.remove();
   });
 }
 
-// ── Mount ──
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(/*#__PURE__*/React.createElement(App, null));
+function hideSuccessModal() {
+  const overlay = document.getElementById('p-stripe-modal');
+  if (overlay) overlay.remove();
+}
+
+// ── Handle ?paid=true Stripe redirect ───────────────────────────
+
+function handleStripeRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  const paid = params.get('paid') === 'true';
+  const sessionId = params.get('session_id');
+
+  if (!paid || !sessionId) {
+    console.log('[Stripe] No redirect params detected');
+    return;
+  }
+
+  console.log('[Stripe] Processing redirect, session:', sessionId);
+
+  // Store session ID so it survives page refresh
+  try { sessionStorage.setItem('stripe_session_id', sessionId); } catch {}
+
+  // Clean URL without triggering page reload
+  window.history.replaceState({}, '', window.location.pathname);
+
+  // Verify session with backend
+  verifyStripeSession(sessionId).then(result => {
+    console.log('[Stripe] Session verified:', result);
+
+    const subStatus = result.subscription?.status;
+    if (subStatus === 'active' || subStatus === 'complete' || subStatus === 'paid') {
+      // Poll for site URL to appear in properties table
+      pollForSiteUrl(20, 2000).then(siteUrl => {
+        console.log('[Stripe] site_url found:', siteUrl);
+        showSuccessModal(siteUrl);
+      }).catch(() => {
+        showSuccessModal(null);
+      });
+    } else {
+      console.warn('[Stripe] Subscription status:', subStatus);
+      showSuccessModal(null);
+    }
+  }).catch(err => {
+    console.error('[Stripe] Verification error:', err.message);
+    // Show modal anyway — user DID pay, just couldn't verify
+    showSuccessModal(null);
+  });
+}
+
+// ── Gallery (for static template) ────────────────────────────────
+
+function initGallery() {
+  const slides = document.querySelectorAll('.hero-slide');
+  const thumbs = document.querySelectorAll('.thumb-item');
+  if (slides.length === 0) return;
+
+  let current = 0;
+
+  function showSlide(index) {
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === index);
+    });
+    thumbs.forEach((t, i) => {
+      t.classList.toggle('active', i === index);
+    });
+    const counter = document.getElementById('imageCounter');
+    if (counter) counter.textContent = (index + 1) + ' / ' + slides.length;
+    current = index;
+  }
+
+  document.getElementById('prevBtn')?.addEventListener('click', function() {
+    showSlide((current - 1 + slides.length) % slides.length);
+  });
+  document.getElementById('nextBtn')?.addEventListener('click', function() {
+    showSlide((current + 1) % slides.length);
+  });
+  thumbs.forEach((thumb, i) => {
+    thumb.addEventListener('click', function() { showSlide(i); });
+  });
+}
+
+// ── Location modal (Leaflet) ─────────────────────────────────────
+
+var locationMap = null;
+function openLocationModal() {
+  var modal = document.getElementById('location-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  if (!locationMap) {
+    var latEl = document.getElementById('map-latitude');
+    var lngEl = document.getElementById('map-longitude');
+    var lat = latEl ? parseFloat(latEl.textContent) : 30.861383;
+    var lng = lngEl ? parseFloat(lngEl.textContent) : -116.167874;
+    if (typeof L === 'undefined') return;
+    locationMap = L.map('location-map').setView([lat, lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(locationMap);
+    L.marker([lat, lng]).addTo(locationMap);
+  }
+  setTimeout(function() { if (locationMap) locationMap.invalidateSize(); }, 10);
+}
+function closeLocationModal() {
+  var modal = document.getElementById('location-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ── Sidebar (for static template) ─────────────────────────────────
+
+function openSidebar() {
+  document.getElementById('sidebar')?.classList.add('open');
+  document.getElementById('sidebarOverlay')?.classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebarOverlay')?.classList.remove('open');
+}
+
+// ── Smooth scroll ─────────────────────────────────────────────────
+
+function initSmoothScroll() {
+  document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+    anchor.addEventListener('click', function(e) {
+      var href = this.getAttribute('href');
+      if (href && href !== '#') {
+        e.preventDefault();
+        var target = document.querySelector(href);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+}
+
+// ── Boot ─────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle Stripe redirect FIRST
+  handleStripeRedirect();
+
+  // Init gallery
+  initGallery();
+
+  // Init smooth scroll
+  initSmoothScroll();
+
+  // Sidebar overlay close
+  document.getElementById('sidebarOverlay')?.addEventListener('click', closeSidebar);
+
+  // Location modal close on overlay click
+  document.getElementById('location-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeLocationModal();
+  });
+});
