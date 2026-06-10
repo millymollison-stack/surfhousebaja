@@ -1119,7 +1119,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    if (!user) { console.error('[handleSaveSiteInPopup] ❌ No user, returning'); return; }
    setSavingSite(true);
    try {
-     const { createNewSiteRecords, deployReactTemplate } = await import('../services/siteDuplicationService');
+     const { createNewSiteRecords } = await import('../services/siteDuplicationService');
      console.log('[handleSaveSiteInPopup] ✅ imported services, starting site creation...');
 
      // ── Resolve scrapedData with three-tier fallback ──
@@ -1212,14 +1212,25 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        // Non-fatal — site still deploys even if migration fails
      }
 
-     // ── Deploy React template to Hostinger ──
-     console.log('[handleSaveSiteInPopup] 🚀 Deploying React template to Hostinger...');
-     const deployUrl = await deployReactTemplate(
-       result.propertyId,
-       result.slug,
-       supabaseUrl,
-       supabaseAnonKey
-     );
+     // ── Deploy React app to Hostinger via edge function ──
+     console.log('[handleSaveSiteInPopup] 🚀 Deploying React app to /props/', result.slug, '...');
+     const { data: { session } } = await supabase.auth.getSession();
+     if (!session) throw new Error('No session — please sign in again');
+
+     const deployRes = await fetch(`${supabaseUrl}/functions/v1/deploy-react-property`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Bearer ${session.access_token}`,
+         'Apikey': supabaseAnonKey,
+       },
+       body: JSON.stringify({ propertyId: result.propertyId, slug: result.slug }),
+     });
+     const deployData = await deployRes.json();
+     if (!deployRes.ok || deployData.error) {
+       throw new Error(deployData.error || `Deploy failed: ${deployRes.status}`);
+     }
+     const deployUrl = deployData.site_url;
      console.log('[handleSaveSiteInPopup] ✅ Deploy result:', deployUrl);
 
      // ── Open the admin sidebar immediately so they can see their data ──

@@ -1,14 +1,20 @@
 /**
  * CustomerSite — renders a customer's property site by slug
- * Loaded at /props/{slug} — reads property data from Supabase
- * No onboarding popup, edit mode for admin, view-only for public
+ * Loaded at /props/:slug — reads property data from Supabase
+ * Uses the same polished components as Home.tsx (ImageGallery, PropertyDetails, etc.)
+ * No onboarding popup — this is the public-facing published site
  */
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
-import '../components/CustomerSite.css';
+import { ImageGallery } from '../components/ImageGallery';
+import { PropertyDetails } from '../components/PropertyDetails';
+import { PropertyAmenities } from '../components/PropertyAmenities';
+import { BookingCalendar } from '../components/BookingCalendar';
+import ReviewsList from '../components/ReviewsList';
+import ReviewForm from '../components/ReviewForm';
 
 // ── Stripe success modal helpers ──────────────────────────────────
 
@@ -39,7 +45,6 @@ async function pollForSiteUrl(slug, maxAttempts = 20, intervalMs = 2000) {
 }
 
 function showStripeSuccessModal(siteUrl) {
-  // Remove existing modal if any
   const existing = document.getElementById('stripe-success-modal');
   if (existing) existing.remove();
 
@@ -78,7 +83,6 @@ function showStripeSuccessModal(siteUrl) {
   document.body.appendChild(overlay);
   document.getElementById('stripe-modal-close').addEventListener('click', () => {
     overlay.remove();
-    // Clean URL without reload
     window.history.replaceState({}, '', window.location.pathname);
   });
   overlay.addEventListener('click', (e) => {
@@ -92,12 +96,10 @@ function handleStripeRedirect() {
   const sessionId = params.get('session_id');
   if (paid !== 'true' || !sessionId) return;
 
-  // Clean URL immediately
   window.history.replaceState({}, '', window.location.pathname);
 
   verifyStripeSession(sessionId).then(result => {
     if (result.subscription?.status === 'active' || result.subscription?.status === 'complete') {
-      // Get slug from URL and poll for site_url
       const match = window.location.pathname.match(/\/props\/([^\/]+)/);
       const slug = match?.[1];
       if (slug) {
@@ -119,14 +121,21 @@ export function CustomerSite() {
   const { slug } = useParams<{ slug: string }>();
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
+  const [backgroundImages, setBackgroundImages] = useState<PropertyImage[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   // ── Handle Stripe ?paid=true redirect ──────────────────────
   useEffect(() => {
     handleStripeRedirect();
+  }, []);
+
+  // Mark onboarding as closed so the editor doesn't auto-open popup on next visit
+  useEffect(() => {
+    sessionStorage.setItem('onboarding_popup_closed', '1');
   }, []);
 
   useEffect(() => {
@@ -138,11 +147,12 @@ export function CustomerSite() {
       }
 
       try {
-        // Load property by slug
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('*')
           .eq('slug', slug)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         if (propError || !propData) {
@@ -160,6 +170,13 @@ export function CustomerSite() {
           .eq('property_id', propData.id)
           .order('position');
         setImages(imgData || []);
+
+        // Background images (first 2 with is_background flag)
+        let bgImages: PropertyImage[] = [];
+        try {
+          bgImages = (imgData || []).filter((img: PropertyImage) => (img as any).is_background).slice(0, 2);
+        } catch (e) { bgImages = []; }
+        setBackgroundImages(bgImages);
 
         // Load bookings
         const { data: bkgData } = await supabase
@@ -196,9 +213,29 @@ export function CustomerSite() {
     loadProperty();
   }, [slug]);
 
+  const handleBookingSubmit = async (bookingData: {
+    start_date: string;
+    end_date: string;
+    guest_count: number;
+    total_price: number;
+    special_requests?: string;
+  }) => {
+    if (!property) return;
+    const { error } = await supabase
+      .from('bookings')
+      .insert({ property_id: property.id, ...bookingData });
+    if (error) throw error;
+    const { data: updatedBookings } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('property_id', property.id)
+      .in('status', ['approved', 'pending']);
+    setBookings(updatedBookings || []);
+  };
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'sans-serif' }}>
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="spinner-ring" />
       </div>
     );
@@ -206,76 +243,112 @@ export function CustomerSite() {
 
   if (error || !property) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'sans-serif', color: '#333' }}>
-        <h1 style={{ marginBottom: '16px' }}>Site not found</h1>
-        <p style={{ color: '#666' }}>{error || 'This site does not exist.'}</p>
-        <a href="https://propbook.pro" style={{ marginTop: '24px', color: '#C47756' }}>Go to propbook.pro</a>
+      <div className="min-h-screen flex items-center justify-center bg-black" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="text-center">
+          <h1 style={{ color: '#fff', marginBottom: '16px' }}>Site not found</h1>
+          <p style={{ color: 'rgba(255,255,255,0.6)' }}>{error || 'This site does not exist.'}</p>
+          <a href="https://propbook.pro" style={{ marginTop: '24px', color: '#C47756', display: 'inline-block' }}>Go to propbook.pro</a>
+        </div>
       </div>
     );
   }
 
-  // Render the property site
   return (
-    <div className="customer-site">
-      {/* Hero Section */}
-      {images.length > 0 && (
-        <div className="cs-hero" style={{ backgroundImage: `url(${images[0].url})` }}>
-          <div className="cs-hero-overlay">
-            <h1 className="cs-title" style={{ fontFamily: 'var(--font-accent, Playfair Display)' }}>
-              {property.name}
-            </h1>
-            {property.location && (
-              <p className="cs-location">{property.location}</p>
-            )}
-          </div>
-        </div>
-      )}
+    <div className="w-full">
+      {/* Hero gallery — same as Home.tsx */}
+      <ImageGallery
+        images={images}
+        property={property}
+        isEditing={false}
+        isAdmin={false}
+        onImageUpload={undefined}
+        onImageDelete={undefined}
+        onImageUpdate={undefined}
+        onPropertyUpdate={undefined}
+        registerSaveHandler={() => false}
+      />
 
-      {/* Property Info */}
-      <div className="cs-body">
-        <div className="cs-main">
-          <div className="cs-section">
-            <h2>About this place</h2>
-            <p>{property.description || 'No description available.'}</p>
-          </div>
+      {/* Property details + amenities + booking — same sections as Home.tsx */}
+      <div className="section-mt-neg bg-black section-padding">
+        <PropertyDetails
+          property={property}
+          isEditing={false}
+          onEditingChange={() => {}}
+          onSave={undefined}
+          onBeforeSave={undefined}
+          onHasChanges={undefined}
+        />
 
-          {images.length > 1 && (
-            <div className="cs-section">
-              <h2>Gallery</h2>
-              <div className="cs-gallery">
-                {images.slice(1).map((img, i) => (
-                  <img key={img.id || i} src={img.url} alt={`Property ${i + 2}`} className="cs-gallery-img" />
-                ))}
-              </div>
+        <div className="amenities-bg">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: backgroundImages[0] ? `url('${backgroundImages[0].url}')` : undefined,
+              opacity: backgroundImages[0] ? 0.6 : 0
+            }}
+          ></div>
+          <div className="relative">
+            <PropertyAmenities
+              property={property}
+              isEditing={false}
+              onHasChanges={undefined}
+              onUpdate={async () => {}}
+            />
+            <div id="calendar-section" className="amenities-content pb-5">
+              <BookingCalendar
+                bookings={bookings}
+                blockedDates={blockedDates}
+                propertyId={property.id}
+                property={property}
+                pricePerNight={property.price_per_night || 150}
+                maxGuests={property.max_guests || 8}
+                isEditing={false}
+                onBookingSubmit={handleBookingSubmit}
+              />
             </div>
-          )}
-
-          {typeof property.amenities === 'string' && property.amenities && (
-            <div className="cs-section">
-              <h2>Amenities</h2>
-              <p>{property.amenities}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="cs-sidebar">
-          <div className="cs-booking-card">
-            <div className="cs-price">
-              <span className="cs-price-amount">${property.price_per_night || 150}</span>
-              <span className="cs-price-unit"> USD / night</span>
-            </div>
-            {property.max_guests && (
-              <p className="cs-guests">Up to {property.max_guests} guests</p>
-            )}
-            <a
-              href={`https://propbook.pro/pay/${property.id}`}
-              className="cs-book-btn"
-            >
-              Book now
-            </a>
           </div>
         </div>
       </div>
+
+      {/* Reviews section */}
+      <div className="reviews-section relative reviews-bg">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: backgroundImages[1] ? `url('${backgroundImages[1].url}')` : undefined,
+            opacity: backgroundImages[1] ? 0.6 : 0,
+            width: '100vw',
+            marginLeft: 'calc(-50vw + 50%)'
+          }}
+        ></div>
+        <div className="content-container relative">
+          <div>
+            <h1 className="reviews-section-heading">What our guests say</h1>
+          </div>
+          <ReviewsList showStars={false} isEditing={false} />
+          <div className="review-btn-wrap">
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="review-btn"
+            >
+              Leave a review
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 style={{ color: '#000', fontFamily: 'var(--font-accent, "Playfair Display"), serif', fontWeight: 400, textTransform: 'uppercase', fontSize: 'clamp(1.2rem, 2vw, 1.5rem)', margin: 0 }}>Leave a Review</h2>
+            </div>
+            <div className="p-6">
+              <ReviewForm onSuccess={() => setShowReviewModal(false)} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

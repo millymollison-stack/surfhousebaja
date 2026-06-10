@@ -382,8 +382,9 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
 
   const isDeployed = !!siteUrl;
 
-  // Domain search URL
-  const domainName = websiteName ? websiteName.replace(/^@+/, '').trim() + '.com' : '';
+  // Domain search URL — use live sessionStorage value if available (reflects live edits in popup)
+  const liveWebsiteName = sessionStorage.getItem('popup_website_name') || websiteName || '';
+  const domainName = liveWebsiteName ? liveWebsiteName.replace(/^@+/, '').trim() + '.com' : '';
   const domainSearchUrl = domainName
     ? `https://www.hostinger.com/domain-search?domain=${encodeURIComponent(domainName)}`
     : 'https://www.hostinger.com/domain-search';
