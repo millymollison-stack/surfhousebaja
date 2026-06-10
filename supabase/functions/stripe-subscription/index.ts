@@ -118,8 +118,9 @@ Deno.serve(async (req: Request) => {
 
       // Use return_url from browser if provided, otherwise fall back to propbook.pro
       const returnUrl = body.return_url || 'https://www.propbook.pro';
-      const successUrl = `${returnUrl.replace(/\?.*$/, '')}?paid=true&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${returnUrl.replace(/\?.*$/, '')}?step=cancelled`;
+      const baseUrl = returnUrl.replace(/\?.*$/, '').replace(/\/$/, '') || 'https://www.propbook.pro';
+      const successUrl = `${baseUrl}/?paid=true&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${baseUrl}/?step=cancelled`;
 
       // Build Stripe checkout session
       const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
