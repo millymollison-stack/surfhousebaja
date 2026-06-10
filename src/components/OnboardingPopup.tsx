@@ -368,7 +368,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      console.log('[openStripeGateway] data:', JSON.stringify(data));
 
      // Guard: ensure session was actually created before redirecting to Stripe
-     if (!data.session_id || !data.url) {
+     if (!data.sessionId || !data.url) {
        const errMsg = data.error || (res.ok ? 'No checkout session created. Please try again.' : `Server error: ${res.status}`);
        console.error('[openStripeGateway] ❌ Checkout session missing:', errMsg);
        setStripeError(errMsg);
@@ -381,7 +381,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      // that can fire after the Stripe redirect and wipe URL params
      // Guard against the literal string "undefined" which can happen if Stripe
      // returns a malformed response
-     const safeSessionId = String(data.session_id ?? '');
+     const safeSessionId = String(data.sessionId ?? '');
      if (!safeSessionId || safeSessionId === 'undefined') {
        setStripeError('Payment session could not be created. Please try again.');
        setStripeProcessing(false);
@@ -845,26 +845,28 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     // Fallback: Stripe may have redirected without params (broken success_url before fix).
     // Check if subscription is already active (webhook fired) and show success.
     // Also query profile directly in case auth state hasn't refreshed yet.
-    const { data: profileData } = await supabase
-      .from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
-    const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
-    if (subStatus === 'active' || subStatus === 'trialing') {
-      console.log('[DEBUG ?paid handler] Subscription already active (webhook fired) — showing success state');
-      const websiteName = sessionStorage.getItem('popup_website_name') || '';
-      if (!isOpen) setIsOpen(true);
-      setShowCongrats(true);
-      // Attempt to continue the PUBLISH flow if popup data is in sessionStorage
-      const savedScraped = sessionStorage.getItem('popup_scraped_data');
-      if (savedScraped) {
-        try {
-          const parsed = JSON.parse(savedScraped);
-          setScrapedData(parsed);
-          if (parsed.title) setWebsiteName(parsed.title);
-          if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
-        } catch { /* ignore */ }
+    (async () => {
+      const { data: profileData } = await supabase
+        .from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
+      const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
+      if (subStatus === 'active' || subStatus === 'trialing') {
+        console.log('[DEBUG ?paid handler] Subscription already active (webhook fired) — showing success state');
+        const websiteName = sessionStorage.getItem('popup_website_name') || '';
+        if (!isOpen) setIsOpen(true);
+        setShowCongrats(true);
+        // Attempt to continue the PUBLISH flow if popup data is in sessionStorage
+        const savedScraped = sessionStorage.getItem('popup_scraped_data');
+        if (savedScraped) {
+          try {
+            const parsed = JSON.parse(savedScraped);
+            setScrapedData(parsed);
+            if (parsed.title) setWebsiteName(parsed.title);
+            if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
+          } catch { /* ignore */ }
+        }
+        if (websiteName) setWebsiteName(websiteName);
       }
-      if (websiteName) setWebsiteName(websiteName);
-    }
+    })();
     return;
   }
   // Guard: if we already handled a return in this tab session, don't re-trigger
@@ -943,7 +945,17 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       setIsOpen(true);
       setShowCongrats(true);
 
-      // ── Step 6: Poll for deployed site URL and redirect ───────────────────
+      // ── Step 6: Create and deploy the site ────────────────────────────────
+      // (scrapedData was restored from sessionStorage by the mount useEffect)
+      console.log('[DEBUG ?paid handler] Calling handleSaveSiteInPopup to create and deploy site...');
+      try {
+        await handleSaveSiteInPopup();
+      } catch (err) {
+        console.error('[DEBUG ?paid handler] handleSaveSiteInPopup failed:', err);
+      }
+
+
+      // ── Step 7: Poll for deployed site URL and redirect ───────────────────
       console.log('[DEBUG ?paid handler] Polling for site_url, slug=', slug, ', user=', userId);
       
       // Poll for site_url (deploy happens async via webhook)
@@ -1145,7 +1157,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      }
      console.log('[DEBUG] About to redirect to: ' + data.url);
      // Persist session_id so the ?paid=true handler survives Vite HMR reloads
-     if (data.session_id) sessionStorage.setItem('stripe_session_id', data.session_id);
+     if (data.sessionId) sessionStorage.setItem('stripe_session_id', data.sessionId);
      window.location.href = data.url;
    } catch {
      setStripeError('Could not connect to payment server. Please try again.');
