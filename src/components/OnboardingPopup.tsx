@@ -1168,6 +1168,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    console.log('[handleSaveSiteInPopup] 🚀 START user:', user?.id, 'email:', user?.email);
    if (!user) { console.error('[handleSaveSiteInPopup] ❌ No user, returning'); return; }
    setSavingSite(true);
+   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
    try {
      const { createNewSiteRecords } = await import('../services/siteDuplicationService');
      console.log('[handleSaveSiteInPopup] ✅ imported services, starting site creation...');
@@ -1228,8 +1230,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      // Source is now the user's own onboarding_data (fixed to save scraped_* fields).
      // Fall back to efa8d280 only if onboarding_data has no real scraped content.
      try {
-       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
        const { data: { session } } = await supabase.auth.getSession();
        if (session) {
          // Fetch fresh onboarding_data to pass to migration
