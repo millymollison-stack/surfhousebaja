@@ -703,22 +703,25 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  if (data.plan_choice) setPlanChoice(data.plan_choice);
  if (data.bookings_email) setBookingsEmail(data.bookings_email);
 
- // Reconstruct scrapedData from saved fields
- if (data.hero_image || (data.images && data.images.length > 0)) {
+ // Reconstruct scrapedData from saved fields (supports both old non-prefixed fields
+ // and new scraped_* fields saved by handleAirbnbScrape)
+ const heroImg = data.scraped_hero_image || data.hero_image || '';
+ const imgList = data.scraped_images || data.images || [];
+ if (heroImg || imgList.length > 0) {
  setScrapedData({
- title: data.property_name || '',
- location: data.location || '',
- description: data.property_desc || '',
+ title: data.scraped_title || data.property_name || '',
+ location: data.scraped_location || data.location || '',
+ description: data.scraped_description || data.property_desc || '',
  price: data.price || '',
- hero_image: data.hero_image || '',
- images: data.images || [],
- guests: data.guests,
- bedrooms: data.bedrooms,
- beds: data.beds,
- baths: data.baths,
- rating: data.rating,
- reviews: data.reviews,
- host_name: data.host_name,
+ hero_image: heroImg,
+ images: imgList,
+ guests: data.scraped_guests || data.guests || null,
+ bedrooms: data.bedrooms || null,
+ beds: data.beds || null,
+ baths: data.baths || null,
+ rating: data.scraped_rating || data.rating || null,
+ reviews: data.scraped_reviews || data.reviews || null,
+ host_name: data.host_name || null,
  });
  }
  }
@@ -1006,7 +1009,16 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  if (data.title) setWebsiteName(data.title);
  if (data.description) setWebsiteDesc(data.description.slice(0, 200));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
- await saveToSupabase();
+ await saveToSupabase({
+ scraped_title: data.title || null,
+ scraped_location: data.location || null,
+ scraped_description: data.description || null,
+ scraped_hero_image: data.hero_image || null,
+ scraped_images: data.images || null,
+ scraped_rating: data.rating || null,
+ scraped_reviews: data.reviews || null,
+ scraped_guests: data.guests || null,
+ });
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
  }
@@ -1109,8 +1121,39 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    try {
      const { createNewSiteRecords, deployReactTemplate } = await import('../services/siteDuplicationService');
      console.log('[handleSaveSiteInPopup] ✅ imported services, starting site creation...');
-     // Use popup's live scrapedData state (freshest — set when parent passes scrapedProperty)
-     // Don't rely on sessionStorage which may be empty/stale
+
+     // ── Resolve scrapedData with three-tier fallback ──
+     // 1. React state (live, from parent props)
+     // 2. sessionStorage (survives Stripe redirect remount)
+     // 3. onboarding_data table (persisted for users who scraped before this fix)
+     let resolvedScrapedData = scrapedData || JSON.parse(sessionStorage.getItem('popup_scraped_data') || 'null');
+     if (!resolvedScrapedData) {
+       const { data: od } = await supabase
+         .from('onboarding_data')
+         .select('scraped_title, scraped_location, scraped_description, scraped_hero_image, scraped_images, scraped_guests, scraped_rating, scraped_reviews, hero_image, images, location, property_desc, bedrooms, beds, baths')
+         .eq('user_id', user.id)
+         .maybeSingle();
+       if (od && (od.scraped_hero_image || od.hero_image || (od.scraped_images && od.scraped_images.length > 0) || (od.images && od.images.length > 0))) {
+         const heroImg = od.scraped_hero_image || od.hero_image || '';
+         const imgList = od.scraped_images || od.images || [];
+         resolvedScrapedData = {
+           title: od.scraped_title || '',
+           location: od.scraped_location || od.location || '',
+           description: od.scraped_description || od.property_desc || '',
+           hero_image: heroImg,
+           images: imgList,
+           guests: od.scraped_guests || null,
+           bedrooms: od.bedrooms || null,
+           beds: od.beds || null,
+           baths: od.baths || null,
+           rating: od.scraped_rating || null,
+           reviews: od.scraped_reviews || null,
+           host_name: null,
+           price: '',
+         };
+       }
+     }
+
      const data = {
        email: user.email,
        userId: user.id,
@@ -1122,25 +1165,29 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        hostingChoice: hostingChoice as 'our' | 'own',
        designChoice: designChoice,
        extras: { seo: extras.seo, ads: extras.ads, analytics: extras.analytics, social: extras.social },
-       // Use the React state scrapedData — but fall back to sessionStorage if null
-       // (null happens when Stripe redirects back and React state was reset on remount)
-       scrapedData: scrapedData || JSON.parse(sessionStorage.getItem('popup_scraped_data') || 'null'),
+       scrapedData: resolvedScrapedData,
        bankChoice: bankChoice,
      };
-     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData:', !!scrapedData);
+     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData:', !!resolvedScrapedData);
      const result = await createNewSiteRecords(data);
      console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);
      sessionStorage.setItem('popup_site_url', result.siteUrl);
      sessionStorage.setItem('popup_site_phase', 'saved');
 
-     // ── Migrate scraped data from source property into the new property ──
-     // The scraped data lives in the source property (efa8d280) owned by the scraper account.
-     // Copy it to the user's new property so the site has real content.
+     // ── Migrate scraped data from onboarding_data into the new property ──
+     // Source is now the user's own onboarding_data (fixed to save scraped_* fields).
+     // Fall back to efa8d280 only if onboarding_data has no real scraped content.
      try {
        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
        const { data: { session } } = await supabase.auth.getSession();
        if (session) {
+         // Fetch fresh onboarding_data to pass to migration
+         const { data: od } = await supabase
+           .from('onboarding_data')
+           .select('scraped_title, scraped_location, scraped_description, scraped_hero_image, scraped_images, scraped_guests, scraped_rating, scraped_reviews, hero_image, images, location, property_desc, bedrooms, beds, baths, property_name')
+           .eq('user_id', user.id)
+           .maybeSingle();
          const migRes = await fetch(`${supabaseUrl}/functions/v1/migrate-property`, {
            method: 'POST',
            headers: {
@@ -1148,7 +1195,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
              'Authorization': `Bearer ${session.access_token}`,
              'Apikey': supabaseAnonKey,
            },
-           body: JSON.stringify({ targetPropertyId: result.propertyId }),
+           body: JSON.stringify({
+             targetPropertyId: result.propertyId,
+             onboardingData: od,
+           }),
          });
          const migData = await migRes.json();
          if (migRes.ok && migData.success) {

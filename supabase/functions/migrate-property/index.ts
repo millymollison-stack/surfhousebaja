@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// The known source property ID with Airbnb scrape data
+// The known source property ID with Airbnb scrape data (legacy fallback)
 const SOURCE_PROPERTY_ID = "efa8d280-afee-4971-9145-d591740f484d";
 
 Deno.serve(async (req: Request) => {
@@ -28,22 +28,84 @@ Deno.serve(async (req: Request) => {
     );
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { targetPropertyId } = await req.json();
+    const { targetPropertyId, onboardingData } = await req.json();
     if (!targetPropertyId) throw new Error("Missing targetPropertyId");
 
     console.log(`[migrate-property] Starting migration for user=${user.id}, targetProperty=${targetPropertyId}`);
 
-    // ─── STEP 1: Fetch source property scraped data ─────────────────────────
-    const { data: sourceProperty, error: sourceError } = await supabase
-      .from("properties")
-      .select("*")
-      .eq("id", SOURCE_PROPERTY_ID)
-      .maybeSingle();
+    // ─── STEP 1: Determine source of scraped data ───────────────────────────────
+    // Priority 1: onboardingData (user's own scraped data — saved after handleAirbnbScrape)
+    // Priority 2: SOURCE_PROPERTY_ID (efa8d280) — legacy fallback
+    let scrapedFields: Record<string, any> = {};
+    let sourceImages: any[] = [];
+    let sourceLabel = '';
 
-    if (sourceError) throw new Error(`Failed to fetch source property: ${sourceError.message}`);
-    if (!sourceProperty) throw new Error(`Source property ${SOURCE_PROPERTY_ID} not found`);
+    const hasOnboardingData = onboardingData && (
+      onboardingData.scraped_hero_image ||
+      (onboardingData.scraped_images && onboardingData.scraped_images.length > 0) ||
+      onboardingData.hero_image ||
+      (onboardingData.images && onboardingData.images.length > 0)
+    );
 
-    console.log(`[migrate-property] Source property: ${sourceProperty.title || sourceProperty.property_title}`);
+    if (hasOnboardingData) {
+      // Use the user's own onboarding_data as the source
+      const heroImg = onboardingData.scraped_hero_image || onboardingData.hero_image || '';
+      const imgList = onboardingData.scraped_images || onboardingData.images || [];
+      scrapedFields = {
+        title: onboardingData.scraped_title || onboardingData.property_name || '',
+        description: onboardingData.scraped_description || onboardingData.property_desc || '',
+        address: onboardingData.scraped_location || onboardingData.location || null,
+        hero_image: heroImg,
+        images: imgList,
+        max_guests: onboardingData.scraped_guests || null,
+        bedrooms: onboardingData.bedrooms || null,
+        beds: onboardingData.beds || null,
+        baths: onboardingData.baths || null,
+      };
+      // Images from onboarding_data are already URLs to the onboarding/ bucket
+      sourceImages = imgList.map((url: string, i: number) => ({ url, position: i }));
+      sourceLabel = 'onboarding_data';
+      console.log(`[migrate-property] Using onboarding_data as migration source`);
+    } else {
+      // Fall back to the hardcoded source property (efa8d280)
+      const { data: sourceProperty, error: sourceError } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("id", SOURCE_PROPERTY_ID)
+        .maybeSingle();
+
+      if (sourceError) throw new Error(`Failed to fetch source property: ${sourceError.message}`);
+      if (!sourceProperty) throw new Error(`Source property ${SOURCE_PROPERTY_ID} not found`);
+
+      console.log(`[migrate-property] Source property: ${sourceProperty.title || sourceProperty.property_title}`);
+      scrapedFields = {
+        title: sourceProperty.property_title || sourceProperty.title,
+        description: sourceProperty.property_intro || sourceProperty.description,
+        address: sourceProperty.address || null,
+        latitude: sourceProperty.latitude,
+        longitude: sourceProperty.longitude,
+        bedrooms: sourceProperty.bedrooms,
+        beds: sourceProperty.beds,
+        baths: sourceProperty.bathrooms,
+        max_guests: sourceProperty.max_guests,
+        price_per_night: sourceProperty.price_per_night ?? (sourceProperty.price ? Number(sourceProperty.price) : null),
+        hero_image: sourceProperty.hero_image,
+        images: sourceProperty.images || [],
+        amenities: sourceProperty.amenities,
+        property_details: sourceProperty.property_details,
+        activities: sourceProperty.activities,
+        local_area: sourceProperty.local_area,
+        getting_there: sourceProperty.getting_there,
+        neighborhood_overview: sourceProperty.neighborhood_overview,
+      };
+      const { data: imgs } = await supabase
+        .from("property_images")
+        .select("*")
+        .eq("property_id", SOURCE_PROPERTY_ID)
+        .order("position");
+      sourceImages = imgs || [];
+      sourceLabel = `property ${SOURCE_PROPERTY_ID}`;
+    }
 
     // ─── STEP 2: Fetch target property ───────────────────────────────────────
     const { data: targetProperty, error: targetError } = await supabase
@@ -59,38 +121,6 @@ Deno.serve(async (req: Request) => {
     console.log(`[migrate-property] Target property: ${targetProperty.title}`);
 
     // ─── STEP 3: Copy scraped data from source → target property ─────────────
-    // Map source fields to target property record
-    const scrapedFields: Record<string, any> = {
-      // Use property_title as the display title (that's what the UI reads)
-      title: sourceProperty.property_title || sourceProperty.title,
-      // Use property_intro as the description
-      description: sourceProperty.property_intro || sourceProperty.description,
-      // Location fields (location col doesn't exist on properties — use address directly)
-      address: sourceProperty.address || null,
-      latitude: sourceProperty.latitude,
-      longitude: sourceProperty.longitude,
-      // Physical specs (source uses bedrooms/bathrooms, target uses beds/baths)
-      bedrooms: sourceProperty.bedrooms,
-      beds: sourceProperty.beds,
-      baths: sourceProperty.bathrooms,
-      max_guests: sourceProperty.max_guests,
-      // Pricing — target uses price_per_night, not price
-      price_per_night: sourceProperty.price_per_night ?? (sourceProperty.price ? Number(sourceProperty.price) : null),
-      // Media
-      hero_image: sourceProperty.hero_image,
-      images: sourceProperty.images || [],
-      // Content
-      amenities: sourceProperty.amenities,
-      property_details: sourceProperty.property_details,
-      activities: sourceProperty.activities,
-      local_area: sourceProperty.local_area,
-      getting_there: sourceProperty.getting_there,
-      neighborhood_overview: sourceProperty.neighborhood_overview,
-      // NOTE: last_scraped_at column doesn't in the properties table
-      // If you add it later, uncomment this line:
-      // last_scraped_at: new Date().toISOString(),
-    };
-
     // Remove undefined/null fields so we don't overwrite with nulls
     Object.keys(scrapedFields).forEach(k => {
       if (scrapedFields[k] === undefined || scrapedFields[k] === null) delete scrapedFields[k];
@@ -105,24 +135,15 @@ Deno.serve(async (req: Request) => {
 
     if (updateError) throw new Error(`Failed to update target property: ${updateError.message}`);
 
-    // ─── STEP 4: Copy property_images from source → target ─────────────────
-    const { data: sourceImages, error: imagesError } = await supabase
-      .from("property_images")
-      .select("*")
-      .eq("property_id", SOURCE_PROPERTY_ID)
-      .order("position");
+    // ─── STEP 4: Copy images from source → target ────────────────────────────
+    if (sourceImages && sourceImages.length > 0) {
+      console.log(`[migrate-property] Copying ${sourceImages.length} images from ${sourceLabel}...`);
 
-    if (imagesError) {
-      console.warn(`[migrate-property] ⚠️ Could not fetch source images: ${imagesError.message}`);
-    } else if (sourceImages && sourceImages.length > 0) {
-      console.log(`[migrate-property] Copying ${sourceImages.length} images...`);
-      
-      // Build new image rows for the target property
-      const newImageRows = sourceImages.map((img: any) => ({
+      const newImageRows = sourceImages.map((img: any, i: number) => ({
         property_id: targetPropertyId,
         url: img.url,
         caption: img.caption || null,
-        position: img.position || 0,
+        position: img.position ?? i,
       }));
 
       // Delete any existing images for target property
@@ -143,18 +164,20 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ─── STEP 5: Mark source property as migrated ───────────────────────────
-    await supabase
-      .from("properties")
-      .update({ status: "migrated" })
-      .eq("id", SOURCE_PROPERTY_ID);
+    // ─── STEP 5: Mark source property as migrated (only for legacy efa8d280) ─
+    if (!hasOnboardingData) {
+      await supabase
+        .from("properties")
+        .update({ status: "migrated" })
+        .eq("id", SOURCE_PROPERTY_ID);
+    }
 
     console.log(`[migrate-property] ✅ Migration complete for property ${targetPropertyId}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        migrated_from: SOURCE_PROPERTY_ID,
+        migrated_from: sourceLabel,
         migrated_to: targetPropertyId,
         fields_copied: Object.keys(scrapedFields),
         images_copied: sourceImages?.length || 0,
