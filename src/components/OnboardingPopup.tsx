@@ -1170,6 +1170,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    setSavingSite(true);
    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+   console.log('[handleSaveSiteInPopup] ✅ env vars loaded:', { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey });
    try {
      const { createNewSiteRecords } = await import('../services/siteDuplicationService');
      console.log('[handleSaveSiteInPopup] ✅ imported services, starting site creation...');
