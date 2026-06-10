@@ -841,7 +841,30 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   // Must have a session ID from at least one source
   const sessionId = sessionIdFromUrl || sessionIdFromStorage;
   if (!sessionId) {
-    console.log('[DEBUG ?paid handler] No session ID found — rawSearch:', rawSearch, 'hasPaidParam:', hasPaidParam, 'sessionIdFromUrl:', sessionIdFromUrl, 'sessionIdFromStorage:', sessionIdFromStorage);
+    console.log('[DEBUG ?paid handler] No session ID in URL or storage — checking for active subscription...');
+    // Fallback: Stripe may have redirected without params (broken success_url before fix).
+    // Check if subscription is already active (webhook fired) and show success.
+    // Also query profile directly in case auth state hasn't refreshed yet.
+    const { data: profileData } = await supabase
+      .from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
+    const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
+    if (subStatus === 'active' || subStatus === 'trialing') {
+      console.log('[DEBUG ?paid handler] Subscription already active (webhook fired) — showing success state');
+      const websiteName = sessionStorage.getItem('popup_website_name') || '';
+      if (!isOpen) setIsOpen(true);
+      setShowCongrats(true);
+      // Attempt to continue the PUBLISH flow if popup data is in sessionStorage
+      const savedScraped = sessionStorage.getItem('popup_scraped_data');
+      if (savedScraped) {
+        try {
+          const parsed = JSON.parse(savedScraped);
+          setScrapedData(parsed);
+          if (parsed.title) setWebsiteName(parsed.title);
+          if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
+        } catch { /* ignore */ }
+      }
+      if (websiteName) setWebsiteName(websiteName);
+    }
     return;
   }
   // Guard: if we already handled a return in this tab session, don't re-trigger
