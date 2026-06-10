@@ -379,9 +379,17 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
      // Persist session_id so the ?paid=true handler survives Vite HMR reloads
      // that can fire after the Stripe redirect and wipe URL params
-     sessionStorage.setItem('stripe_session_id', String(data.session_id));
+     // Guard against the literal string "undefined" which can happen if Stripe
+     // returns a malformed response
+     const safeSessionId = String(data.session_id ?? '');
+     if (!safeSessionId || safeSessionId === 'undefined') {
+       setStripeError('Payment session could not be created. Please try again.');
+       setStripeProcessing(false);
+       return;
+     }
+     sessionStorage.setItem('stripe_session_id', safeSessionId);
      sessionStorage.setItem('stripe_redirect_initiated', myTabId);
-     console.log('[DEBUG] stripe_session_id saved=', data.session_id, ', redirect href=', data.url);
+     console.log('[DEBUG] stripe_session_id saved=', safeSessionId, ', redirect href=', data.url);
      window.location.href = data.url;
    } catch(e: any) {
      console.error('[openStripeGateway] error:', e.message || e);
