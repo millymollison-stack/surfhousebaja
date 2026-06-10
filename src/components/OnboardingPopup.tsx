@@ -365,17 +365,24 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      });
      console.log('[openStripeGateway] response:', res.status, res.ok);
      const data = await res.json();
-     console.log('[openStripeGateway] data:', data);
-     if (data.url) {
-       // Persist session_id so the ?paid=true handler survives Vite HMR reloads
-       // that can fire after the Stripe redirect and wipe URL params
-       sessionStorage.setItem('stripe_session_id', data.session_id);
-       sessionStorage.setItem('stripe_redirect_initiated', myTabId);
-       console.log('[DEBUG] stripe_session_id saved=', data.session_id, ', redirect href=', data.url);
-       window.location.href = data.url;
-     } else {
-       setStripeError(data.error || 'Payment failed. Please try again.');
+     console.log('[openStripeGateway] data:', JSON.stringify(data));
+
+     // Guard: ensure session was actually created before redirecting to Stripe
+     if (!data.session_id || !data.url) {
+       const errMsg = data.error || (res.ok ? 'No checkout session created. Please try again.' : `Server error: ${res.status}`);
+       console.error('[openStripeGateway] ❌ Checkout session missing:', errMsg);
+       setStripeError(errMsg);
+       setStripeProcessing(false);
+       gatewayRunning.current = false;
+       return;
      }
+
+     // Persist session_id so the ?paid=true handler survives Vite HMR reloads
+     // that can fire after the Stripe redirect and wipe URL params
+     sessionStorage.setItem('stripe_session_id', String(data.session_id));
+     sessionStorage.setItem('stripe_redirect_initiated', myTabId);
+     console.log('[DEBUG] stripe_session_id saved=', data.session_id, ', redirect href=', data.url);
+     window.location.href = data.url;
    } catch(e: any) {
      console.error('[openStripeGateway] error:', e.message || e);
      setStripeError(e.message === 'fetch timeout'

@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
 
     // ── Handle create_checkout_session action (Stripe checkout) ──────────────
     if (action === 'create_checkout_session') {
-      console.log(`[stripe-subscription] Checkout for user=${userId}, slug=${slug}`);
+      console.log(`[stripe-subscription] Checkout for user=${userId}, slug=${slug}, plan=${body.plan || 'starter'}`);
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
       if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
 
