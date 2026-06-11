@@ -134,7 +134,7 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
       throw new Error(`Property insert failed: ${result.error || res.statusText}`);
     }
     const { propertyId } = result;
-    return { propertyId, siteUrl: `https://propbook.pro/props/${slug}`, slug };
+    return { propertyId, siteUrl: `https://www.propbook.pro/props/${slug}`, slug };
   } catch (err) {
     console.error('[createNewSiteRecords] Error:', err);
     throw err;
@@ -180,14 +180,14 @@ export async function goLiveSite(propertyId: string, slug: string, html: string)
     .from('properties')
     .update({
       status: 'active',
-      site_url: `https://propbook.pro/props/${slug}`,
+      site_url: `https://www.propbook.pro/props/${slug}`,
       server_ip: '82.29.86.252',
       folder_path: hostingerDir,
     })
     .eq('id', propertyId);
 
-  console.log(`[goLive] Site live: https://propbook.pro/props/${slug}`);
-  return `https://propbook.pro/props/${slug}`;
+  console.log(`[goLive] Site live: https://www.propbook.pro/props/${slug}`);
+  return `https://www.propbook.pro/props/${slug}`;
 }
 
 // ─────────────────────────────────────────────
