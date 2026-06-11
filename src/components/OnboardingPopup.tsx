@@ -933,7 +933,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         .update(profileUpdate)
         .eq('id', session.user.id);
 
-      // ── Step 3: Refresh auth so sidebar sees the subscription ───────────────
+      // ── Step 3: Refresh auth session cache so sidebar sees the subscription ─
+      // Note: profile was updated in DB but getSession() caches stale user metadata
+      await supabase.auth.refreshSession();
       await refreshUser();
 
       // ── Step 4: Tell sidebar to update ─────────────────────────────────────
@@ -948,42 +950,23 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       // ── Step 6: Create and deploy the site ────────────────────────────────
       // (scrapedData was restored from sessionStorage by the mount useEffect)
       console.log('[DEBUG ?paid handler] Calling handleSaveSiteInPopup to create and deploy site...');
+      let createdSiteUrl = null;
       try {
-        await handleSaveSiteInPopup();
+        const siteResult = await handleSaveSiteInPopup();
+        createdSiteUrl = siteResult?.siteUrl || null;
+        console.log('[DEBUG ?paid handler] ✅ Site created at:', createdSiteUrl);
       } catch (err) {
         console.error('[DEBUG ?paid handler] handleSaveSiteInPopup failed:', err);
       }
 
-
-      // ── Step 7: Poll for deployed site URL and redirect ───────────────────
-      console.log('[DEBUG ?paid handler] Polling for site_url, slug=', slug, ', user=', userId);
-      
-      // Poll for site_url (deploy happens async via webhook)
-      let siteUrl = null;
-      for (let attempt = 0; attempt < 15; attempt++) {
-        await new Promise(r => setTimeout(r, 2000)); // wait 2s between polls
-        const { data: prop } = await supabase
-          .from('properties')
-          .select('site_url')
-          .eq('slug', slug)
-          .eq('owner_id', userId)
-          .maybeSingle();
-        if (prop?.site_url) {
-          siteUrl = prop.site_url;
-          console.log('[DEBUG ?paid handler] Got site_url:', siteUrl, 'after', (attempt + 1) * 2, 'seconds');
-          break;
-        }
-        console.log('[DEBUG ?paid handler] Poll', attempt + 1, '- site_url not ready yet');
-      }
-      
-      if (siteUrl) {
-        // Redirect to the deployed site after a brief moment
+      // ── Step 7: Redirect to the deployed site ────────────────────────────────
+      if (createdSiteUrl) {
+        console.log('[DEBUG ?paid handler] Redirecting to:', createdSiteUrl);
         setTimeout(() => {
-          console.log('[DEBUG ?paid handler] Redirecting to:', siteUrl);
-          window.location.href = siteUrl;
-        }, 1500); // 1.5s delay so user sees congrats first
+          window.location.href = createdSiteUrl!;
+        }, 2000); // 2s delay so user sees the success state first
       } else {
-        console.warn('[DEBUG ?paid handler] site_url never appeared after 30s - user may need to refresh');
+        console.warn('[DEBUG ?paid handler] No siteUrl from handleSaveSiteInPopup — user may need to refresh');
       }
 
     } catch (err) {
@@ -1296,6 +1279,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      setSavingSite(false);
      setIsOpen(false);
      setShowCongrats(true);
+
+     return result;
    } catch (err) {
      console.error('[handleSaveSiteInPopup] ❌ FATAL ERROR:', err);
      setStripeError('Failed to save site. Check DevTools console: ' + (err instanceof Error ? err.message : String(err)));

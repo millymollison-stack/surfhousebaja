@@ -91,6 +91,13 @@ Deno.serve(async (req: Request) => {
 
     console.log("[save-site-records] Property created:", propertyRecord.id);
 
+    // Set site_url on the property record so redirect polling works
+    const siteUrl = `https://www.propbook.pro/props/${propertyRecord.slug}`;
+    await supabase
+      .from("properties")
+      .update({ site_url: siteUrl })
+      .eq("id", propertyRecord.id);
+
     // ── STEP 2: Insert property images with background flags ──────────
     // First 2 photos get is_background=true so users discover that feature
     if (images && images.length > 0) {
