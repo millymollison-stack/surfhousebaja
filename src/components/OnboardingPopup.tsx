@@ -1263,25 +1263,28 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        // Non-fatal — site still deploys even if migration fails
      }
 
-     // ── Deploy React app to Hostinger via edge function ──
+     // ── Deploy React app to Hostinger via PHP endpoint ──
+     // PHP fetches pre-built React app zip from server and extracts to /props/{slug}/
      console.log('[handleSaveSiteInPopup] 🚀 Deploying React app to /props/', result.slug, '...');
      const { data: { session } } = await supabase.auth.getSession();
      if (!session) throw new Error('No session — please sign in again');
 
-     const deployRes = await fetch(`${supabaseUrl}/functions/v1/deploy-react-property`, {
+     const PHP_DEPLOY_URL = 'https://www.propbook.pro/scripts/deploy.php';
+     const formData = new FormData();
+     formData.append('slug', result.slug);
+     formData.append('propertyId', result.propertyId);
+     formData.append('token', session.access_token);
+
+     console.log('[handleSaveSiteInPopup] 🚀 Calling PHP deploy endpoint...');
+     const deployRes = await fetch(PHP_DEPLOY_URL, {
        method: 'POST',
-       headers: {
-         'Content-Type': 'application/json',
-         'Authorization': `Bearer ${session.access_token}`,
-         'Apikey': supabaseAnonKey,
-       },
-       body: JSON.stringify({ propertyId: result.propertyId, slug: result.slug }),
+       body: formData,
      });
      const deployData = await deployRes.json();
      if (!deployRes.ok || deployData.error) {
        throw new Error(deployData.error || `Deploy failed: ${deployRes.status}`);
      }
-     const deployUrl = deployData.site_url;
+     const deployUrl = deployData.siteUrl;
      console.log('[handleSaveSiteInPopup] ✅ Deploy result:', deployUrl);
 
      // ── Open the admin sidebar immediately so they can see their data ──
