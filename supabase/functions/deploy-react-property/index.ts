@@ -16,7 +16,7 @@ const PROJECT_DIR = "/home/u805830916/domains/propbook.pro/public_html";
 
 async function sshCommand(cmd: string): Promise<string> {
   const fullCmd = `sshpass -p '${HOSTINGER_PASS}' ssh -o StrictHostKeyChecking=no -o BatchMode=yes -p ${HOSTINGER_PORT} ${HOSTINGER_USER}@${HOSTINGER_HOST} '${cmd.replace(/'/g, "'\"'\"'")}'`;
-  const p = Deno.Command.new("bash", {
+  const p = new Deno.Command("bash", {
     args: ["-c", fullCmd],
     stdout: "piped",
     stderr: "piped",
