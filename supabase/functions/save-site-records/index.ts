@@ -101,6 +101,7 @@ Deno.serve(async (req: Request) => {
     // ── STEP 2: Insert property images with background flags ──────────
     // First 2 photos get is_background=true so users discover that feature
     if (images && images.length > 0) {
+      console.log('[save-site-records] images received:', images?.length, 'first 3:', images?.slice(0, 3));
       const imageRecords = images.map((url: string, idx: number) => ({
         property_id: propertyRecord.id,
         url,

@@ -42,6 +42,7 @@ export interface NewSiteData {
   bookingsEmail: string;
   websiteName: string;
   websiteDesc: string;
+  slug?: string;  // optional explicit slug — if not provided, one is generated from websiteName
   planChoice: 'starter' | 'pro' | 'agency';
   hostingChoice: 'our' | 'own';
   extras: { seo: boolean; ads: boolean; analytics: boolean; social: boolean };
@@ -95,9 +96,12 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
   siteUrl: string;
   slug: string;
 }> {
-  const slug = createSlug(data.websiteName);
+  const slug = data.slug || createSlug(data.websiteName);
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  console.log('[createNewSiteRecords] INPUT slug:', data.slug, '-> final slug:', slug);
+  console.log('[createNewSiteRecords] INPUT websiteName:', data.websiteName);
+  console.log('[createNewSiteRecords] INPUT scrapedData.title:', data.scrapedData?.title);
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(`Supabase env not configured: VITE_SUPABASE_URL=${supabaseUrl}, VITE_SUPABASE_ANON_KEY=${supabaseAnonKey}`);
   }

@@ -11,6 +11,7 @@ import { saveBrandColor } from '../lib/brandColor';
 
 import { useAuth } from '../store/auth';
 import { StripeConnectSetup } from './StripeConnectSetup';
+import { createSlug } from '../services/slugService';
 
 // Color utility: adjust hex brightness
 function adjustBrightness(hex: string, percent: number): string {
@@ -290,6 +291,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   // Clear any stale Stripe redirect state from previous page loads
   sessionStorage.removeItem('stripe_payment_returning');
   sessionStorage.removeItem('stripe_redirect_initiated');
+  // Re-save popup_website_name from current React state so it's fresh when we return from Stripe
+  sessionStorage.setItem('popup_website_name', websiteName);
   console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
    if (!user) {
      setStripeError('Please sign in or create an account above first.');
@@ -407,6 +410,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [stripeSubscriptionId, setStripeSubscriptionId] = useState('');
  const [showCongrats, setShowCongrats] = useState(false);
  const [congratsUrl, setCongratsUrl] = useState('');
+ const [showBuilding, setShowBuilding] = useState(false);
+ const [buildingCountdown, setBuildingCountdown] = useState(120);
  const [deployUrl, setDeployUrl] = useState('');
  const [stripeProcessing, setStripeProcessing] = useState(false);
  const [accountCreated, setAccountCreated] = useState(false);
@@ -828,6 +833,29 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const [myTabId] = useState(() => Math.random().toString(36).slice(2, 10));
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
+// ── Countdown timer for building/redirect screen ──────────────────────────
+ useEffect(() => {
+   if (!showBuilding) return;
+   const interval = setInterval(() => {
+     setBuildingCountdown(prev => {
+       if (prev <= 1) {
+         clearInterval(interval);
+         return 0;
+       }
+       return prev - 1;
+     });
+   }, 1000);
+   return () => clearInterval(interval);
+ }, [showBuilding]);
+
+ useEffect(() => {
+   // Redirect when countdown hits 0 (site should be ready by then)
+   if (showBuilding && buildingCountdown === 0) {
+     console.warn('[DEBUG building] Countdown expired — redirecting to fallback');
+     window.location.href = 'https://www.propbook.pro/';
+   }
+ }, [showBuilding, buildingCountdown]);
+
  // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
  // Dual-path: URL params (normal) + sessionStorage fallback (survives Vite HMR reloads
  // that can fire after Stripe redirects back and wipe URL params before this effect runs).
@@ -943,9 +971,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         detail: { subscription_id: sessionData.subscription_id, status: sessionData.sub_status || 'active' },
       }));
 
-      // ── Step 5: Show success! ───────────────────────────────────────────────
-      setIsOpen(true);
-      setShowCongrats(true);
+      // ── Step 5: Show building countdown while site is being built ──────────
+      setShowBuilding(true);
+      setBuildingCountdown(120);
 
       // ── Step 6: Create and deploy the site ────────────────────────────────
       // (scrapedData was restored from sessionStorage by the mount useEffect)
@@ -962,9 +990,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       // ── Step 7: Redirect to the deployed site ────────────────────────────────
       if (createdSiteUrl) {
         console.log('[DEBUG ?paid handler] Redirecting to:', createdSiteUrl);
-        setTimeout(() => {
-          window.location.href = createdSiteUrl!;
-        }, 2000); // 2s delay so user sees the success state first
+        // Redirect immediately — site is ready
+        window.location.href = createdSiteUrl!;
       } else {
         console.warn('[DEBUG ?paid handler] No siteUrl from handleSaveSiteInPopup — user may need to refresh');
       }
@@ -985,10 +1012,19 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const saveToSupabase = async (overrides: any = {}) => {
  if (!user) return;
  try {
+ // Read FRESH scraped data from sessionStorage so we capture ALL fields the scraper
+ // returned — even if the data param passed to saveToSupabase had null text fields
+ // (handleAirbnbScrape passes data immediately, before React state re-render). 
+ const sessionScraped = (() => {
+ try {
+ const raw = sessionStorage.getItem('popup_scraped_data');
+ return raw ? JSON.parse(raw) : null;
+ } catch { return null; }
+ })();
  const row = {
  user_id: user.id,
- property_name: websiteName,
- property_desc: websiteDesc,
+ property_name: sessionScraped?.title || websiteName || null,
+ property_desc: sessionScraped?.description || websiteDesc || null,
  airbnb_url: airbnbUrl,
  design_choice: designChoice,
  bank_choice: bankChoice,
@@ -998,7 +1034,16 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  bookings_email: bookingsEmail,
  extras: extras,
  updated_at: new Date().toISOString(),
- ...overrides,
+ // Merge scraped data from sessionStorage (primary) with any overrides (allows
+ // callers to pass specific fields). Only override non-empty values.
+ scraped_title: (sessionScraped?.title || overrides.scraped_title) || null,
+ scraped_location: (sessionScraped?.location || overrides.scraped_location) || null,
+ scraped_description: (sessionScraped?.description || overrides.scraped_description) || null,
+ scraped_hero_image: (sessionScraped?.hero_image || overrides.scraped_hero_image) || null,
+ scraped_images: (sessionScraped?.images?.length ? sessionScraped.images : (overrides.scraped_images?.length ? overrides.scraped_images : null)),
+ scraped_rating: (sessionScraped?.rating || overrides.scraped_rating) || null,
+ scraped_reviews: (sessionScraped?.reviews || overrides.scraped_reviews) || null,
+ scraped_guests: (sessionScraped?.guests || overrides.scraped_guests) || null,
  };
 
  const { error } = await supabase
@@ -1190,12 +1235,22 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        }
      }
 
+     // Read scraped data from sessionStorage before building the data object
+     const scrapedFromSession = (() => {
+       try {
+         const raw = sessionStorage.getItem('popup_scraped_data');
+         return raw ? JSON.parse(raw) : null;
+       } catch { return null; }
+     })();
+
      const data = {
        email: user.email,
        userId: user.id,
        userStripeAccountId: popupConnectAccountId || null,
        bookingsEmail: user.email,
-       websiteName: websiteName || user.full_name || 'My Property',
+       // websiteName from sessionStorage first (set by ?paid handler before calling this fn),
+       // then React state (stale after remount), then user profile, then default
+       websiteName: sessionStorage.getItem('popup_website_name') || websiteName || user.full_name || 'My Property',
        websiteDesc: websiteDesc || '',
        planChoice: planChoice as 'starter' | 'pro' | 'agency',
        hostingChoice: hostingChoice as 'our' | 'own',
@@ -1203,8 +1258,24 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        extras: { seo: extras.seo, ads: extras.ads, analytics: extras.analytics, social: extras.social },
        scrapedData: resolvedScrapedData,
        bankChoice: bankChoice,
+       // Slug fallback chain (tried in order until we find a real value):
+       // 1. popup_website_name from sessionStorage (user-typed website name)
+       // 2. popup_scraped_data.title from sessionStorage (scraped property title)
+       // 3. onboardingData.property_name from DB (user's chosen property name before scrape)
+       // 4. websiteName React state (may be stale after remount)
+       // 5. user.full_name from profile (last resort — gives "fresh-test-user" slug)
+       slug: createSlug(
+         sessionStorage.getItem('popup_website_name')
+         || scrapedFromSession?.title
+         || (od?.property_name ? String(od.property_name) : null)
+         || websiteName
+         || user.full_name
+         || 'My Property'
+       ),
      };
-     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData:', !!resolvedScrapedData);
+     const finalSlug = data.slug;
+     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData images count:', resolvedScrapedData?.images?.length, 'slugInput:', sessionStorage.getItem('popup_website_name'), '-> slug:', finalSlug);
+     console.log('[handleSaveSiteInPopup] 📝 first 3 image URLs:', resolvedScrapedData?.images?.slice(0, 3));
      const result = await createNewSiteRecords(data);
      console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);
      sessionStorage.setItem('popup_site_url', result.siteUrl);
@@ -1222,6 +1293,11 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
            .select('scraped_title, scraped_location, scraped_description, scraped_hero_image, scraped_images, scraped_guests, scraped_rating, scraped_reviews, hero_image, images, location, property_desc, bedrooms, beds, baths, property_name')
            .eq('user_id', user.id)
            .maybeSingle();
+         // Use FRESH scraped data from sessionStorage (resolvedScrapedData) rather than
+         // the stale onboardingData from the DB, which may have null scraped fields if the
+         // scraper only partially succeeded. resolvedScrapedData was set by handleAirbnbScrape
+         // and saved to sessionStorage immediately — it survives the Stripe redirect remount.
+         const migrationData = resolvedScrapedData || od;
          const migRes = await fetch(`${supabaseUrl}/functions/v1/migrate-property`, {
            method: 'POST',
            headers: {
@@ -1231,7 +1307,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
            },
            body: JSON.stringify({
              targetPropertyId: result.propertyId,
-             onboardingData: od,
+             onboardingData: migrationData,
            }),
          });
          const migData = await migRes.json();
@@ -1835,6 +1911,24 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  <div className="stripe-loading"><div className="spinner-ring" /></div>
  )}
  {stripeError && <div className="stripe-error">{stripeError}</div>}
+ </div>
+ </div>
+ )}
+
+ {/* Building countdown modal — shown while site is being created + deployed */}
+ {showBuilding && (
+ <div className="stripe-modal-backdrop" style={{ zIndex: 99999 }}>
+ <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px 32px' }}>
+ <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔨</div>
+ <h1 style={{ margin: '0 0 12px 0', fontSize: '1.5rem', color: '#fff' }}>Your site is being built!</h1>
+ <p style={{ color: '#aaa', fontSize: '0.95rem', margin: '0 0 24px 0', lineHeight: 1.6 }}>
+ This takes about 2 minutes. Please be patient.<br/>
+ You'll be redirected automatically when it's ready.
+ </p>
+ <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand, #FF6B35)', marginBottom: '8px' }}>
+ {buildingCountdown}s
+ </div>
+ <p style={{ color: '#555', fontSize: '0.8rem', margin: 0 }}>Time remaining</p>
  </div>
  </div>
  )}

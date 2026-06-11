@@ -7,7 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// The known source property ID with Airbnb scrape data (legacy fallback)
 const SOURCE_PROPERTY_ID = "efa8d280-afee-4971-9145-d591740f484d";
 
 Deno.serve(async (req: Request) => {
@@ -33,27 +32,31 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[migrate-property] Starting migration for user=${user.id}, targetProperty=${targetPropertyId}`);
 
-    // ─── STEP 1: Determine source of scraped data ───────────────────────────────
-    // Priority 1: onboardingData (user's own scraped data — saved after handleAirbnbScrape)
-    // Priority 2: SOURCE_PROPERTY_ID (efa8d280) — legacy fallback
     let scrapedFields: Record<string, any> = {};
     let sourceImages: any[] = [];
     let sourceLabel = '';
 
+    // Use != null checks so empty strings don't falsily fail the test
     const hasOnboardingData = onboardingData && (
-      onboardingData.scraped_hero_image ||
+      onboardingData.scraped_hero_image != null ||
       (onboardingData.scraped_images && onboardingData.scraped_images.length > 0) ||
-      onboardingData.hero_image ||
+      onboardingData.hero_image != null ||
       (onboardingData.images && onboardingData.images.length > 0)
     );
 
+    console.log('[migrate-property] hasOnboardingData:', hasOnboardingData);
+    console.log('[migrate-property] scraped_hero_image:', onboardingData?.scraped_hero_image);
+    console.log('[migrate-property] scraped_images length:', onboardingData?.scraped_images?.length);
+    console.log('[migrate-property] scraped_images first 3:', onboardingData?.scraped_images?.slice(0, 3));
+
     if (hasOnboardingData) {
-      // Use the user's own onboarding_data as the source
       const heroImg = onboardingData.scraped_hero_image || onboardingData.hero_image || '';
       const imgList = onboardingData.scraped_images || onboardingData.images || [];
+      console.log('[migrate-property] Using onboarding_data, heroImg:', heroImg, 'imgList length:', imgList.length);
       scrapedFields = {
         title: onboardingData.scraped_title || onboardingData.property_name || '',
         description: onboardingData.scraped_description || onboardingData.property_desc || '',
+        property_intro: onboardingData.scraped_property_intro || onboardingData.scraped_description || onboardingData.property_desc || '',
         address: onboardingData.scraped_location || onboardingData.location || null,
         hero_image: heroImg,
         images: imgList,
@@ -62,12 +65,9 @@ Deno.serve(async (req: Request) => {
         beds: onboardingData.beds || null,
         baths: onboardingData.baths || null,
       };
-      // Images from onboarding_data are already URLs to the onboarding/ bucket
       sourceImages = imgList.map((url: string, i: number) => ({ url, position: i }));
       sourceLabel = 'onboarding_data';
-      console.log(`[migrate-property] Using onboarding_data as migration source`);
     } else {
-      // Fall back to the hardcoded source property (efa8d280)
       const { data: sourceProperty, error: sourceError } = await supabase
         .from("properties")
         .select("*")
@@ -77,7 +77,6 @@ Deno.serve(async (req: Request) => {
       if (sourceError) throw new Error(`Failed to fetch source property: ${sourceError.message}`);
       if (!sourceProperty) throw new Error(`Source property ${SOURCE_PROPERTY_ID} not found`);
 
-      console.log(`[migrate-property] Source property: ${sourceProperty.title || sourceProperty.property_title}`);
       scrapedFields = {
         title: sourceProperty.property_title || sourceProperty.title,
         description: sourceProperty.property_intro || sourceProperty.description,
@@ -107,7 +106,6 @@ Deno.serve(async (req: Request) => {
       sourceLabel = `property ${SOURCE_PROPERTY_ID}`;
     }
 
-    // ─── STEP 2: Fetch target property ───────────────────────────────────────
     const { data: targetProperty, error: targetError } = await supabase
       .from("properties")
       .select("*")
@@ -120,8 +118,6 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[migrate-property] Target property: ${targetProperty.title}`);
 
-    // ─── STEP 3: Copy scraped data from source → target property ─────────────
-    // Remove undefined/null fields so we don't overwrite with nulls
     Object.keys(scrapedFields).forEach(k => {
       if (scrapedFields[k] === undefined || scrapedFields[k] === null) delete scrapedFields[k];
     });
@@ -135,41 +131,27 @@ Deno.serve(async (req: Request) => {
 
     if (updateError) throw new Error(`Failed to update target property: ${updateError.message}`);
 
-    // ─── STEP 4: Copy images from source → target ────────────────────────────
     if (sourceImages && sourceImages.length > 0) {
-      console.log(`[migrate-property] Copying ${sourceImages.length} images from ${sourceLabel}...`);
-
+      console.log(`[migrate-property] Replacing ${sourceImages.length} images from ${sourceLabel}...`);
       const newImageRows = sourceImages.map((img: any, i: number) => ({
         property_id: targetPropertyId,
         url: img.url,
         caption: img.caption || null,
         position: img.position ?? i,
       }));
-
-      // Delete any existing images for target property
-      await supabase
-        .from("property_images")
-        .delete()
-        .eq("property_id", targetPropertyId);
-
-      // Insert new image rows
-      const { error: insertError } = await supabase
-        .from("property_images")
-        .insert(newImageRows);
-
+      await supabase.from("property_images").delete().eq("property_id", targetPropertyId);
+      const { error: insertError } = await supabase.from("property_images").insert(newImageRows);
       if (insertError) {
         console.warn(`[migrate-property] ⚠️ Image insert failed: ${insertError.message}`);
       } else {
         console.log(`[migrate-property] ✅ Copied ${newImageRows.length} images`);
       }
+    } else {
+      console.log(`[migrate-property] No onboarding images — preserving existing property_images (from save-site-records)`);
     }
 
-    // ─── STEP 5: Mark source property as migrated (only for legacy efa8d280) ─
     if (!hasOnboardingData) {
-      await supabase
-        .from("properties")
-        .update({ status: "migrated" })
-        .eq("id", SOURCE_PROPERTY_ID);
+      await supabase.from("properties").update({ status: "migrated" }).eq("id", SOURCE_PROPERTY_ID);
     }
 
     console.log(`[migrate-property] ✅ Migration complete for property ${targetPropertyId}`);
