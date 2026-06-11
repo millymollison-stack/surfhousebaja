@@ -577,16 +577,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
 
  // Initialize form fields from scraped property data passed from Home
- // descInitialized guard: only pre-fill from scraped data on first mount.
- // After user starts typing, scrapedProperty changes should NOT wipe the field.
- useEffect(() => {
- if (!scrapedProperty) return;
- if (!descInitialized) {
- if (scrapedProperty.property_title) setWebsiteName(scrapedProperty.property_title);
- if (scrapedProperty.property_intro) setWebsiteDesc(scrapedProperty.property_intro.slice(0, 200));
- setDescInitialized(true);
- }
- }, [scrapedProperty]);
+ // NOTE: We do NOT pre-fill websiteName from scraped data — the user's typed
+ // Website Name field is the one source of truth for the slug and must not be
+ // overwritten by a scrape result. The slug is saved to popup_user_website_name
+ // at Subscribe-click time, before any async scrape can change React state.
 
  const handleClose = () => {
  sessionStorage.setItem(POPUP_CLOSED_KEY, '1');
@@ -602,7 +596,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // If parent has fresh scraped data, use it instead of stale saved data
  if (scrapedProperty) {
  const imgs = scrapedImages?.map((img: any) => img.url) || [];
- setWebsiteName(scrapedProperty.property_title || scrapedProperty.title || '');
+ // Restore user's ORIGINAL website name (saved before scrape could overwrite it).
+ // Use popup_user_website_name first, then fall back to scraped title.
+ const userTypedName = sessionStorage.getItem('popup_user_website_name');
+ setWebsiteName(userTypedName || scrapedProperty.property_title || scrapedProperty.title || '');
  setScrapedData({
  title: scrapedProperty.property_title || scrapedProperty.title || '',
  location: scrapedProperty.location || '',
@@ -633,7 +630,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
           try {
             const parsed = JSON.parse(savedScraped);
             setScrapedData(parsed);
-            if (parsed.title) setWebsiteName(parsed.title);
+            // Restore user's typed website name first, fall back to scraped title
+            const userTyped = sessionStorage.getItem('popup_user_website_name');
+            if (parsed.title) setWebsiteName(userTyped || parsed.title);
             if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
           } catch { /* ignore corrupt JSON */ }
         }
@@ -888,7 +887,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
           try {
             const parsed = JSON.parse(savedScraped);
             setScrapedData(parsed);
-            if (parsed.title) setWebsiteName(parsed.title);
+            // Restore user's typed website name first, fall back to scraped title
+            const userTyped = sessionStorage.getItem('popup_user_website_name');
+            if (parsed.title) setWebsiteName(userTyped || parsed.title);
             if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
           } catch { /* ignore */ }
         }
@@ -1168,6 +1169,9 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      }
 
      // Redirect to Stripe Checkout hosted page
+     // IMPORTANT: Use the user's ORIGINAL typed website name (saved BEFORE any scrape
+     // could overwrite it). This is the ONE TRUE SOURCE for the slug and page title.
+     sessionStorage.setItem('popup_user_website_name', websiteName);
      sessionStorage.setItem('popup_plan', planChoice);
      sessionStorage.setItem('popup_hosting', hostingChoice);
      sessionStorage.setItem('popup_design', designChoice);
@@ -1248,9 +1252,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        userId: user.id,
        userStripeAccountId: popupConnectAccountId || null,
        bookingsEmail: user.email,
-       // websiteName from sessionStorage first (set by ?paid handler before calling this fn),
-       // then React state (stale after remount), then user profile, then default
-       websiteName: sessionStorage.getItem('popup_website_name') || websiteName || user.full_name || 'My Property',
+       // websiteName field — use the user's original typed input (saved before scrape could overwrite it)
+       websiteName: sessionStorage.getItem('popup_user_website_name')
+         || (od?.property_name ? String(od.property_name) : null)
+         || websiteName
+         || user.full_name
+         || 'My Property',
        websiteDesc: websiteDesc || '',
        planChoice: planChoice as 'starter' | 'pro' | 'agency',
        hostingChoice: hostingChoice as 'our' | 'own',
@@ -1258,23 +1265,19 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        extras: { seo: extras.seo, ads: extras.ads, analytics: extras.analytics, social: extras.social },
        scrapedData: resolvedScrapedData,
        bankChoice: bankChoice,
-       // Slug fallback chain (tried in order until we find a real value):
-       // 1. popup_website_name from sessionStorage (user-typed website name)
-       // 2. popup_scraped_data.title from sessionStorage (scraped property title)
-       // 3. onboardingData.property_name from DB (user's chosen property name before scrape)
-       // 4. websiteName React state (may be stale after remount)
-       // 5. user.full_name from profile (last resort — gives "fresh-test-user" slug)
+       // Slug — ONLY from the user's Website Name field (saved before any scrape could overwrite it):
+       // Priority: popup_user_website_name (user's typed input, saved at Subscribe click)
+       //           → od.property_name (user's saved property name from DB)
+       //           → user.full_name (last resort)
        slug: createSlug(
-         sessionStorage.getItem('popup_website_name')
-         || scrapedFromSession?.title
+         sessionStorage.getItem('popup_user_website_name')
          || (od?.property_name ? String(od.property_name) : null)
-         || websiteName
          || user.full_name
          || 'My Property'
        ),
      };
      const finalSlug = data.slug;
-     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData images count:', resolvedScrapedData?.images?.length, 'slugInput:', sessionStorage.getItem('popup_website_name'), '-> slug:', finalSlug);
+     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData images count:', resolvedScrapedData?.images?.length, 'userWebsiteName:', sessionStorage.getItem('popup_user_website_name'), '-> slug:', finalSlug);
      console.log('[handleSaveSiteInPopup] 📝 first 3 image URLs:', resolvedScrapedData?.images?.slice(0, 3));
      const result = await createNewSiteRecords(data);
      console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);

@@ -117,7 +117,7 @@ function handleStripeRedirect() {
   });
 }
 
-export function CustomerSite() {
+export function CustomerSite({ onSiteNameChange }: { onSiteNameChange?: (name: string) => void }) {
   const { slug } = useParams<{ slug: string }>();
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
@@ -201,6 +201,12 @@ export function CustomerSite() {
         if (propData.font_accent) {
           document.documentElement.style.setProperty('--font-accent', `'${propData.font_accent}', serif`);
         }
+
+        // Update parent Layout nav with property name
+        const displayName = propData.property_title || propData.title || '@' + slug;
+        onSiteNameChange?.(displayName);
+        // Also set the browser tab title
+        document.title = displayName;
 
       } catch (err) {
         console.error('CustomerSite load error:', err);

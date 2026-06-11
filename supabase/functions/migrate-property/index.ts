@@ -36,22 +36,25 @@ Deno.serve(async (req: Request) => {
     let sourceImages: any[] = [];
     let sourceLabel = '';
 
-    // Use != null checks so empty strings don't falsily fail the test
-    const hasOnboardingData = onboardingData && (
-      onboardingData.scraped_hero_image != null ||
-      (onboardingData.scraped_images && onboardingData.scraped_images.length > 0) ||
-      onboardingData.hero_image != null ||
-      (onboardingData.images && onboardingData.images.length > 0)
-    );
+    // Require REAL scraped data: meaningful text AND at least 3 images.
+    // Partial scrape (only images or only text) should not replace reference property data.
+    const scrapedImgList = onboardingData?.scraped_images || onboardingData?.images || [];
+    const hasRealText = onboardingData?.scraped_title != null ||
+                        onboardingData?.scraped_description != null ||
+                        onboardingData?.scraped_property_intro != null ||
+                        onboardingData?.property_name != null;
+    const hasRealImages = scrapedImgList.length >= 3;
+    const hasOnboardingData = hasRealText && hasRealImages;
 
-    console.log('[migrate-property] hasOnboardingData:', hasOnboardingData);
-    console.log('[migrate-property] scraped_hero_image:', onboardingData?.scraped_hero_image);
-    console.log('[migrate-property] scraped_images length:', onboardingData?.scraped_images?.length);
-    console.log('[migrate-property] scraped_images first 3:', onboardingData?.scraped_images?.slice(0, 3));
+    console.log('[migrate-property] hasOnboardingData:', hasOnboardingData, '{ text:', hasRealText, 'images:', hasRealImages, '(' + scrapedImgList.length + ' total) }');
+    console.log('[migrate-property] scraped_title:', onboardingData?.scraped_title);
+    console.log('[migrate-property] scraped_description:', onboardingData?.scraped_description);
+    console.log('[migrate-property] scraped_images length:', scrapedImgList.length);
+    console.log('[migrate-property] scraped_images first 3:', scrapedImgList.slice(0, 3));
 
     if (hasOnboardingData) {
       const heroImg = onboardingData.scraped_hero_image || onboardingData.hero_image || '';
-      const imgList = onboardingData.scraped_images || onboardingData.images || [];
+      const imgList = scrapedImgList;
       console.log('[migrate-property] Using onboarding_data, heroImg:', heroImg, 'imgList length:', imgList.length);
       scrapedFields = {
         title: onboardingData.scraped_title || onboardingData.property_name || '',
