@@ -31,7 +31,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
     try {
       if (navigator.share) {
         await navigator.share({
-          title: '@surfhousebaja',
+          title: siteName || '@propbook',
           url: window.location.href,
         });
       } else {
@@ -54,7 +54,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
         <nav className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 text-white hover:text-white">
             <Home className="h-6 w-6 opacity-90" />
-            <span className="text-lg font-medium">{siteName || "@surfhousebaja"}</span>
+            <span className="text-lg font-medium">{siteName || "@propbook"}</span>
           </Link>
           
           <div className="flex items-center space-x-3">
@@ -126,7 +126,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
         )}
         <div className={`copyright-footer${isEditing ?? false ? '' : ' footer-pad-top'}`}>
           <p className="copyright-text">
-            © {new Date().getTime() % (new Date().getFullYear() + 1)} @surfhousebaja. All rights reserved.
+            © {new Date().getFullYear()} {siteName || '@propbook'}. All rights reserved.
           </p>
         </div>
       </footer>

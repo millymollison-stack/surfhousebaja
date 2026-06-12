@@ -44,42 +44,27 @@ async function pollForSiteUrl(slug, maxAttempts = 20, intervalMs = 2000) {
   return null;
 }
 
-function showStripeSuccessModal(siteUrl) {
+function showStripeSuccessModal(siteUrl, planName) {
   const existing = document.getElementById('stripe-success-modal');
   if (existing) existing.remove();
 
   const overlay = document.createElement('div');
   overlay.id = 'stripe-success-modal';
-  overlay.style.cssText = `
-    position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;
-    display:flex;align-items:center;justify-content:center;
-    font-family:Inter,sans-serif;
-  `;
-  overlay.innerHTML = `
-    <div style="
-      background:#fff;border-radius:16px;padding:40px;max-width:480px;width:90%;
-      text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);
-    ">
-      <div style="
-        width:64px;height:64px;background:#22c55e;border-radius:50%;
-        display:flex;align-items:center;justify-content:center;
-        margin:0 auto 24px;font-size:32px;color:#fff;
-      ">✓</div>
-      <h2 style="margin:0 0 12px;font-size:24px;color:#111;">Well done!</h2>
-      <p style="margin:0 0 24px;color:#666;font-size:15px;">
-        Your subscription is active. You can now publish your site!
-      </p>
-      ${siteUrl ? `<p style="margin:0 0 8px;color:#999;font-size:13px;">Your live site:</p>
-        <a href="${siteUrl}" target="_blank" style="
-          display:block;color:#C47756;font-size:15px;word-break:break-all;
-          margin-bottom:24px;text-decoration:underline;
-        ">${siteUrl}</a>` : '<div style="margin-bottom:24px"></div>'}
-      <button id="stripe-modal-close" style="
-        background:#111;color:#fff;border:none;padding:12px 32px;
-        border-radius:8px;font-size:15px;cursor:pointer;
-      ">Close</button>
-    </div>
-  `;
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;';
+
+  const planText = planName ? " You're on the <strong>" + planName + "</strong> plan." : '';
+  const siteUrlBlock = siteUrl
+    ? '<p style="margin:0 0 8px;color:#999;font-size:13px;">Your live site:</p><a href="' + siteUrl + '" target="_blank" style="display:block;color:#C47756;font-size:15px;word-break:break-all;margin-bottom:24px;text-decoration:underline;">' + siteUrl + '</a>'
+    : '<div style="margin-bottom:24px"></div>';
+
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:16px;padding:40px;max-width:480px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+    '<div style="width:64px;height:64px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;color:#fff;">&#10003;</div>' +
+    '<h2 style="margin:0 0 12px;font-size:24px;color:#111;">Well done!</h2>' +
+    '<p style="margin:0 0 24px;color:#666;font-size:15px;">Your subscription is active. You can now publish your site!' + planText + '</p>' +
+    siteUrlBlock +
+    '<button id="stripe-modal-close" style="background:#111;color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:15px;cursor:pointer;">Close</button>' +
+    '</div>';
   document.body.appendChild(overlay);
   document.getElementById('stripe-modal-close').addEventListener('click', () => {
     overlay.remove();
@@ -91,6 +76,26 @@ function showStripeSuccessModal(siteUrl) {
 }
 
 function handleStripeRedirect() {
+  // ── Step 1: Check sessionStorage first (set by OnboardingPopup before redirect) ──
+  // Set stripe_banner_pending SYNCHRONOUSLY so banner useEffect (fires same cycle) can read it.
+  // For logged-in users: banner shows green subscription confirmation.
+  // For logged-out users: banner won't show (no session), but they're redirected to auth anyway.
+  const storedRaw = sessionStorage.getItem('stripe_paid_session');
+  if (storedRaw) {
+    sessionStorage.removeItem('stripe_paid_session');
+    try {
+      const { sessionId, planName, siteUrl } = JSON.parse(storedRaw);
+      if (sessionId) {
+        console.log('[Stripe redirect] Found paid session in sessionStorage:', sessionId, planName);
+        // Set signal for banner SYNCHRONOUSLY — banner fires in same render cycle
+        sessionStorage.setItem('stripe_banner_pending', JSON.stringify({ planName, siteUrl }));
+        console.log('[Stripe redirect] Set stripe_banner_pending — banner will confirm');
+        return;
+      }
+    } catch { /* ignore parse errors */ }
+  }
+
+  // ── Step 2: Fall back to URL params (for direct links) ──
   const params = new URLSearchParams(window.location.search);
   const paid = params.get('paid');
   const sessionId = params.get('session_id');
@@ -127,6 +132,9 @@ export function CustomerSite({ onSiteNameChange }: { onSiteNameChange?: (name: s
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  // ── Subscription confirmation banner ─────────────────────────────────────────
+  const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
 
   // ── Handle Stripe ?paid=true redirect ──────────────────────
   useEffect(() => {
@@ -136,6 +144,25 @@ export function CustomerSite({ onSiteNameChange }: { onSiteNameChange?: (name: s
   // Mark onboarding as closed so the editor doesn't auto-open popup on next visit
   useEffect(() => {
     sessionStorage.setItem('onboarding_popup_closed', '1');
+  }, []);
+
+  // ── Check for Stripe paid session and show subscription banner ────────────────
+  // Reads stripe_banner_pending (set synchronously by handleStripeRedirect)
+  // Shows confirmation immediately — popup already validated payment, no async verification needed
+  useEffect(() => {
+    const storedRaw = sessionStorage.getItem('stripe_banner_pending');
+    if (!storedRaw) return;
+    sessionStorage.removeItem('stripe_banner_pending');
+
+    let planName = 'Starter';
+    try {
+      const parsed = JSON.parse(storedRaw);
+      planName = parsed.planName || 'Starter';
+    } catch { /* ignore */ }
+
+    setSubscriptionPlan(planName);
+    setShowSubscriptionBanner(true);
+    setTimeout(() => setShowSubscriptionBanner(false), 15000);
   }, []);
 
   useEffect(() => {
@@ -261,6 +288,20 @@ export function CustomerSite({ onSiteNameChange }: { onSiteNameChange?: (name: s
 
   return (
     <div className="w-full">
+      {/* ── Subscription confirmation banner ─────────────────────────────────── */}
+      {showSubscriptionBanner && (
+        <div style="background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-family:Inter,sans-serif;position:relative;z-index:100;">
+          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+            <div style="width:32px;height:32px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">✓</div>
+            <div style="min-width:0;">
+              <p style="margin:0;font-size:15px;font-weight:600;">Subscription active!</p>
+              <p style="margin:2px 0 0;font-size:13px;opacity:0.9;">You're on the {subscriptionPlan || 'Starter'} plan.</p>
+            </div>
+          </div>
+          <button onClick={() => setShowSubscriptionBanner(false)} style="background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:#fff;cursor:pointer;padding:6px 10px;font-size:18px;line-height:1;flex-shrink:0;" aria-label="Dismiss">×</button>
+        </div>
+      )}
+
       {/* Hero gallery — same as Home.tsx */}
       <ImageGallery
         images={images}

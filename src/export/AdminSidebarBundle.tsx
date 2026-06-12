@@ -801,6 +801,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (user) {
       loadData();
       loadConnectData(); // Always refresh Stripe Connect data so credentials panel is up to date
+      loadSubscriptionData(); // Always refresh subscription status for credentials panel
     }
   }, [isOpen]);
   // Refresh profile once on mount so role changes (e.g. admin upgrade) take effect without re-login
@@ -1182,7 +1183,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
             {navItems.map(({ key, label }) => (
               <div key={key} className="sb-nav-section">
                 <button onClick={() => toggleSection(key)} className="sb-nav-btn">
-                  <span className="sb-nav-btn-label">{label}</span>
+                  <span className="sb-nav-btn-label">
+                    {label}
+                    {key === 'subscription' && hasSubscription && (
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22c55e', marginLeft: 6, verticalAlign: 'middle', flexShrink: 0 }} />
+                    )}
+                  </span>
                   {openSection === key ? <ChevronDown className="h-5 w-5 text-gray-400" /> : <ChevronRight className="h-5 w-5 text-gray-400" />}
                 </button>
                 {openSection === key && (

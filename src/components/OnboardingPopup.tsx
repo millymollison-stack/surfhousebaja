@@ -139,7 +139,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
  const isMountedRef = { current: true };
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
- const gatewayRunning = useRef(false); // guard against double-call of openStripeGateway
 
  // Inline auth state
  const [authEmail, setAuthEmail] = useState('');
@@ -282,11 +281,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  const openStripeGateway = async (e?: React.MouseEvent) => {
   if (e) e.stopPropagation();
-  if (gatewayRunning.current) {
-    console.log('[openStripeGateway] already running, ignoring duplicate call');
-    return;
-  }
-  gatewayRunning.current = true;
   console.log('[openStripeGateway] running...');
   // Clear any stale Stripe redirect state from previous page loads
   sessionStorage.removeItem('stripe_payment_returning');
@@ -296,12 +290,10 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
    if (!user) {
      setStripeError('Please sign in or create an account above first.');
-     gatewayRunning.current = false;
      return;
    }
    if (!planChoice) {
      setStripeError('Please select a subscription plan first.');
-     gatewayRunning.current = false;
      return;
    }
    setStripeError('');
@@ -311,7 +303,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    const userIdValue = user?.id;
    if (!userIdValue) {
      setStripeError('User not authenticated. Please sign in again.');
-     gatewayRunning.current = false;
      return;
    }
    console.log('[openStripeGateway] validated — userId:', userIdValue, 'slug:', slugValue);
@@ -376,7 +367,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        console.error('[openStripeGateway] ❌ Checkout session missing:', errMsg);
        setStripeError(errMsg);
        setStripeProcessing(false);
-       gatewayRunning.current = false;
        return;
      }
 
@@ -400,7 +390,6 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        ? 'Connection timed out. Check your network and try again.'
        : 'Could not connect to payment server.');
    } finally {
-     gatewayRunning.current = false;
    }
  };
 
@@ -849,16 +838,35 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  useEffect(() => {
    // Redirect when countdown hits 0 (site should be ready by then)
+   // Guard: don't redirect if auth isn't ready — stay on page so the handler
+   // can re-fire once user resolves and complete the site creation
    if (showBuilding && buildingCountdown === 0) {
+     if (!user) {
+       console.warn('[DEBUG building] Countdown expired but user not loaded — NOT redirecting, waiting for auth');
+       return;
+     }
      console.warn('[DEBUG building] Countdown expired — redirecting to fallback');
      window.location.href = 'https://www.propbook.pro/';
    }
- }, [showBuilding, buildingCountdown]);
+ }, [showBuilding, buildingCountdown, user]);
 
  // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
  // Dual-path: URL params (normal) + sessionStorage fallback (survives Vite HMR reloads
  // that can fire after Stripe redirects back and wipe URL params before this effect runs).
  useEffect(() => {
+  // ── Guard: wait for auth to resolve before doing anything ──────────────
+  if (!user) {
+    console.log('[DEBUG ?paid handler] Auth not ready yet — waiting (user is null)');
+    return;
+  }
+  // ── Guard: clear stale session IDs from previous test runs ─────────────
+  // If there's no paid param AND no session ID in URL, and we're landing fresh,
+  // a stale stripe_session_id from a past test could wrongly trigger this handler.
+  const hasPaidParams = new URLSearchParams(window.location.search).has('paid');
+  if (!hasPaidParams && sessionStorage.getItem('stripe_session_id')) {
+    console.log('[DEBUG ?paid handler] Clearing stale stripe_session_id from previous session');
+    sessionStorage.removeItem('stripe_session_id');
+  }
   const rawSearch = window.location.search;
   const params = new URLSearchParams(rawSearch);
   const hasPaidParam = params.has('paid') && params.has('session_id');
@@ -873,21 +881,36 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     // Check if subscription is already active (webhook fired) and show success.
     // Also query profile directly in case auth state hasn't refreshed yet.
     (async () => {
+      if (!user) { console.log('[DEBUG ?paid handler] Still no user — skipping subscription check'); return; }
       const { data: profileData } = await supabase
-        .from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
+        .from('profiles').select('stripe_subscription_status').eq('id', user.id).maybeSingle();
       const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
       if (subStatus === 'active' || subStatus === 'trialing') {
-        console.log('[DEBUG ?paid handler] Subscription already active (webhook fired) — showing success state');
+        console.log('[DEBUG ?paid handler] Subscription already active (webhook fired) — redirecting to property site');
+        // Webhook already triggered the deploy via stripe-subscription deploy action.
+        // Redirect user directly to their new property site.
+        const slug = sessionStorage.getItem('popup_website_name')
+          ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
+          : null;
+        if (slug) {
+          // Small delay so user sees something happened before redirect
+          setTimeout(() => {
+            window.location.href = `https://www.propbook.pro/props/${slug}`;
+          }, 800);
+          // Show a brief "Almost ready!" message while redirecting
+          setStripeProcessing(true);
+          return;
+        }
+        // No slug — fall back to showing congrats + trying to publish
+        console.log('[DEBUG ?paid handler] No slug found — falling back to congrats modal');
         const websiteName = sessionStorage.getItem('popup_website_name') || '';
         if (!isOpen) setIsOpen(true);
         setShowCongrats(true);
-        // Attempt to continue the PUBLISH flow if popup data is in sessionStorage
         const savedScraped = sessionStorage.getItem('popup_scraped_data');
         if (savedScraped) {
           try {
             const parsed = JSON.parse(savedScraped);
             setScrapedData(parsed);
-            // Restore user's typed website name first, fall back to scraped title
             const userTyped = sessionStorage.getItem('popup_user_website_name');
             if (parsed.title) setWebsiteName(userTyped || parsed.title);
             if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
@@ -988,7 +1011,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
         console.error('[DEBUG ?paid handler] handleSaveSiteInPopup failed:', err);
       }
 
-      // ── Step 7: Redirect to the deployed site ────────────────────────────────
+      // ── Step 7: Save session data for CustomerSite to pick up after redirect ──
+      // CustomerSite checks sessionStorage (not URL params) so this survives the redirect
+      sessionStorage.setItem('stripe_paid_session', JSON.stringify({
+        sessionId: sessionId,
+        planName: sessionData.plan_name || 'Starter',
+        siteUrl: createdSiteUrl,
+      }));
+
+      // ── Step 8: Redirect to the deployed site ────────────────────────────────
       if (createdSiteUrl) {
         console.log('[DEBUG ?paid handler] Redirecting to:', createdSiteUrl);
         // Redirect immediately — site is ready
@@ -1006,7 +1037,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
       sessionStorage.removeItem('stripe_payment_returning');
     }
   })();
- }, [window.location.search]); // re-fires if URL changes after mount
+ }, [window.location.search, user]); // re-fires when URL changes or auth resolves
  
 
  // Save or update onboarding data in Supabase
@@ -1128,8 +1159,8 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      return;
    }
    setStripeError('');
+   setStripeProcessing(true); // disable button BEFORE async work
    await saveToSupabase();
-   setStripeProcessing(true);
 
    try {
      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -1800,7 +1831,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  >
    {(user?.stripe_subscription_status === 'active' || user?.stripe_subscription_status === 'trialing')
      ? (stripeProcessing ? 'SAVING...' : 'PUBLISH MY SITE')
-     : (stripeProcessing ? 'REDIRECTING...' : 'PUBLISH MY SITE')}
+     : (stripeProcessing ? 'REDIRECTING...' : 'SUBSCRIBE NOW')}
  </button>
 
  {/* Fixed bottom total banner */}
