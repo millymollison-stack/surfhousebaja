@@ -37,23 +37,21 @@ Deno.serve(async (req: Request) => {
     if (!property) throw new Error("Property not found");
     if (property.owner_id !== user.id) throw new Error("Not authorized");
 
-    const DEPLOY_SECRET = "propbook-deploy-2026";
-    const RSYNC_DEPLOY_URL = "https://www.propbook.pro/rsync-deploy.php";
+    const DEPLOY_URL = "https://www.propbook.pro/scripts/deploy.php";
 
     console.log(`[deploy-site] Starting HTTP deploy for slug=${slug} property=${propertyId}`);
 
-    // ─── Call rsync-deploy.php on Hostinger via HTTP ───────────────────────
+    // ─── Call deploy.php on Hostinger via HTTP ───────────────────────
     const deployFormData = new URLSearchParams({
-      secret: DEPLOY_SECRET,
+      token: authHeader.replace("Bearer ", ""),
       slug,
-      property_id: propertyId,
+      propertyId,
     });
 
-    let deploySuccess = false;
     let siteUrl = `https://www.propbook.pro/props/${slug}`;
 
     try {
-      const deployRes = await fetch(RSYNC_DEPLOY_URL, {
+      const deployRes = await fetch(DEPLOY_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -62,15 +60,14 @@ Deno.serve(async (req: Request) => {
       });
 
       const deployData = await deployRes.json();
-      console.log("[deploy-site] rsync-deploy response:", deployRes.status, JSON.stringify(deployData));
+      console.log("[deploy-site] deploy.php response:", deployRes.status, JSON.stringify(deployData));
 
       if (!deployRes.ok || !deployData.success) {
         throw new Error(`Deploy failed: ${deployData.error || deployRes.status}`);
       }
 
-      deploySuccess = true;
-      siteUrl = deployData.site_url || siteUrl;
-      console.log(`[deploy-site] ✅ rsync succeeded: ${siteUrl}`);
+      siteUrl = deployData.siteUrl || siteUrl;
+      console.log(`[deploy-site] ✅ deploy succeeded: ${siteUrl}`);
     } catch (fetchErr: any) {
       console.error("[deploy-site] ❌ Deploy fetch error:", fetchErr.message);
       throw new Error(`Deploy call failed: ${fetchErr.message}`);
@@ -99,7 +96,7 @@ Deno.serve(async (req: Request) => {
         siteUrl,
         slug,
         propertyId,
-        deployed_via: "rsync-deploy.php"
+        deployed_via: "deploy.php"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
