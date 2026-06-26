@@ -207,7 +207,19 @@ Deno.serve(async (req: Request) => {
       }
 
       const session = await stripeRes.json();
-      console.log(`[stripe-subscription] Checkout session created: ${session.id}`);
+      console.log(`[stripe-subscription] Checkout session created: ${session.id}, customer: ${session.customer}`);
+
+      // ── Save stripe_customer_id to profile immediately ───────────────────────
+      // This must happen BEFORE the redirect so the recovery flow can verify
+      // the payment if Stripe redirects without a session_id in the URL.
+      // Stripe creates the customer from customer_email; we capture it here.
+      if (session.customer) {
+        await supabase
+          .from('profiles')
+          .update({ stripe_customer_id: session.customer })
+          .eq('id', userId);
+        console.log(`[stripe-subscription] Saved stripe_customer_id=${session.customer} to profile`);
+      }
 
       return new Response(
         JSON.stringify({ url: session.url, sessionId: session.id }),
