@@ -881,7 +881,66 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     // Check if webhook already fired and subscription is active.
     (async () => {
       try {
-        if (!user) { console.log('[DEBUG ?paid handler] Still no user — skipping subscription check'); return; }
+        if (!user) {
+          console.log('[DEBUG ?paid handler] Still no user — setting up auth listener to retry when user signs in');
+          // Wait for user to authenticate (Stripe redirect establishes session after page reload)
+          // Listen for the auth state change and re-run the handler when user becomes available
+          let retriesLeft = 10;
+          const checkAuth = setInterval(async () => {
+            retriesLeft--;
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user || retriesLeft <= 0) {
+              clearInterval(checkAuth);
+              if (session?.user) {
+                console.log('[DEBUG ?paid handler] User authenticated after Stripe redirect — retrying payment verification...');
+                // Re-call the entire recovery flow with the now-available user
+                const { data: profileData } = await supabase
+                  .from('profiles').select('stripe_subscription_status, stripe_customer_id').eq('id', session.user.id).maybeSingle();
+                const subStatus = profileData?.stripe_subscription_status || session.user.stripe_subscription_status;
+
+                if (subStatus === 'active' || subStatus === 'trialing') {
+                  const slug = sessionStorage.getItem('popup_website_name')
+                    ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
+                    : null;
+                  if (slug) {
+                    setStripeProcessing(true);
+                    setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
+                    return;
+                  }
+                }
+
+                const customerId = profileData?.stripe_customer_id;
+                if (customerId) {
+                  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+                  const recoveryRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}`, 'Apikey': supabaseAnonKey },
+                    body: JSON.stringify({ action: 'get_session', userId: session.user.id, slug: sessionStorage.getItem('popup_website_name') || 'my-property' }),
+                  });
+                  const recoveryData = await recoveryRes.json();
+                  console.log('[DEBUG ?paid handler] Retry recovery response:', JSON.stringify(recoveryData));
+                  if (recoveryRes.ok && (recoveryData.subscription?.status === 'active' || recoveryData.sub_status === 'active' || recoveryData.status === 'complete')) {
+                    setStripeProcessing(true);
+                    await supabase.from('profiles').update({ stripe_subscription_status: recoveryData.sub_status || 'active', stripe_subscription_id: recoveryData.subscription_id, stripe_customer_id: recoveryData.customer_id }).eq('id', session.user.id);
+                    await supabase.auth.refreshSession();
+                    await refreshUser();
+                    setShowBuilding(true);
+                    setBuildingCountdown(120);
+                    try {
+                      const siteResult = await handleSaveSiteInPopup();
+                      if (siteResult?.siteUrl) window.location.href = siteResult.siteUrl;
+                    } catch (siteErr) { console.error('[DEBUG ?paid handler] Site creation failed:', siteErr); }
+                    return;
+                  }
+                }
+                setStripeError('Payment could not be verified. Please contact support with your email.');
+                if (!isOpen) setIsOpen(true);
+              }
+            }
+          }, 1000);
+          return;
+        }
         const { data: profileData } = await supabase
           .from('profiles').select('stripe_subscription_status, stripe_customer_id').eq('id', user.id).maybeSingle();
         const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
