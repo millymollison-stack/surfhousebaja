@@ -32,7 +32,11 @@ Deno.serve(async (req: Request) => {
     // Called by AdminSidebarBundle to get subscription status from the user's profile.
     if (action === 'get') {
       const userId = body.userId || (await supabase.auth.getSession()).data.session?.user.id;
-      if (!userId) throw new Error("No userId provided and no session found");
+      if (!userId) {
+        // Return null subscription instead of throwing — caller handles null gracefully
+        return new Response(JSON.stringify({ subscription: null }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -59,39 +63,91 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Handle get_session action (verify Stripe checkout payment) ───────────
-    // No userId/slug required — just verify session_id with Stripe
+    // Verifies payment via session_id if available.
+    // Falls back to customer_id lookup if session_id is missing/invalid (e.g. redirect
+    // without session_id in URL, or session expired but webhook needs to fire).
     if (action === 'get_session') {
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
       if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
       const sessionId = body.session_id;
-      if (!sessionId) throw new Error("Missing required field: session_id");
+      const userId = body.userId;
 
-      const stripeRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
-        headers: { "Authorization": `Bearer ${stripeKey}` },
-      });
-      if (!stripeRes.ok) {
-        const errText = await stripeRes.text();
-        console.error("[stripe-subscription] Stripe retrieve error:", errText);
-        throw new Error(`Stripe error: ${errText}`);
+      // ── Path A: session_id provided — verify directly with Stripe ─────────────
+      if (sessionId) {
+        const stripeRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
+          headers: { "Authorization": `Bearer ${stripeKey}` },
+        });
+
+        if (stripeRes.ok) {
+          const session = await stripeRes.json();
+          console.log(`[stripe-subscription] Session ${sessionId} status: ${session.status}, subscription: ${session.subscription_status}`);
+          return new Response(
+            JSON.stringify({
+              status: session.status,
+              subscription: {
+                status: session.subscription_status || 'active',
+                id: session.subscription,
+                customer_id: session.customer,
+                amount_total: session.amount_total,
+                currency: session.currency,
+              },
+              subscription_id: session.subscription,
+              customer_id: session.customer,
+              sub_status: session.subscription_status || 'active',
+              amount_total: session.amount_total,
+              currency: session.currency,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Session not found (404) — fall through to Path B if userId provided
+        if (stripeRes.status !== 404) {
+          const errText = await stripeRes.text();
+          console.error("[stripe-subscription] Stripe retrieve error:", errText);
+          throw new Error(`Stripe error ${stripeRes.status}: ${errText}`);
+        }
+        console.log(`[stripe-subscription] Session ${sessionId} not found (404) — trying customer lookup`);
       }
-      const session = await stripeRes.json();
-      console.log(`[stripe-subscription] Session ${sessionId} status: ${session.status}`);
 
+      // ── Path B: no session_id, or session not found — look up via customer ─────
+      if (!userId) {
+        throw new Error("session_id not found and no userId provided for customer lookup");
+      }
+
+      // Get stripe_customer_id from the user's profile
+      const { data: profile } = await supabase
+        .from('profiles').select('stripe_customer_id').eq('id', userId).maybeSingle();
+
+      const customerId = profile?.stripe_customer_id;
+      if (!customerId) {
+        // No session, no customer ID — return null (payment unverifiable)
+        return new Response(JSON.stringify({ subscription: null, status: 'unverifiable' }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Look up the customer's subscriptions
+      const subRes = await fetch(
+        `https://api.stripe.com/v1/subscriptions?customer=${customerId}&status=active&limit=1`,
+        { headers: { "Authorization": `Bearer ${stripeKey}` } }
+      );
+      const subData = await subRes.json();
+      const sub = subData.data?.[0];
+
+      if (!sub) {
+        // No active subscription found for this customer
+        return new Response(JSON.stringify({ subscription: null, status: 'no_subscription', customer_id: customerId }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      console.log(`[stripe-subscription] Found active subscription ${sub.id} for customer ${customerId}`);
       return new Response(
         JSON.stringify({
-          status: session.status,
-          subscription: {
-            status: session.subscription_status || 'active',
-            id: session.subscription,
-            customer_id: session.customer,
-            amount_total: session.amount_total,
-            currency: session.currency,
-          },
-          subscription_id: session.subscription,
-          customer_id: session.customer,
-          sub_status: session.subscription_status || 'active',
-          amount_total: session.amount_total,
-          currency: session.currency,
+          status: 'complete',
+          subscription: { status: sub.status, id: sub.id, customer_id: customerId },
+          subscription_id: sub.id,
+          customer_id: customerId,
+          sub_status: sub.status,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

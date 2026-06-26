@@ -877,47 +877,103 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   const sessionId = sessionIdFromUrl || sessionIdFromStorage;
   if (!sessionId) {
     console.log('[DEBUG ?paid handler] No session ID in URL or storage — checking for active subscription...');
-    // Fallback: Stripe may have redirected without params (broken success_url before fix).
-    // Check if subscription is already active (webhook fired) and show success.
-    // Also query profile directly in case auth state hasn't refreshed yet.
+    // Fallback: Stripe redirected without session_id in URL (edge case or pre-fix flow).
+    // Check if webhook already fired and subscription is active.
     (async () => {
       if (!user) { console.log('[DEBUG ?paid handler] Still no user — skipping subscription check'); return; }
       const { data: profileData } = await supabase
-        .from('profiles').select('stripe_subscription_status').eq('id', user.id).maybeSingle();
+        .from('profiles').select('stripe_subscription_status, stripe_customer_id').eq('id', user.id).maybeSingle();
       const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
+
       if (subStatus === 'active' || subStatus === 'trialing') {
-        console.log('[DEBUG ?paid handler] Subscription already active (webhook fired) — redirecting to property site');
-        // Webhook already triggered the deploy via stripe-subscription deploy action.
-        // Redirect user directly to their new property site.
+        // Webhook fired successfully — redirect to the new property site
+        console.log('[DEBUG ?paid handler] Subscription active (webhook fired) — redirecting to property site');
         const slug = sessionStorage.getItem('popup_website_name')
           ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
           : null;
         if (slug) {
-          // Small delay so user sees something happened before redirect
-          setTimeout(() => {
-            window.location.href = `https://www.propbook.pro/props/${slug}`;
-          }, 800);
-          // Show a brief "Almost ready!" message while redirecting
           setStripeProcessing(true);
+          setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
           return;
         }
-        // No slug — fall back to showing congrats + trying to publish
+        // No slug — open popup and try to publish
         console.log('[DEBUG ?paid handler] No slug found — falling back to congrats modal');
         const websiteName = sessionStorage.getItem('popup_website_name') || '';
         if (!isOpen) setIsOpen(true);
         setShowCongrats(true);
-        const savedScraped = sessionStorage.getItem('popup_scraped_data');
-        if (savedScraped) {
-          try {
-            const parsed = JSON.parse(savedScraped);
-            setScrapedData(parsed);
-            const userTyped = sessionStorage.getItem('popup_user_website_name');
-            if (parsed.title) setWebsiteName(userTyped || parsed.title);
-            if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
-          } catch { /* ignore */ }
-        }
         if (websiteName) setWebsiteName(websiteName);
+        return;
       }
+
+      // ── Recovery attempt: no session ID AND subscription null ─────────────────
+      // Payment was almost certainly successful (Stripe redirected here with ?paid=true).
+      // Try to verify via stripe_customer_id stored in the user's profile.
+      console.log('[DEBUG ?paid handler] No active subscription found — attempting recovery via stripe_customer_id...');
+      const customerId = profileData?.stripe_customer_id;
+
+      if (customerId) {
+        try {
+          const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+          // Call the edge function which has access to the secret key for Stripe API calls
+          const recoveryRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              action: 'get_session',
+              userId: user.id,
+              slug: sessionStorage.getItem('popup_website_name') || 'my-property',
+            }),
+          });
+          const recoveryData = await recoveryRes.json();
+          console.log('[DEBUG ?paid handler] Recovery response:', JSON.stringify(recoveryData));
+
+          if (recoveryRes.ok && (recoveryData.subscription?.status === 'active' || recoveryData.sub_status === 'active' || recoveryData.status === 'complete')) {
+            // Payment confirmed — update profile and create the site
+            console.log('[DEBUG ?paid handler] ✅ Payment verified via recovery — creating site...');
+            const profileUpdate: any = {
+              stripe_subscription_status: recoveryData.sub_status || 'active',
+            };
+            if (recoveryData.subscription_id) profileUpdate.stripe_subscription_id = recoveryData.subscription_id;
+            if (recoveryData.customer_id) profileUpdate.stripe_customer_id = recoveryData.customer_id;
+            await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
+            await supabase.auth.refreshSession();
+            await refreshUser();
+            setShowBuilding(true);
+            setBuildingCountdown(120);
+            try {
+              const siteResult = await handleSaveSiteInPopup();
+              const createdSiteUrl = siteResult?.siteUrl || null;
+              if (createdSiteUrl) {
+                window.location.href = createdSiteUrl;
+              } else {
+                setStripeError('Payment confirmed! But site URL was not returned. Please refresh and check your sidebar.');
+                if (!isOpen) setIsOpen(true);
+                setShowCongrats(true);
+              }
+            } catch (siteErr) {
+              console.error('[DEBUG ?paid handler] Site creation failed:', siteErr);
+              setStripeError('Payment confirmed but site creation failed. Please refresh and try publishing from the sidebar.');
+              if (!isOpen) setIsOpen(true);
+            }
+            return;
+          }
+        } catch (recoveryErr) {
+          console.error('[DEBUG ?paid handler] Recovery attempt failed:', recoveryErr);
+        }
+      }
+
+      // All recovery attempts failed — payment likely succeeded but we can't verify it.
+      // Show the user a clear error so they know to contact support.
+      console.warn('[DEBUG ?paid handler] All recovery attempts failed — showing error to user');
+      setStripeError(
+        'Payment may have succeeded but we could not verify your subscription. ' +
+        'Please contact support with your email to confirm your subscription was activated.'
+      );
+      if (!isOpen) setIsOpen(true);
     })();
     return;
   }
