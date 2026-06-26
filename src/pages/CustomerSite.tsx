@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 import { ImageGallery } from '../components/ImageGallery';
 import { PropertyDetails } from '../components/PropertyDetails';
@@ -135,6 +136,7 @@ export function CustomerSite({ onSiteNameChange }: { onSiteNameChange?: (name: s
   // ── Subscription confirmation banner ─────────────────────────────────────────
   const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
   const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
+  const { user } = useAuth();
 
   // ── Handle Stripe ?paid=true redirect ──────────────────────
   useEffect(() => {
@@ -234,6 +236,25 @@ export function CustomerSite({ onSiteNameChange }: { onSiteNameChange?: (name: s
         onSiteNameChange?.(displayName);
         // Also set the browser tab title
         document.title = displayName;
+
+        // ── Stale detection + owner event ──────────────────────────────────
+        // Check if static HTML is stale (property updated after last publish)
+        const updatedAt = propData.updated_at ? new Date(propData.updated_at) : null;
+        const siteVersion = propData.site_version ? new Date(propData.site_version) : null;
+        const isStale = updatedAt && siteVersion && updatedAt > siteVersion;
+
+        // Store stale state for sidebar to read
+        sessionStorage.setItem('__STALE_CHECK__', isStale ? propData.updated_at : '');
+        sessionStorage.setItem('__PROPERTY_OWNER__', propData.owner_id || '');
+
+        // Dispatch event so AppContent can show sidebar if user owns this property
+        window.dispatchEvent(new CustomEvent('property-loaded', {
+          detail: {
+            property: propData,
+            user,
+            isStale,
+          }
+        }));
 
       } catch (err) {
         console.error('CustomerSite load error:', err);

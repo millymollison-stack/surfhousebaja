@@ -64,7 +64,6 @@ Deno.serve(async (req: Request) => {
         address: location || "",
         max_guests: maxGuests || 8,
         bedrooms: bedrooms || 2,
-        bathrooms: baths || 1,
         beds: beds || 3,
         baths: baths || 1,
         price_per_night: pricePerNight || 150,

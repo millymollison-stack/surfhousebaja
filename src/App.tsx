@@ -63,6 +63,21 @@ function AppContent() {
     sessionStorage.removeItem('popup_website_name');
     sessionStorage.removeItem('popup_website_desc');
     sessionStorage.removeItem('popup_scraped_data');
+
+    // ── Listen for property-loaded event (hybrid static page boots React) ──
+    const handlePropertyLoaded = (e: Event) => {
+      const { property, user, isStale } = (e as CustomEvent).detail;
+      if (user && property && property.owner_id === user.id) {
+        // User is the owner — show the sidebar so they can publish
+        setSidebarOpen(true);
+        setIsEditing(true);
+        if (isStale) {
+          sessionStorage.setItem('__STALE__', '1');
+        }
+      }
+    };
+    window.addEventListener('property-loaded', handlePropertyLoaded);
+    return () => window.removeEventListener('property-loaded', handlePropertyLoaded);
   }, [initialize]);
 
   const handleSaveAll = async () => {

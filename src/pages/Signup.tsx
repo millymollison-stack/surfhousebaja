@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import '../components/OnboardingPopup.css';
 
@@ -12,6 +12,7 @@ export function Signup() {
   const [isAdmin, setIsAdmin] = useState(false);
   const { signUp, error } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +32,7 @@ export function Signup() {
       <div className="auth-modal">
         <button className="popup-close" onClick={handleClose} aria-label="Close">&times;</button>
         <h1>Create your account</h1>
-        <p>Already have an account? <Link to="/?auth=login" className="popup-link">Sign in</Link></p>
+        <p>Already have an account? <Link to={`${location.pathname}?auth=login`} className="popup-link">Sign in</Link></p>
         <form onSubmit={handleSubmit}>
           {error && <p className="popup-error">{error}</p>}
           <input id="fullName" type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />

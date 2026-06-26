@@ -36,15 +36,16 @@ Deno.serve(async (req: Request) => {
     let sourceImages: any[] = [];
     let sourceLabel = '';
 
-    // Require REAL scraped data: meaningful text AND at least 3 images.
-    // Partial scrape (only images or only text) should not replace reference property data.
+    // Use onboarding data if ANY scraped content is present (text OR images).
+    // Even partial data (only text, or only images) should be used — missing fields
+    // can be edited later. Only fall back to reference property if onboardingData is absent.
     const scrapedImgList = onboardingData?.scraped_images || onboardingData?.images || [];
     const hasRealText = onboardingData?.scraped_title != null ||
                         onboardingData?.scraped_description != null ||
                         onboardingData?.scraped_property_intro != null ||
                         onboardingData?.property_name != null;
-    const hasRealImages = scrapedImgList.length >= 3;
-    const hasOnboardingData = hasRealText && hasRealImages;
+    const hasRealImages = scrapedImgList.length >= 1;
+    const hasOnboardingData = hasRealText || hasRealImages;
 
     console.log('[migrate-property] hasOnboardingData:', hasOnboardingData, '{ text:', hasRealText, 'images:', hasRealImages, '(' + scrapedImgList.length + ' total) }');
     console.log('[migrate-property] scraped_title:', onboardingData?.scraped_title);
@@ -66,11 +67,13 @@ Deno.serve(async (req: Request) => {
         max_guests: onboardingData.scraped_guests || null,
         bedrooms: onboardingData.bedrooms || null,
         beds: onboardingData.beds || null,
-        baths: onboardingData.baths || null,
+        baths: onboardingData.baths || onboardingData.bathrooms || null,
       };
       sourceImages = imgList.map((url: string, i: number) => ({ url, position: i }));
       sourceLabel = 'onboarding_data';
     } else {
+      // No onboarding data found — fall back to reference property
+      console.warn('[migrate-property] ⚠️ No scraped data in onboardingData (text=', hasRealText, 'images=', hasRealImages, '). Falling back to reference property.');
       const { data: sourceProperty, error: sourceError } = await supabase
         .from("properties")
         .select("*")

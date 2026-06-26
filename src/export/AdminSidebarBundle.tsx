@@ -8,7 +8,7 @@ import '../components/sidebar.css';
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, fromUnixTime, addDays } from 'date-fns';
-import { ChevronRight, ChevronDown, X, LogOut, ExternalLink, Check, CreditCard as Edit2, Clock, CreditCard, AlertCircle, XCircle, CheckCircle, MapPin, Eye, EyeOff, Mail, Phone, User, MessageSquare, Home } from 'lucide-react';
+import { ChevronRight, ChevronDown, X, LogOut, ExternalLink, Check, CreditCard as Edit2, Clock, CreditCard, AlertCircle, XCircle, CheckCircle, MapPin, Eye, EyeOff, Mail, Phone, User, MessageSquare, Home, Rocket } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/auth';
 import { useProperty } from '../store/property';
@@ -366,12 +366,13 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   );
 }
 
-function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteName, propertySlug }: {
+function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteName, propertySlug, propertyId }: {
   devUpdates: boolean; setDevUpdates: (v: boolean) => void;
   serverIp?: string | null;
   siteUrl?: string | null;
   websiteName?: string;
   propertySlug?: string;
+  propertyId?: string;
 }) {
   // Resolve property slug: prop > sessionStorage
   const slug = propertySlug || sessionStorage.getItem('popup_website_name') || '';
@@ -381,6 +382,59 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
   const currentUrl = siteUrl || popupSiteUrl || (typeof window !== 'undefined' ? window.location.origin : null);
 
   const isDeployed = !!siteUrl;
+
+  // ── Publish countdown state ─────────────────────────────────────
+  const [publishCountdown, setPublishCountdown] = useState(0);
+  const [publishLoading, setPublishLoading] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+
+  // Check stale on mount + when sessionStorage changes
+  const isStale = sessionStorage.getItem('__STALE__') === '1';
+
+  const startPublishCountdown = () => {
+    if (!propertyId || !propertySlug) { setPublishError('Missing property info. Please reload.'); return; }
+    setPublishError(null);
+    setPublishSuccess(false);
+    setPublishCountdown(30);
+    const timer = setInterval(() => {
+      setPublishCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          triggerDeploy();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const triggerDeploy = async () => {
+    if (!propertyId || !propertySlug) return;
+    setPublishLoading(true);
+    setPublishError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deploy-site`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ slug: propertySlug, propertyId }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || `Deploy failed (${res.status})`);
+      sessionStorage.removeItem('__STALE__');
+      setPublishSuccess(true);
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : 'Deploy failed');
+    } finally {
+      setPublishLoading(false);
+    }
+  };
 
   // Domain search URL — use live sessionStorage value if available (reflects live edits in popup)
   const liveWebsiteName = sessionStorage.getItem('popup_website_name') || websiteName || '';
@@ -461,6 +515,68 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
       <div style={{ marginBottom: 0 }}>
         <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Dev Notifications</p>
         <p style={{ fontSize: '0.85rem', color: '#111827' }}>0</p>
+      </div>
+
+      {/* ── Publish Website ─────────────────────────────────────── */}
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
+        {publishSuccess ? (
+          <div style={{ background: '#d1fae5', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CheckCircle className="h-5 w-5" style={{ color: '#16a34a', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.85rem', color: '#15803d' }}>Site published successfully!</span>
+          </div>
+        ) : publishCountdown > 0 ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: '0.85rem', color: '#374151' }}>Publishing in {publishCountdown}s…</span>
+              <button
+                onClick={() => { setPublishCountdown(0); setPublishError(null); }}
+                style={{ fontSize: '0.75rem', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              >Cancel</button>
+            </div>
+            <div style={{ height: 6, background: '#e5e7eb', borderRadius: 9999, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${((30 - publishCountdown) / 30) * 100}%`,
+                background: '#2563eb',
+                borderRadius: 9999,
+                transition: 'width 1s linear',
+              }} />
+            </div>
+          </div>
+        ) : (
+          <div>
+            {isStale && (
+              <div style={{ fontSize: '0.75rem', color: '#92400e', background: '#fef3c7', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>
+                Your static page is outdated — edits pending publish
+              </div>
+            )}
+            <button
+              onClick={startPublishCountdown}
+              disabled={!propertyId || !propertySlug}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                background: (propertyId && propertySlug) ? '#2563eb' : '#9ca3af',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: (propertyId && propertySlug) ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <Rocket className="h-4 w-4" />
+              {isStale ? 'Publish Website Now' : 'Republish Website'}
+            </button>
+            {publishError && (
+              <p style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 4 }}>{publishError}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1194,7 +1310,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {openSection === key && (
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={sessionStorage.getItem('popup_website_name') || undefined} />}
+                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={sessionStorage.getItem('popup_website_name') || undefined} propertyId={property?.id} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}

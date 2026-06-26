@@ -1344,11 +1344,19 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
              onboardingData: migrationData,
            }),
          });
-         const migData = await migRes.json();
-         if (migRes.ok && migData.success) {
-           console.log('[handleSaveSiteInPopup] ✅ Migrated scraped data:', migData.fields_copied);
+
+         let migData: any;
+         if (!migRes.ok) {
+           const errText = await migRes.text().catch(() => migRes.statusText);
+           console.error(`[handleSaveSiteInPopup] ⚠️ Migration HTTP error ${migRes.status}: ${errText}`);
+           throw new Error(`Migration failed (HTTP ${migRes.status}): ${errText}`);
+         }
+         migData = await migRes.json();
+         if (migData.success) {
+           console.log('[handleSaveSiteInPopup] ✅ Migrated scraped data:', migData.fields_copied, 'images:', migData.images_copied);
          } else {
            console.warn('[handleSaveSiteInPopup] ⚠️ Migration failed:', migData.error);
+           throw new Error(`Migration returned error: ${migData.error}`);
          }
        }
      } catch (migErr) {

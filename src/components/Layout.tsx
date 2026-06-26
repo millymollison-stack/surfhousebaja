@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import './Layout.css';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, LogIn, Share, User } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import ColorPicker from './ColorPicker';
@@ -18,6 +18,16 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive property slug from URL for nav handle fallback
+  // e.g. /props/obo-casa/ -> 'obo-casa'
+  const urlSlug = location.pathname.startsWith('/props/')
+    ? location.pathname.split('/props/')[1]?.replace(/\/$/, '')
+    : null;
+  const navHandle = siteName || (urlSlug ? '@' + urlSlug : '@propbook');
+  const navLink = location.pathname.startsWith('/props/') ? location.pathname : '/';
 
   useEffect(() => {
     if (document.querySelector('script[src="https://elfsightcdn.com/platform.js"]')) return;
@@ -31,7 +41,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
     try {
       if (navigator.share) {
         await navigator.share({
-          title: siteName || '@propbook',
+          title: navHandle,
           url: window.location.href,
         });
       } else {
@@ -52,9 +62,9 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
     <div className="min-h-screen flex flex-col overflow-x-hidden">
       <header className="absolute top-0 left-0 right-0 z-50 header-transparent">
         <nav className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2 text-white hover:text-white">
+          <Link to={navLink} className="flex items-center space-x-2 text-white hover:text-white">
             <Home className="h-6 w-6 opacity-90" />
-            <span className="text-lg font-medium">{siteName || "@propbook"}</span>
+            <span className="text-lg font-medium">{navHandle}</span>
           </Link>
           
           <div className="flex items-center space-x-3">
@@ -101,12 +111,12 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
                 <span>{user.full_name?.split(' ')[0] || 'Profile'}</span>
               </button>
             ) : (
-              <Link
-                to="/?auth=login"
+              <button
+                onClick={() => navigate(location.pathname + '?auth=login', { replace: true })}
                 className="px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/15 rounded text-white/90 hover:bg-white/30 hover:text-white text-sm transition-all"
               >
                 Sign In
-              </Link>
+              </button>
             )}
           </div>
         </nav>
@@ -126,7 +136,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
         )}
         <div className={`copyright-footer${isEditing ?? false ? '' : ' footer-pad-top'}`}>
           <p className="copyright-text">
-            © {new Date().getFullYear()} {siteName || '@propbook'}. All rights reserved.
+            © {new Date().getFullYear()} {navHandle}. All rights reserved.
           </p>
         </div>
       </footer>

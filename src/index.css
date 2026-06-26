@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --brand: #c47756;
+  --brand-hover: #a8624a;
+}
+
 body { background: #0f0f0f; }
 
 /* ============================================
