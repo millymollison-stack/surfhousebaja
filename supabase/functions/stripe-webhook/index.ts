@@ -8,47 +8,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// ── Manual webhook signature verification ─────────────────────────────────
-// Stripe's built-in constructEvent() uses SubtleCrypto synchronously, which
-// Deno's edge runtime doesn't support. We verify the signature manually using
-// Deno's built-in crypto API instead.
-async function verifyStripeSignature(
-  payload: string,
-  signatureHeader: string,
-  secret: string
-): Promise<boolean> {
-  // Stripe signature header format: t=timestamp,v1=signature[,v0=legacy]
-  const parts = Object.fromEntries(
-    signatureHeader.split(",").map((p) => {
-      const idx = p.indexOf("=");
-      return [p.slice(0, idx), p.slice(idx + 1)];
-    })
-  );
-  const timestamp = parts["t"];
-  const v1 = parts["v1"];
-  if (!timestamp || !v1) return false;
-
-  // Compute expected signature: HMAC-SHA256(timestamp + "." + payload)
-  const signedPayload = `${timestamp}.${payload}`;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedPayload));
-  const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
-
-  // Timing-safe comparison
-  if (expected.length !== v1.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) {
-    diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
-  }
-  return diff === 0;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -67,11 +26,11 @@ Deno.serve(async (req: Request) => {
     );
 
     const signature = req.headers.get("stripe-signature");
-    const body = await req.text();
+    const bodyRaw = await req.text();
 
     console.log("[stripe-webhook] Request received. Headers:", JSON.stringify({
       sigHeader: signature ? `present (${signature.slice(0, 20)}... )` : "MISSING",
-      bodyLen: body.length,
+      bodyLen: bodyRaw.length,
       contentType: req.headers.get("content-type"),
     }));
 
@@ -83,25 +42,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verify signature manually (Deno-compatible, avoids SubtleCrypto sync error)
-    const isValid = await verifyStripeSignature(body, signature, webhookSecret);
-    console.log("[stripe-webhook] Signature verification result:", isValid ? "PASS" : "FAIL");
-    if (!isValid) {
-      console.error("Webhook signature verification failed — returning 400");
-      return new Response(
-        JSON.stringify({ error: "Webhook signature verification failed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse event from body (signature already verified)
+    // Use Stripe SDK's async constructEventAsync (avoids Deno SubtleCrypto sync error)
     let event: Stripe.Event;
     try {
-      event = JSON.parse(body);
-    } catch (err) {
-      console.error("Webhook event parse failed:", err.message);
+      event = await stripe.webhooks.constructEventAsync(bodyRaw, signature, webhookSecret) as Stripe.Event;
+      console.log("[stripe-webhook] Signature verification PASSED — event type:", event.type);
+    } catch (err: any) {
+      console.error("[stripe-webhook] Signature verification FAILED:", err.message);
       return new Response(
-        JSON.stringify({ error: "Invalid event payload" }),
+        JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

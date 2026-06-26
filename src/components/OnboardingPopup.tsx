@@ -880,47 +880,49 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
     // Fallback: Stripe redirected without session_id in URL (edge case or pre-fix flow).
     // Check if webhook already fired and subscription is active.
     (async () => {
-      if (!user) { console.log('[DEBUG ?paid handler] Still no user — skipping subscription check'); return; }
-      const { data: profileData } = await supabase
-        .from('profiles').select('stripe_subscription_status, stripe_customer_id').eq('id', user.id).maybeSingle();
-      const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
+      try {
+        if (!user) { console.log('[DEBUG ?paid handler] Still no user — skipping subscription check'); return; }
+        const { data: profileData } = await supabase
+          .from('profiles').select('stripe_subscription_status, stripe_customer_id').eq('id', user.id).maybeSingle();
+        const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
 
-      if (subStatus === 'active' || subStatus === 'trialing') {
-        // Webhook fired successfully — redirect to the new property site
-        console.log('[DEBUG ?paid handler] Subscription active (webhook fired) — redirecting to property site');
-        const slug = sessionStorage.getItem('popup_website_name')
-          ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
-          : null;
-        if (slug) {
-          setStripeProcessing(true);
-          setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
+        if (subStatus === 'active' || subStatus === 'trialing') {
+          // Webhook fired successfully — redirect to the new property site
+          console.log('[DEBUG ?paid handler] Subscription active (webhook fired) — redirecting to property site');
+          const slug = sessionStorage.getItem('popup_website_name')
+            ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
+            : null;
+          if (slug) {
+            setStripeProcessing(true);
+            setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
+            return;
+          }
+          // No slug — open popup and try to publish
+          console.log('[DEBUG ?paid handler] No slug found — falling back to congrats modal');
+          const websiteName = sessionStorage.getItem('popup_website_name') || '';
+          if (!isOpen) setIsOpen(true);
+          setShowCongrats(true);
+          if (websiteName) setWebsiteName(websiteName);
           return;
         }
-        // No slug — open popup and try to publish
-        console.log('[DEBUG ?paid handler] No slug found — falling back to congrats modal');
-        const websiteName = sessionStorage.getItem('popup_website_name') || '';
-        if (!isOpen) setIsOpen(true);
-        setShowCongrats(true);
-        if (websiteName) setWebsiteName(websiteName);
-        return;
-      }
 
-      // ── Recovery attempt: no session ID AND subscription null ─────────────────
-      // Payment was almost certainly successful (Stripe redirected here with ?paid=true).
-      // Try to verify via stripe_customer_id stored in the user's profile.
-      console.log('[DEBUG ?paid handler] No active subscription found — attempting recovery via stripe_customer_id...');
-      const customerId = profileData?.stripe_customer_id;
+        // ── Recovery attempt: no session ID AND subscription null ─────────────────
+        // Payment was almost certainly successful (Stripe redirected here with ?paid=true).
+        // Try to verify via stripe_customer_id stored in the user's profile.
+        console.log('[DEBUG ?paid handler] No active subscription found — attempting recovery via stripe_customer_id...');
+        const customerId = profileData?.stripe_customer_id;
 
-      if (customerId) {
-        try {
-          const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-          // Call the edge function which has access to the secret key for Stripe API calls
-          const recoveryRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, {
+        if (customerId) {
+          // Use the Supabase anon key for auth (no user session available post-redirect)
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+          const recoveryRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-              'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Apikey': supabaseAnonKey,
             },
             body: JSON.stringify({
               action: 'get_session',
@@ -960,20 +962,26 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
               if (!isOpen) setIsOpen(true);
             }
             return;
+          } else {
+            console.warn('[DEBUG ?paid handler] Recovery returned non-OK or no active subscription:', recoveryRes.status, JSON.stringify(recoveryData));
           }
-        } catch (recoveryErr) {
-          console.error('[DEBUG ?paid handler] Recovery attempt failed:', recoveryErr);
+        } else {
+          console.warn('[DEBUG ?paid handler] No stripe_customer_id in profile — cannot attempt recovery');
         }
-      }
 
-      // All recovery attempts failed — payment likely succeeded but we can't verify it.
-      // Show the user a clear error so they know to contact support.
-      console.warn('[DEBUG ?paid handler] All recovery attempts failed — showing error to user');
-      setStripeError(
-        'Payment may have succeeded but we could not verify your subscription. ' +
-        'Please contact support with your email to confirm your subscription was activated.'
-      );
-      if (!isOpen) setIsOpen(true);
+        // All recovery attempts failed — payment likely succeeded but we can't verify it.
+        // Show the user a clear error so they know to contact support.
+        console.warn('[DEBUG ?paid handler] All recovery attempts failed — showing error to user');
+        setStripeError(
+          'Payment may have succeeded but we could not verify your subscription. ' +
+          'Please contact support with your email to confirm your subscription was activated.'
+        );
+        if (!isOpen) setIsOpen(true);
+      } catch (err) {
+        console.error('[DEBUG ?paid handler] Unexpected error in recovery flow:', err);
+        setStripeError('An unexpected error occurred after payment. Please contact support.');
+        if (!isOpen) setIsOpen(true);
+      }
     })();
     return;
   }
