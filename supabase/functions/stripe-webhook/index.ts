@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
     const bodyRaw = await req.text();
 
     console.log("[stripe-webhook] Request received. Headers:", JSON.stringify({
-      sigHeader: signature ? `present (${signature.slice(0, 20)}... )` : "MISSING",
+      sigHeader: signature ? `present (${signature.slice(0, 30)}... )` : "MISSING",
       bodyLen: bodyRaw.length,
       contentType: req.headers.get("content-type"),
     }));
@@ -42,15 +42,84 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Use Stripe SDK's async constructEventAsync (avoids Deno SubtleCrypto sync error)
+    // ── Manual signature verification (Deno-compatible, avoids SubtleCrypto issues) ──
+    // Stripe computes: HMAC-SHA256(timestamp + "." + rawBody, secretWithoutPrefix)
+    const sigParts = Object.fromEntries(
+      signature.split(",").map((p) => {
+        const idx = p.indexOf("=");
+        return [p.slice(0, idx), p.slice(idx + 1)];
+      })
+    );
+    const ts = sigParts["t"];
+    const v1 = sigParts["v1"];
+    if (!ts || !v1) {
+      console.error("[stripe-webhook] Malformed signature header — missing t or v1");
+      return new Response(
+        JSON.stringify({ error: "Malformed signature header" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Reject stale timestamps (> 5 minutes old)
+    const now = Math.floor(Date.now() / 1000);
+    if (Math.abs(now - parseInt(ts, 10)) > 300) {
+      console.error(`[stripe-webhook] Timestamp too old: ${ts}, now: ${now} — rejecting`);
+      return new Response(
+        JSON.stringify({ error: "Webhook timestamp out of tolerance" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // The secret may have a whsec_ prefix — strip it for HMAC
+    const secretKey = webhookSecret.startsWith("whsec_")
+      ? webhookSecret.slice(6)
+      : webhookSecret;
+
+    const signedPayload = `${ts}.${bodyRaw}`;
+
+    // Compute HMAC-SHA256 using Deno's WebCrypto
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secretKey);
+    const payloadData = encoder.encode(signedPayload);
+
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const sigBuffer = await crypto.subtle.sign("HMAC", cryptoKey, payloadData);
+    const sigArray = new Uint8Array(sigBuffer);
+    const expectedSig = btoa(String.fromCharCode(...sigArray));
+
+    // Timing-safe comparison
+    if (expectedSig.length !== v1.length) {
+      console.error("[stripe-webhook] Signature length mismatch");
+      return new Response(
+        JSON.stringify({ error: "Webhook signature verification failed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    let diff = 0;
+    for (let i = 0; i < expectedSig.length; i++) {
+      diff |= expectedSig.charCodeAt(i) ^ v1.charCodeAt(i);
+    }
+    if (diff !== 0) {
+      console.error(`[stripe-webhook] Signature MISMATCH. Expected: ${expectedSig.slice(0, 10)}..., Got: ${v1.slice(0, 10)}...`);
+      return new Response(
+        JSON.stringify({ error: "Webhook signature verification failed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[stripe-webhook] Signature verification PASSED — parsing event");
     let event: Stripe.Event;
     try {
-      event = await stripe.webhooks.constructEventAsync(bodyRaw, signature, webhookSecret) as Stripe.Event;
-      console.log("[stripe-webhook] Signature verification PASSED — event type:", event.type);
+      event = JSON.parse(bodyRaw);
     } catch (err: any) {
-      console.error("[stripe-webhook] Signature verification FAILED:", err.message);
       return new Response(
-        JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
+        JSON.stringify({ error: "Invalid JSON payload" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -119,10 +188,19 @@ Deno.serve(async (req: Request) => {
         const subId   = session.subscription as string;
         const slug    = session.metadata?.slug;
 
-        if (!subId) break;
+        if (!subId) {
+          console.log("[stripe-webhook] checkout.session.completed: no subscription ID — skipping");
+          break;
+        }
 
         // Retrieve full subscription to get period_end and item amounts
-        const sub = await stripe.subscriptions.retrieve(subId);
+        let sub: Stripe.Subscription;
+        try {
+          sub = await stripe.subscriptions.retrieve(subId);
+        } catch (err: any) {
+          console.error(`[stripe-webhook] Failed to retrieve subscription ${subId}:`, err.message);
+          break;
+        }
         const item = (sub as any).items?.data?.[0];
 
         // Calculate total monthly amount across all subscription items
