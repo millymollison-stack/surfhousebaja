@@ -955,7 +955,7 @@ const stripeRedirectRef = useRef(0);
                   const recoveryRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}`, 'Apikey': supabaseAnonKey },
-                    body: JSON.stringify({ action: 'get_session', userId: session.user.id, slug: sessionStorage.getItem('popup_website_name') || 'my-property' }),
+                    body: JSON.stringify({ action: 'get_session', session_id: sessionId, userId: session.user.id, slug: sessionStorage.getItem('popup_website_name') || 'my-property' }),
                   });
                   const recoveryData = await recoveryRes.json();
                   console.log('[DEBUG ?paid handler] Retry recovery response:', JSON.stringify(recoveryData));
@@ -1026,6 +1026,7 @@ const stripeRedirectRef = useRef(0);
             },
             body: JSON.stringify({
               action: 'get_session',
+              session_id: sessionId,
               userId: user.id,
               slug: sessionStorage.getItem('popup_website_name') || 'my-property',
             }),
