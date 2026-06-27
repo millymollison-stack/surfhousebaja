@@ -161,10 +161,27 @@ export function generateTemplateHtml(template: string, data: NewSiteData, supaba
     // Supabase config (for the React app that runs in static template)
     .replace(/\{\{SUPABASE_URL\}\}/g, supabaseUrl || import.meta.env.VITE_SUPABASE_URL || 'https://jtzagpbdrqfifdisxipr.supabase.co')
     .replace(/\{\{SUPABASE_ANON_KEY\}\}/g, supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY || '')
-    // Replace <!--APP_JS--> with React bundle loader.
-    // The React app mounts to <div id="root"> and takes over rendering.
-    // Property slug is read from the URL path by React Router.
-    .replace('<!--APP_JS-->', `<script type="module" crossorigin src="./app.js"></script>`);
+    // Replace <!--APP_JS--> with pre-mount capture script + React bundle loader.
+    // - Captures ?book=true into sessionStorage BEFORE React mounts
+    // - Captures ?paid=true + session_id for Stripe redirect handling
+    // - React app reads sessionStorage and scrolls to booking section
+    .replace('<!--APP_JS-->', `
+<script>
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.has('book')) {
+    sessionStorage.setItem('scroll_to_booking', '1');
+    var cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, '', cleanUrl);
+  }
+  if (params.has('paid') && params.has('session_id')) {
+    sessionStorage.setItem('stripe_session_id', params.get('session_id'));
+    sessionStorage.setItem('stripe_paid_flag', 'true');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+})();
+</script>
+<script type="module" crossorigin src="./app.js"></script>`);
 }
 
 // ─────────────────────────────────────────────
@@ -286,7 +303,7 @@ const UPLOAD_PHP_URL = 'https://www.propbook.pro/upload.php';
 // Asset filenames — must match the current Vite build output
 // Vite generates deterministic hashes, but we hardcode known names after build.
 // After `npm run build`, update these to match dist/assets/ filenames.
-const REACT_BUNDLE = 'index-BHFlsc8g.js';
+const REACT_BUNDLE = 'index-C4GbPHHT.js';
 const REACT_CSS = 'index-BwoOEFWc.css';
 
 // Generate index.html for a property-specific React deployment.
