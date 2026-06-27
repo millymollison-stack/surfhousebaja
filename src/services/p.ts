@@ -165,6 +165,7 @@ export function generateTemplateHtml(template: string, data: NewSiteData, supaba
     // - Captures ?book=true into sessionStorage BEFORE React mounts
     // - Captures ?paid=true + session_id for Stripe redirect handling
     // - React app reads sessionStorage and scrolls to booking section
+    // - React bundle served from CDN so it works from any /props/{slug}/ path
     .replace('<!--APP_JS-->', `
 <script>
 (function() {
@@ -181,7 +182,7 @@ export function generateTemplateHtml(template: string, data: NewSiteData, supaba
   }
 })();
 </script>
-<script type="module" crossorigin src="./app.js"></script>`);
+<script type="module" crossorigin src="https://www.propbook.pro/scripts/react-assets/assets/${REACT_BUNDLE}?v=9"></script>`);
 }
 
 // ─────────────────────────────────────────────
@@ -303,7 +304,7 @@ const UPLOAD_PHP_URL = 'https://www.propbook.pro/upload.php';
 // Asset filenames — must match the current Vite build output
 // Vite generates deterministic hashes, but we hardcode known names after build.
 // After `npm run build`, update these to match dist/assets/ filenames.
-const REACT_BUNDLE = 'index-C4GbPHHT.js';
+const REACT_BUNDLE = 'index-CL6DNYFW.js';
 const REACT_CSS = 'index-BwoOEFWc.css';
 
 // Generate index.html for a property-specific React deployment.
