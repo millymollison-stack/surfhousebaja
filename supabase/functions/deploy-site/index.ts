@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
     // Verify property belongs to user
     const { data: property } = await supabase
       .from("properties")
-      .select("id, owner_id, status")
+      .select("id, owner_id, status, site_url")
       .eq("id", propertyId)
       .maybeSingle();
     if (!property) throw new Error("Property not found");
@@ -47,6 +47,23 @@ Deno.serve(async (req: Request) => {
     console.log(`[deploy-site] 🚀 Starting deploy for slug=${slug} property=${propertyId}`);
 
     let siteUrl = `https://www.propbook.pro/props/${slug}`;
+
+    // ─── Skip if site already deployed via deployViaUploadPhp ────────────
+    // handleSaveSiteInPopup calls deployViaUploadPhp FIRST (uploads correct React
+    // index.html + app.js), THEN calls this function. If site_url already exists,
+    // the correct React files are already in place — don't overwrite with the old
+    // GitHub template.
+    if (property.site_url) {
+      console.log(`[deploy-site] ⏭️ site_url already exists (${property.site_url}) — skipping template overwrite, only updating status`);
+      await supabase
+        .from("properties")
+        .update({ status: "active" })
+        .eq("id", propertyId);
+      return new Response(
+        JSON.stringify({ success: true, siteUrl: property.site_url, slug, propertyId, deployed_via: "skipped_template_already_deployed" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ─── Fetch template files from GitHub raw ─────────────────────────
     console.log("[deploy-site] Fetching template files from GitHub...");
