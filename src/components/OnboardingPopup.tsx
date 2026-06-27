@@ -12,7 +12,7 @@ import { saveBrandColor } from '../lib/brandColor';
 import { useAuth } from '../store/auth';
 import { StripeConnectSetup } from './StripeConnectSetup';
 import { createSlug } from '../services/slugService';
-import { createNewSiteRecords, deployViaUploadPhp, loadTemplateHtml, generateTemplateHtml } from '../services/p';
+import { createNewSiteRecords, deployViaUploadPhp } from '../services/p';
 
 // Color utility: adjust hex brightness
 function adjustBrightness(hex: string, percent: number): string {
@@ -1579,58 +1579,13 @@ const stripeRedirectRef = useRef(0);
        result.propertyId,
        supabaseUrl,
        supabaseAnonKey,
+       data,
        (msg) => console.log('[handleSaveSiteInPopup] Deploy:', msg)
        );
        console.log('[handleSaveSiteInPopup] ✅ Deploy result:', deployUrl);
      } catch (deployErr) {
        console.error('[handleSaveSiteInPopup] ⚠️ Deploy failed (non-fatal):', deployErr);
        deployUrl = undefined;
-     }
-
-     // ── Also deploy the static HTML template with baked-in property data ──
-     // This is the SEO-friendly landing page. It links to the React app
-     // via ?book=true query param for interactive booking/editing.
-     let staticSiteUrl: string | undefined;
-     try {
-       console.log('[handleSaveSiteInPopup] 📄 Generating static HTML template...');
-       const templateHtml = await loadTemplateHtml();
-       const staticHtml = generateTemplateHtml(templateHtml, {
-         ...data,
-         slug: result.slug,
-       });
-
-       // UTF-8 safe base64 — btoa() only handles Latin1, smart quotes/em-dashes need encoding
-       const encodeBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
-
-       // Upload static HTML as static.html alongside the React app.
-       // The static HTML shows property data instantly (great for SEO + slow connections).
-       // Booking/editing is handled by the React app loaded via ?book=true link.
-       const staticUploadRes = await fetch('https://www.propbook.pro/upload.php', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-           secret: 'propbo…2026',
-           slug: result.slug,
-           propertyId: result.propertyId,
-           files: {
-             'static.html': encodeBase64(staticHtml),
-           },
-         }),
-       });
-
-       if (staticUploadRes.ok) {
-         const staticResult = await staticUploadRes.json();
-         if (staticResult.success) {
-           console.log('[handleSaveSiteInPopup] ✅ Static HTML deployed at', result.siteUrl);
-           staticSiteUrl = result.siteUrl;
-         } else {
-           console.warn('[handleSaveSiteInPopup] ⚠️ Static HTML upload error:', staticResult.error);
-         }
-       } else {
-         console.warn('[handleSaveSiteInPopup] ⚠️ Static HTML upload HTTP error:', staticUploadRes.status);
-       }
-     } catch (staticErr) {
-       console.warn('[handleSaveSiteInPopup] ⚠️ Static HTML failed (non-fatal):', staticErr);
      }
 
      // ── Open the admin sidebar immediately so they can see their data ──

@@ -93,7 +93,7 @@ export function generateSiteHtml(template: string, data: NewSiteData): string {
 // This is the SEO-friendly static landing page with property data baked in.
 // The React app for booking/editing is deployed alongside at /app/.
 // ─────────────────────────────────────────────
-export function generateTemplateHtml(template: string, data: NewSiteData): string {
+export function generateTemplateHtml(template: string, data: NewSiteData, supabaseUrl?: string, supabaseAnonKey?: string): string {
   const s = data.scrapedData;
 
   // Primary images
@@ -158,9 +158,13 @@ export function generateTemplateHtml(template: string, data: NewSiteData): strin
     .replace(/\{\{BRAND_HANDLE\}\}/g, brandHandle)
     .replace(/\{\{LATITUDE\}\}/g, latitude)
     .replace(/\{\{LONGITUDE\}\}/g, longitude)
-    // Supabase config (for the plain JS app.js that runs in static template)
-    .replace(/\{\{SUPABASE_URL\}\}/g, import.meta.env.VITE_SUPABASE_URL || 'https://jtzagpbdrqfifdisxipr.supabase.co')
-    .replace(/\{\{SUPABASE_ANON_KEY\}\}/g, import.meta.env.VITE_SUPABASE_ANON_KEY || '');
+    // Supabase config (for the React app that runs in static template)
+    .replace(/\{\{SUPABASE_URL\}\}/g, supabaseUrl || import.meta.env.VITE_SUPABASE_URL || 'https://jtzagpbdrqfifdisxipr.supabase.co')
+    .replace(/\{\{SUPABASE_ANON_KEY\}\}/g, supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY || '')
+    // Replace <!--APP_JS--> with React bundle loader.
+    // The React app mounts to <div id="root"> and takes over rendering.
+    // Property slug is read from the URL path by React Router.
+    .replace('<!--APP_JS-->', `<script type="module" crossorigin src="./app.js"></script>`);
 }
 
 // ─────────────────────────────────────────────
@@ -282,7 +286,7 @@ const UPLOAD_PHP_URL = 'https://www.propbook.pro/upload.php';
 // Asset filenames — must match the current Vite build output
 // Vite generates deterministic hashes, but we hardcode known names after build.
 // After `npm run build`, update these to match dist/assets/ filenames.
-const REACT_BUNDLE = 'index-LKIMTyEo.js';
+const REACT_BUNDLE = 'index-BHFlsc8g.js';
 const REACT_CSS = 'index-BwoOEFWc.css';
 
 // Generate index.html for a property-specific React deployment.
@@ -340,62 +344,62 @@ function buildPropertyIndexHtml(slug: string): string {
 export async function deployViaUploadPhp(
   slug: string,
   propertyId: string,
-  _supabaseUrl: string,
-  _supabaseAnonKey: string,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  data: NewSiteData,
   onProgress?: (msg: string) => void
 ): Promise<string> {
   const siteUrl = `https://www.propbook.pro/props/${slug}`;
 
-  onProgress?.('Building site with React...');
+  onProgress?.('Generating static HTML with property data...');
 
-  // Generate property-specific index.html with relative asset paths
-  const indexHtml = buildPropertyIndexHtml(slug);
+  // ── Fetch the raw template from GitHub ─────────────────────────────────
+  const GITHUB_RAW = 'https://raw.githubusercontent.com/millymollison-stack/surfhousebaja/main/src/public/template';
+  let templateHtml: string;
+  try {
+    const res = await fetch(`${GITHUB_RAW}/template.html`);
+    if (!res.ok) throw new Error(`Template not found (${res.status})`);
+    templateHtml = await res.text();
+    console.log(`[deployViaUploadPhp] Template loaded: ${templateHtml.length} chars`);
+  } catch (e) {
+    throw new Error(`Failed to fetch template from GitHub: ${e.message}`);
+  }
 
-  // Fetch the pre-built React bundle assets from Hostinger.
-  // Users publish from propbook.pro (not localhost), so use the production URL.
-  // Assets live at /scripts/react-assets/assets/ on propbook.pro (uploaded via SCP).
-  // ?v=2 cache-bust forces Cloudflare to fetch fresh (avoid stale HTML cached from old 404).
+  // ── Fill template tokens with property data → static HTML ───────────────
+  // supabaseUrl/anonKey passed explicitly — can't use import.meta.env at browser runtime
+  const indexHtml = generateTemplateHtml(templateHtml, { ...data, slug }, supabaseUrl, supabaseAnonKey);
+
+  // ── Fetch React bundle from CDN for interactive booking/editing ────────
+  // The static HTML (index.html) loads app.js for user interactions.
   onProgress?.('Fetching React bundle from CDN...');
 
   const cdnBase = 'https://www.propbook.pro/scripts/react-assets/assets';
-  const cacheBust = '?v=2';
-  const [reactJs, reactCss] = await Promise.all([
-    fetch(`${cdnBase}/${REACT_BUNDLE}${cacheBust}`).then(r => {
-      if (!r.ok) throw new Error(`React bundle not found at ${cdnBase}/${REACT_BUNDLE}. Run \`npm run build\` and upload assets to Hostinger first.`);
-      return r.text();
-    }),
-    fetch(`${cdnBase}/${REACT_CSS}${cacheBust}`).then(r => {
-      if (!r.ok) throw new Error(`React CSS not found at ${cdnBase}/${REACT_CSS}`);
-      return r.text();
-    }),
-  ]);
+  const cacheBust = '?v=6';
+  let reactJs: string;
+  try {
+    const r = await fetch(`${cdnBase}/${REACT_BUNDLE}${cacheBust}`);
+    if (!r.ok) throw new Error(`React bundle not found at ${cdnBase}/${REACT_BUNDLE}. Run \`npm run build\` and upload assets to Hostinger first.`);
+    reactJs = await r.text();
+    console.log(`[deployViaUploadPhp] React bundle loaded: ${(reactJs.length / 1024).toFixed(0)}KB`);
+  } catch (e) {
+    throw new Error(`Failed to fetch React bundle: ${e.message}`);
+  }
 
   // UTF-8 safe base64 — btoa() only handles Latin1, template files have smart quotes/em-dashes
   const encodeBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
 
   onProgress?.('Uploading files to server...');
 
-  const payload = {
-    secret: DEPLOY_SECRET,
-    slug,
-    propertyId,
-    files: {
-      'index.html': encodeBase64(indexHtml),
-      'assets/index.html': 'placeholder', // will be ignored by upload.php if not needed
-      'assets/app.js': encodeBase64(reactJs),
-      'assets/styles.css': encodeBase64(reactCss),
-    },
-  };
-
-  // Fix: upload to assets/ subdirectory for relative path loading
+  // ── Upload files to Hostinger via upload.php ────────────────────────────
+  // index.html  = static template with ALL property data baked in (SEO content)
+  // app.js      = React bundle for interactive booking/editing (loaded by index.html)
   const uploadPayload = {
     secret: DEPLOY_SECRET,
     slug,
     propertyId,
     files: {
       'index.html': encodeBase64(indexHtml),
-      ['assets/' + REACT_BUNDLE]: encodeBase64(reactJs),
-      ['assets/' + REACT_CSS]: encodeBase64(reactCss),
+      'app.js': encodeBase64(reactJs),
     },
   };
 

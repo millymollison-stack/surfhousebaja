@@ -11,7 +11,7 @@ const UPLOAD_PHP_URL = "https://www.propbook.pro/upload.php";
 const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/millymollison-stack/surfhousebaja/main/src/public/template";
 const REACT_CDN_BASE = "https://www.propbook.pro/scripts/react-assets/assets";
 // Cache-bust: v=2 forces Cloudflare to fetch fresh instead of returning cached HTML error page
-const REACT_BUNDLE = "index-DDlHWOjw.js?v=2";
+const REACT_BUNDLE = "index-BHFlsc8g.js?v=6";
 const DEPLOY_SECRET = "propbook-deploy-2026";
 
 Deno.serve(async (req: Request) => {
