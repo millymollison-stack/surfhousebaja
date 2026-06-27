@@ -25,7 +25,28 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Surf House Baja - New Site Template</title>
-    <script>window.__PROPERTY_DATA__ = '__PROPERTY_DATA__';</script>
+    <script>
+// ── Capture Stripe return params BEFORE React mounts ────────────────────────
+// Vite SPA routing can lose URL params on the initial request because the server
+// serves index.html for client-side routing, and window.location.search may be
+// unavailable or empty when React hydrates. We capture ?paid=true&session_id=XXX
+// here synchronously and persist to sessionStorage so the ?paid handler can
+// access them regardless of Vite's routing behavior.
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const hasPaid = params.has('paid');
+  const sessionId = params.get('session_id');
+  if (hasPaid && sessionId) {
+    sessionStorage.setItem('stripe_session_id', sessionId);
+    sessionStorage.setItem('stripe_paid_flag', 'true');
+    console.log('[index.html pre-mount] Captured Stripe return params, session_id:', sessionId);
+    // Clean URL without page reload (remove query string)
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+  }
+})();
+</script>
+<script>window.__PROPERTY_DATA__ = '__PROPERTY_DATA__';</script>
   </head>
   <body>
     <div id="root"></div>

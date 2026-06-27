@@ -72,7 +72,7 @@ export async function deploySiteToHostinger(
       'index.html',
       'assets/index-BMpMzdBB.css',
       'assets/browser-VzoYYI-d.js',
-      'assets/siteDuplicationService-CBNxMwBB.js',
+      'assets/p-B4exhSOx.js',
       'assets/index-BS8RYSdb.js',
       'template/template.html',
       'template/surfhousebaja-main.jpg',

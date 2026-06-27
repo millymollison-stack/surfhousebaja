@@ -1,5 +1,5 @@
 /**
- * Slug generation — used by siteDuplicationService and onboarding
+ * Slug generation — used by p and onboarding
  */
 export function createSlug(name: string): string {
   return name

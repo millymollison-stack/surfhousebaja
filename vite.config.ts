@@ -21,6 +21,11 @@ export default defineConfig({
     }
   ],
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    exclude: [],
+  },
+  build: {
+    rollupOptions: {
+      output: {},
+    },
   },
 });

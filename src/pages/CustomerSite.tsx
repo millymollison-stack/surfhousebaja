@@ -148,6 +148,35 @@ export function CustomerSite({ onSiteNameChange }: { onSiteNameChange?: (name: s
     sessionStorage.setItem('onboarding_popup_closed', '1');
   }, []);
 
+  // ── Scroll to booking section when arriving via ?book=true from static HTML ──
+  // sessionStorage signal is set by the pre-mount script in index.html
+  useEffect(() => {
+    const scrollSignal = sessionStorage.getItem('scroll_to_booking');
+    if (scrollSignal) {
+      sessionStorage.removeItem('scroll_to_booking');
+      // Wait for React to finish rendering the booking calendar
+      const scrollToBooking = () => {
+        const el = document.getElementById('calendar-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          // Fallback: try a couple more times as React renders asynchronously
+          let attempts = 0;
+          const retry = setInterval(() => {
+            attempts++;
+            const el2 = document.getElementById('calendar-section');
+            if (el2 || attempts > 10) {
+              clearInterval(retry);
+              el2?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 200);
+        }
+      };
+      // Small delay to let React finish initial render
+      setTimeout(scrollToBooking, 500);
+    }
+  }, []);
+
   // ── Check for Stripe paid session and show subscription banner ────────────────
   // Reads stripe_banner_pending (set synchronously by handleStripeRedirect)
   // Shows confirmation immediately — popup already validated payment, no async verification needed

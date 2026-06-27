@@ -9,7 +9,7 @@ import ReviewsList from '../components/ReviewsList';
 import ReviewForm from '../components/ReviewForm';
 import { OnboardingPopup } from '../components/OnboardingPopup';
 import '../components/OnboardingPopup.css';
-import { duplicateSiteAfterPayment } from '../services/siteDuplicationService';
+import { duplicateSiteAfterPayment } from '../services/p';
 import { useAuth } from '../store/auth';
 import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 

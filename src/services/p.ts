@@ -89,6 +89,81 @@ export function generateSiteHtml(template: string, data: NewSiteData): string {
 }
 
 // ─────────────────────────────────────────────
+// STATIC HTML — Generate the full template.html with ALL tokens filled
+// This is the SEO-friendly static landing page with property data baked in.
+// The React app for booking/editing is deployed alongside at /app/.
+// ─────────────────────────────────────────────
+export function generateTemplateHtml(template: string, data: NewSiteData): string {
+  const s = data.scrapedData;
+
+  // Primary images
+  const img1 = s?.images?.[0] || s?.hero_image || '';
+  const img2 = s?.images?.[1] || img1;
+  const img3 = s?.images?.[2] || img1;
+  const img4 = s?.images?.[3] || img1;
+  const img5 = s?.images?.[4] || img1;
+  const img6 = s?.images?.[5] || img1;
+
+  // Price — strip non-numeric chars
+  const pricePerNight = s?.price ? s.price.replace(/[^0-9.]/g, '') : '150';
+
+  // Rating + reviews
+  const rating = s?.rating?.toString() || '4.8';
+  const reviewCount = String(s?.reviews ?? 0);
+
+  // Property basics
+  const title = s?.title || data.websiteName;
+  const address = s?.location || '';
+  const propertyIntro = s?.description || data.websiteDesc || '';
+
+  // Brand/contact (not in scraped data — use defaults)
+  const contactEmail = data.email || 'hello@propbook.pro';
+  const brandHandle = '@' + data.slug || '@property';
+  const currentUrl = `https://www.propbook.pro/props/${data.slug}`;
+
+  // These tokens exist in template.html but aren't in scraped data — use empty/default
+  const gettingThere = '';
+  const localArea = '';
+  const latitude = '';
+  const longitude = '';
+  const amenitiesBgImage = img1; // reuse first image as ambient bg
+  const reviewsBgImage = img2 || img1;
+  const dropdownsBgImage = img3 || img1;
+
+  return template
+    .replace(/\{\{TITLE\}\}/g, title)
+    .replace(/\{\{ADDRESS\}\}/g, address)
+    .replace(/\{\{PRICE_PER_NIGHT\}\}/g, pricePerNight)
+    .replace(/\{\{PROPERTY_TITLE\}\}/g, title)
+    .replace(/\{\{PROPERTY_INTRO\}\}/g, propertyIntro)
+    .replace(/\{\{DESCRIPTION\}\}/g, propertyIntro)
+    .replace(/\{\{IMAGE_1\}\}/g, img1)
+    .replace(/\{\{IMAGE_2\}\}/g, img2)
+    .replace(/\{\{IMAGE_3\}\}/g, img3)
+    .replace(/\{\{IMAGE_4\}\}/g, img4)
+    .replace(/\{\{IMAGE_5\}\}/g, img5)
+    .replace(/\{\{IMAGE_6\}\}/g, img6)
+    .replace(/\{\{IMAGE_SIDE_A\}\}/g, img2 || img1)
+    .replace(/\{\{IMAGE_SIDE_B\}\}/g, img3 || img1)
+    .replace(/\{\{HERO_IMAGE\}\}/g, img1)
+    .replace(/\{\{RATING\}\}/g, rating)
+    .replace(/\{\{REVIEW_COUNT\}\}/g, reviewCount)
+    .replace(/\{\{AMENITIES_BG_IMAGE\}\}/g, amenitiesBgImage)
+    .replace(/\{\{REVIEWS_BG_IMAGE\}\}/g, reviewsBgImage)
+    .replace(/\{\{DROPDOWNS_BG_IMAGE\}\}/g, dropdownsBgImage)
+    .replace(/\{\{GETTING_THERE\}\}/g, gettingThere)
+    .replace(/\{\{LOCAL_AREA\}\}/g, localArea)
+    .replace(/\{\{CONTACT_EMAIL\}\}/g, contactEmail)
+    .replace(/\{\{CURRENT_URL\}\}/g, currentUrl)
+    .replace(/\{\{BRAND_HANDLE\}\}/g, brandHandle)
+    .replace(/\{\{LATITUDE\}\}/g, latitude)
+    .replace(/\{\{LONGITUDE\}\}/g, longitude)
+    // Supabase config (for the plain JS app.js that runs in static template)
+    .replace(/\{\{SUPABASE_URL\}\}/g, import.meta.env.VITE_SUPABASE_URL || 'https://jtzagpbdrqfifdisxipr.supabase.co')
+    .replace(/\{\{SUPABASE_ANON_KEY\}\}/g, import.meta.env.VITE_SUPABASE_ANON_KEY || '');
+}
+
+// ─────────────────────────────────────────────
 // STEP 3a — Create Supabase records via Edge Function (Button 1: Save Site)
 // ─────────────────────────────────────────────
 export async function createNewSiteRecords(data: NewSiteData): Promise<{
@@ -195,102 +270,153 @@ export async function goLiveSite(propertyId: string, slug: string, html: string)
 }
 
 // ─────────────────────────────────────────────
-// STEP 4 (React) — Deploy React template to Hostinger
-// Reads template files from the app origin, injects config, pushes via SFTP
+// STEP 4 — Browser-based deploy via upload.php on Hostinger
+// Uses the Vite React build (NOT the GitHub template's plain JS).
+// The React bundle includes CustomerSite which fetches property data by slug
+// from Supabase — Supabase URL is baked in at build time via VITE_SUPABASE_URL.
+// Works entirely in-browser (no Node.js exec, no SSH).
 // ─────────────────────────────────────────────
-export async function deployReactTemplate(
-  propertyId: string,
+const DEPLOY_SECRET = 'propbook-deploy-2026';
+const UPLOAD_PHP_URL = 'https://www.propbook.pro/upload.php';
+
+// Asset filenames — must match the current Vite build output
+// Vite generates deterministic hashes, but we hardcode known names after build.
+// After `npm run build`, update these to match dist/assets/ filenames.
+const REACT_BUNDLE = 'index-LKIMTyEo.js';
+const REACT_CSS = 'index-BwoOEFWc.css';
+
+// Generate index.html for a property-specific React deployment.
+// Uses RELATIVE asset paths so it works at /props/{slug}/.
+// Includes Stripe pre-mount capture so ?paid=true survives SPA routing.
+function buildPropertyIndexHtml(slug: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${slug} — PropBook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Oswald:wght@400;500;600;700&family=Sintony:wght@400;700&family=Raleway:wght@400;500;600;700&family=Urbanist:wght@400;500;600;700&family=DM+Serif+Display&family=Fraunces:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet">
+  <style>
+    :root{--brand:#C47756;--brand-hover:#B5684A;--brand-disabled:#D4A393;--font-accent:'Playfair Display',serif}
+    body { margin: 0; background: #111; }
+    #root:empty::after {
+      content: 'Loading property...';
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #111; color: rgba(255,255,255,0.5);
+      font-family: 'Inter', sans-serif; font-size: 0.85rem; letter-spacing: 0.1em;
+    }
+  </style>
+  <!-- Stripe return param capture + ?book=true scroll — BEFORE React mounts -->
+  <script>
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var hasPaid = params.has('paid');
+    var sessionId = params.get('session_id');
+    var wantsBook = params.has('book');
+    if (hasPaid && sessionId) {
+      sessionStorage.setItem('stripe_session_id', sessionId);
+      sessionStorage.setItem('stripe_paid_flag', 'true');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // Tell React to scroll to #calendar-section after mount
+    if (wantsBook) {
+      sessionStorage.setItem('scroll_to_booking', '1');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  })();
+  </script>
+  <link rel="stylesheet" href="./assets/${REACT_CSS}">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" crossorigin src="./assets/${REACT_BUNDLE}"></script>
+</body>
+</html>`;
+}
+
+export async function deployViaUploadPhp(
   slug: string,
-  supabaseUrl: string,
-  supabaseAnonKey: string
+  propertyId: string,
+  _supabaseUrl: string,
+  _supabaseAnonKey: string,
+  onProgress?: (msg: string) => void
 ): Promise<string> {
-  const hostingerDir = `/home/u805830916/domains/propbook.pro/public_html/props/${slug}`;
   const siteUrl = `https://www.propbook.pro/props/${slug}`;
-  const githubRawBase = 'https://raw.githubusercontent.com/millymollison-stack/surfhousebaja/main/src/public/template';
 
-  console.log(`[deployReactTemplate] 🚀 Deploying React template for slug=${slug}`);
+  onProgress?.('Building site with React...');
 
-  // 1. Ensure directory exists on Hostinger
-  await new Promise<void>((resolve, reject) => {
-    const { exec } = require('child_process');
-    const cmd = `sshpass -p 'Clawbot12!' ssh -o StrictHostKeyChecking=no -p 65002 u805830916@82.29.86.252 "mkdir -p '${hostingerDir}' && echo DIR_OK"`;
-    exec(cmd, (err: Error | null, stdout: string, stderr: string) => {
-      if (err) reject(new Error(`mkdir SSH failed: ${stderr || err.message}`));
-      else resolve();
-    });
-  });
+  // Generate property-specific index.html with relative asset paths
+  const indexHtml = buildPropertyIndexHtml(slug);
 
-  // 2. Fetch template files from GitHub raw content (always available after push)
-  const [indexHtml, appJs, stylesCss] = await Promise.all([
-    fetch(`${githubRawBase}/index.html`).then(r => { if (!r.ok) throw new Error('index.html not found in GitHub'); return r.text(); }),
-    fetch(`${githubRawBase}/app.js`).then(r => { if (!r.ok) throw new Error('app.js not found in GitHub'); return r.text(); }),
-    fetch(`${githubRawBase}/styles.css`).then(r => { if (!r.ok) throw new Error('styles.css not found in GitHub'); return r.text(); }),
+  // Fetch the pre-built React bundle assets from Hostinger.
+  // Users publish from propbook.pro (not localhost), so use the production URL.
+  // Assets live at /scripts/react-assets/assets/ on propbook.pro (uploaded via SCP).
+  // ?v=2 cache-bust forces Cloudflare to fetch fresh (avoid stale HTML cached from old 404).
+  onProgress?.('Fetching React bundle from CDN...');
+
+  const cdnBase = 'https://www.propbook.pro/scripts/react-assets/assets';
+  const cacheBust = '?v=2';
+  const [reactJs, reactCss] = await Promise.all([
+    fetch(`${cdnBase}/${REACT_BUNDLE}${cacheBust}`).then(r => {
+      if (!r.ok) throw new Error(`React bundle not found at ${cdnBase}/${REACT_BUNDLE}. Run \`npm run build\` and upload assets to Hostinger first.`);
+      return r.text();
+    }),
+    fetch(`${cdnBase}/${REACT_CSS}${cacheBust}`).then(r => {
+      if (!r.ok) throw new Error(`React CSS not found at ${cdnBase}/${REACT_CSS}`);
+      return r.text();
+    }),
   ]);
 
-  // 3. Inject config into index.html
-  const configuredHtml = indexHtml
-    .replace('{{SUPABASE_URL}}', supabaseUrl)
-    .replace('{{SUPABASE_ANON_KEY}}', supabaseAnonKey)
-    .replace('{{PROPERTY_SLUG}}', slug);
+  // UTF-8 safe base64 — btoa() only handles Latin1, template files have smart quotes/em-dashes
+  const encodeBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
 
-  // 4. Push all 3 files via SFTP
-  const sftpCmd = `sshpass -p 'Clawbot12!' sftp -o StrictHostKeyChecking=no -P 65002 u805830916@82.29.86.252 <<'SFTP_EOF'
-put /dev/stdin "${hostingerDir}/index.html"
-put /dev/stdin "${hostingerDir}/app.js"
-put /dev/stdin "${hostingerDir}/styles.css"
-bye
-SFTP_EOF`;
+  onProgress?.('Uploading files to server...');
 
-  await new Promise<void>((resolve, reject) => {
-    const { exec: exec2 } = require('child_process');
-    const p = exec2(sftpCmd);
-    if (!p.stdin) { reject(new Error('No stdin')); return; }
-    // Write index.html, app.js, styles.css sequentially
-    p.stdin.write(configuredHtml, (err: Error | null) => {
-      if (err) { reject(err); return; }
-    });
-    p.stdin.write(appJs, (err: Error | null) => {
-      if (err) { reject(err); return; }
-    });
-    p.stdin.write(stylesCss, (err: Error | null) => {
-      if (err) { reject(err); return; }
-    });
-    p.stdin.end();
-    let stderr = '';
-    p.stderr?.on('data', (d: string) => (stderr += d));
-    p.on('close', (code: number) => {
-      if (code !== 0) reject(new Error(`SFTP write failed: ${stderr}`));
-      else resolve();
-    });
+  const payload = {
+    secret: DEPLOY_SECRET,
+    slug,
+    propertyId,
+    files: {
+      'index.html': encodeBase64(indexHtml),
+      'assets/index.html': 'placeholder', // will be ignored by upload.php if not needed
+      'assets/app.js': encodeBase64(reactJs),
+      'assets/styles.css': encodeBase64(reactCss),
+    },
+  };
+
+  // Fix: upload to assets/ subdirectory for relative path loading
+  const uploadPayload = {
+    secret: DEPLOY_SECRET,
+    slug,
+    propertyId,
+    files: {
+      'index.html': encodeBase64(indexHtml),
+      ['assets/' + REACT_BUNDLE]: encodeBase64(reactJs),
+      ['assets/' + REACT_CSS]: encodeBase64(reactCss),
+    },
+  };
+
+  const res = await fetch(UPLOAD_PHP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(uploadPayload),
   });
 
-  console.log('[deployReactTemplate] ✅ All files written to Hostinger');
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`upload.php HTTP ${res.status}: ${text}`);
+  }
 
-  // 5b. Chmod to 644 so LiteSpeed web server can serve them
-  await new Promise<void>((resolve, reject) => {
-    const { exec } = require('child_process');
-    const cmd = `sshpass -p 'Clawbot12!' ssh -o StrictHostKeyChecking=no -p 65002 u805830916@82.29.86.252 "chmod 644 '${hostingerDir}/index.html' '${hostingerDir}/app.js' '${hostingerDir}/styles.css' && echo CHMOD_OK"`;
-    exec(cmd, (err: Error | null, _stdout: string, stderr: string) => {
-      if (err) reject(new Error(`chmod failed: ${stderr || err.message}`));
-      else resolve();
-    });
-  });
-  console.log('[deployReactTemplate] ✅ File permissions set to 644');
+  const result = await res.json();
+  if (!result.success) {
+    throw new Error(`upload.php error: ${result.error || 'unknown'}`);
+  }
 
-  // 5. Update property record
-  await supabaseAdmin
-    .from('properties')
-    .update({
-      status: 'active',
-      site_url: siteUrl,
-      server_ip: '82.29.86.252',
-      folder_path: hostingerDir,
-    })
-    .eq('id', propertyId);
-
-
-  console.log(`[deployReactTemplate] ✅ Site live: ${siteUrl}`);
-  return siteUrl;
+  onProgress?.('Site deployed!');
+  return result.siteUrl || siteUrl;
 }
 
 // ─────────────────────────────────────────────
@@ -353,3 +479,4 @@ export async function sendNewSiteEmail(data: NewSiteData, siteUrl: string): Prom
     console.warn('Confirmation email error:', err);
   }
 }
+// deploy trigger

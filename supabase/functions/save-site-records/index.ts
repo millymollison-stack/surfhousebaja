@@ -40,7 +40,7 @@ Deno.serve(async (req: Request) => {
       throw new Error("Invalid JSON body");
     }
 
-    const { title, slug, description, location, maxGuests, bedrooms, beds, baths,
+    const { title, slug, description, location, maxGuests, bedrooms, bathrooms, beds, baths,
             pricePerNight, heroImage, images, stripeAccountId, stripeAccountStatus,
             userId } = body;
 
@@ -65,6 +65,7 @@ Deno.serve(async (req: Request) => {
         max_guests: maxGuests || 8,
         bedrooms: bedrooms || 2,
         beds: beds || 3,
+        bathrooms: bathrooms || 1,
         baths: baths || 1,
         price_per_night: pricePerNight || 150,
         hero_image: heroImage || "",
