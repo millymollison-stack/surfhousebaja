@@ -138,7 +138,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const { user, refreshUser } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
- const isMountedRef = { current: true };
+ const isMountedRef = useRef(true);
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
  // Inline auth state
@@ -812,8 +812,10 @@ const stripeRedirectRef = useRef(0);
  useEffect(() => {
  isMountedRef.current = true;
  const timer = setTimeout(() => {
+ console.log('[OBP] auto-open timer firing, isMountedRef.current=', isMountedRef.current, ' POPUP_CLOSED_KEY=', sessionStorage.getItem(POPUP_CLOSED_KEY));
  if (isMountedRef.current && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
  setIsOpen(true);
+ console.log('[OBP] setIsOpen(true) called');
  }
  }, 2000);
  return () => {
@@ -821,6 +823,11 @@ const stripeRedirectRef = useRef(0);
  clearTimeout(timer);
  };
  }, []);
+
+// DEBUG: track isOpen changes
+useEffect(() => {
+  console.log('[OBP] isOpen changed to:', isOpen);
+}, [isOpen]);
 
  // Handle return from Stripe Connect onboarding - ?return_url or ?stripe_connect_return in URL
  useEffect(() => {
@@ -1677,6 +1684,7 @@ const stripeRedirectRef = useRef(0);
 
  return (
  <>
+ <div id="obp-render-test" data-isopen={String(isOpen)} style="position:fixed;top:0;left:50%;background:lime;z-index:99999;color:#000;padding:4px 8px;font-size:12px">isOpen={String(isOpen)}</div>
  {isOpen && (
  <div className="popup-backdrop" onClick={handleClose}>
  <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
@@ -1694,7 +1702,7 @@ const stripeRedirectRef = useRef(0);
      {accountCreated && !user ? (
        <strong style={{color: '#2a9d4e'}}>✓ Account created — welcome, {authFullName || authEmail.split('@')[0]}!</strong>
      ) : user ? (
-       <><strong>{user.full_name || user.email}</strong></>
+       <><strong>{user?.full_name || user?.email}</strong></>
      ) : null}
    </div>
  ) : (
