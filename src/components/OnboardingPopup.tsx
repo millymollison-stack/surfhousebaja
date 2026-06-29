@@ -282,13 +282,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  const openStripeGateway = async (e?: React.MouseEvent) => {
   if (e) e.stopPropagation();
-  // Guard: prevent double-fire from rapid clicks
-  stripeRedirectRef.current++;
-  if (stripeRedirectRef.current > 1) {
+  // Guard: prevent double-fire — check BEFORE incrementing so first click always works
+  if (stripeRedirectRef.current > 0) {
     console.log('[openStripeGateway] already in flight — ignoring duplicate click');
-    stripeRedirectRef.current--;
     return;
   }
+  stripeRedirectRef.current++;
   console.log('[openStripeGateway] running...');
   // Clear any stale Stripe redirect state from previous page loads
   sessionStorage.removeItem('stripe_payment_returning');
@@ -387,32 +386,26 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('stripe_redirect_initiated', myTabId);
      console.log('[DEBUG] stripe_session_id saved=', safeSessionId, ', redirect href=', data.url);
 
-     // Use stripe.redirectToCheckout() — handles async loading + popup blockers
-     try {
-       const stripe = await stripePromise;
-       if (!stripe) throw new Error('Stripe.js failed to initialize. Check your network and try again.');
-       const { error } = await stripe.redirectToCheckout({ sessionId: safeSessionId });
-       if (error) {
-         console.error('[openStripeGateway] stripe.redirectToCheckout error:', error.message);
-         setStripeError('Could not open Stripe checkout: ' + error.message + '. Check your network or try again.');
-         setStripeProcessing(false);
-         return;
-       }
-       // Redirect in progress — do NOT reset stripeProcessing; page will unmount on navigation
-     } catch (stripeErr: any) {
-       console.error('[openStripeGateway] Stripe redirect error:', stripeErr.message || stripeErr);
-       setStripeError('Stripe checkout failed: ' + (stripeErr.message || String(stripeErr)));
+     // Use window.location.href for Stripe redirect — reliable, works in all browsers.
+     // Safety: if redirect fails to navigate within 1.5s, show error and reset button.
+     const redirectTimer = setTimeout(() => {
+       console.error('[openStripeGateway] Redirect timeout — Stripe may have been blocked');
+       setStripeError('Checkout page did not open. Check your popup blocker or try again.');
+       stripeRedirectRef.current = 0;
        setStripeProcessing(false);
-       return;
-     }
+     }, 1500);
+
+     window.location.href = data.url;
+
+     // If redirect fires, this code never runs (page navigates away).
+     // The timer above is a safety net only.
    } catch(e: any) {
+     clearTimeout(redirectTimer);
      console.error('[openStripeGateway] error:', e.message || e);
      setStripeError(e.message === 'fetch timeout'
        ? 'Connection timed out. Check your network and try again.'
        : 'Could not connect to payment server. (' + (e.message || String(e)) + ')');
-   } finally {
-     stripeRedirectRef.current--; // decrement so next click can proceed
-     setStripeProcessing(false); // ALWAYS reset — prevents stuck button
+     stripeRedirectRef.current = 0;
    }
  };
 
@@ -1455,29 +1448,24 @@ const stripeRedirectRef = useRef(0);
      // Persist session_id so the ?paid=true handler survives Vite HMR reloads
      if (data.sessionId) sessionStorage.setItem('stripe_session_id', data.sessionId);
 
-     // Use stripe.redirectToCheckout() — handles async loading + popup blockers
-     try {
-       const stripe = await stripePromise;
-       if (!stripe) throw new Error('Stripe.js failed to initialize. Check your network and try again.');
-       const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
-       if (error) {
-         console.error('[handlePublish] stripe.redirectToCheckout error:', error.message);
-         setStripeError('Could not open Stripe checkout: ' + error.message + '. Check your network or try again.');
-         setStripeProcessing(false);
-         return;
-       }
-       // Redirect in progress — page will unmount on navigation
-     } catch (stripeErr: any) {
-       console.error('[handlePublish] Stripe redirect error:', stripeErr.message || stripeErr);
-       setStripeError('Stripe checkout failed: ' + (stripeErr.message || String(stripeErr)));
+     // Use window.location.href for Stripe redirect — reliable, works in all browsers.
+     // Safety: if redirect fails to navigate within 1.5s, show error and reset button.
+     const redirectTimer2 = setTimeout(() => {
+       console.error('[handlePublish] Redirect timeout — Stripe may have been blocked');
+       setStripeError('Checkout page did not open. Check your popup blocker or try again.');
+       stripeRedirectRef.current = 0;
        setStripeProcessing(false);
-       return;
-     }
+     }, 1500);
+
+     window.location.href = data.url;
+
+     // If redirect fires, this code never runs (page navigates away).
+     // The timer above is a safety net only.
    } catch {
+     clearTimeout(redirectTimer2);
      setStripeError('Could not connect to payment server. Please try again.');
-     setStripeProcessing(false);
+     stripeRedirectRef.current = 0;
    }
- };
 
  const handleSaveSiteInPopup = async () => {
    console.log('[handleSaveSiteInPopup] 🚀 START user:', user?.id, 'email:', user?.email);
@@ -2349,4 +2337,5 @@ const stripeRedirectRef = useRef(0);
 
  </>
  );
+}
 }
