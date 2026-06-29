@@ -1284,6 +1284,41 @@ const stripeRedirectRef = useRef(0);
  // NOTE: websiteName and websiteDesc are NOT autofilled — user types their own name
  sessionStorage.setItem('popup_scraped_data', JSON.stringify(data));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
+
+ // ── Also persist to onboarding_data so migrate-property can find it ──
+ // migrate-property looks for scraped_* prefixed fields and property_name
+ try {
+ const { data: { session: sess } } = await supabase.auth.getSession();
+ if (sess) {
+ const { error: odErr } = await supabase.from('onboarding_data').upsert({
+ user_id: sess.user.id,
+ scraped_title: data.title || null,
+ scraped_location: data.location || null,
+ scraped_description: data.description || null,
+ scraped_hero_image: data.hero_image || null,
+ scraped_images: data.images || [],
+ scraped_guests: data.guests != null ? String(data.guests) : null,
+ scraped_rating: data.rating != null ? String(data.rating) : null,
+ scraped_reviews: data.reviews != null ? String(data.reviews) : null,
+ hero_image: data.hero_image || null,
+ images: data.images || [],
+ bedrooms: data.bedrooms != null ? String(data.bedrooms) : null,
+ beds: data.beds != null ? String(data.beds) : null,
+ baths: data.baths != null ? String(data.baths) : null,
+ property_name: data.title || null,
+ property_desc: data.description || null,
+ location: data.location || null,
+ price: data.price || null,
+ host_name: data.host_name || null,
+ rating: data.rating != null ? String(data.rating) : null,
+ reviews: data.reviews != null ? String(data.reviews) : null,
+ }, { onConflict: 'user_id' });
+ if (odErr) console.warn('[handleAirbnbScrape] onboarding_data upsert warn:', odErr.message);
+ else console.log('[handleAirbnbScrape] onboarding_data saved for migrate-property');
+ }
+ } catch (err) {
+ console.warn('[handleAirbnbScrape] failed to save onboarding_data:', err);
+ }
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
  }

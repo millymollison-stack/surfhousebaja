@@ -228,6 +228,9 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
         stripeAccountId: data.userStripeAccountId || null,
         stripeAccountStatus: data.userStripeAccountId ? 'active' : null,
         userId: data.userId,
+        // Pass full scrapedData so save-site-records can use it directly
+        // (migrate-property is the primary migration path; this is the fallback)
+        scrapedData: data.scrapedData || null,
       }),
     });
     const result = await res.json();

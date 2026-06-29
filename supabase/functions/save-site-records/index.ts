@@ -42,9 +42,10 @@ Deno.serve(async (req: Request) => {
 
     const { title, slug, description, location, maxGuests, bedrooms, bathrooms, beds, baths,
             pricePerNight, heroImage, images, stripeAccountId, stripeAccountStatus,
-            userId } = body;
+            userId, scrapedData } = body;
 
     // Fetch reference copy from the master Surf House Baja property
+    // Only used as fallback when scrapedData doesn't provide rich content
     const { data: refProp } = await supabase
       .from("properties")
       .select("property_details, property_intro, activities, local_area, getting_there, brand_color, font_accent")
@@ -57,6 +58,8 @@ Deno.serve(async (req: Request) => {
     const { data: propertyRecord, error: propertyError } = await supabase
       .from("properties")
       .insert({
+        // Use scraped title from request body (set by createNewSiteRecords from scrapedData)
+        // Do NOT fall back to reference property title — that caused wrong property names
         title: title || "Untitled Property",
         slug,
         owner_id: userId,  // Critical: set owner so deploy-site can verify ownership
@@ -72,12 +75,13 @@ Deno.serve(async (req: Request) => {
         images: images || [],
         stripe_account_id: stripeAccountId || null,
         stripe_account_status: stripeAccountStatus || null,
-        // Copy reference copy fields from master property so new sites have rich content
-        property_details: ref.property_details || null,
-        property_intro: ref.property_intro || null,
-        activities: ref.activities || null,
-        local_area: ref.local_area || null,
-        getting_there: ref.getting_there || null,
+        // Rich content: prefer scrapedData fields; fall back to reference property only if absent.
+        // scrapedData comes from the actual scraped Airbnb listing, not the reference property.
+        property_details: scrapedData?.property_details || scrapedData?.description || ref.property_details || null,
+        property_intro: scrapedData?.property_intro || scrapedData?.description || ref.property_intro || null,
+        activities: scrapedData?.activities || ref.activities || null,
+        local_area: scrapedData?.local_area || ref.local_area || null,
+        getting_there: scrapedData?.getting_there || ref.getting_there || null,
         brand_color: ref.brand_color || null,
         font_accent: ref.font_accent || null,
       })
