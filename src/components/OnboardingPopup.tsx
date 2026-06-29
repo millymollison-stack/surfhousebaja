@@ -386,7 +386,25 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('stripe_session_id', safeSessionId);
      sessionStorage.setItem('stripe_redirect_initiated', myTabId);
      console.log('[DEBUG] stripe_session_id saved=', safeSessionId, ', redirect href=', data.url);
-     window.location.href = data.url;
+
+     // Use stripe.redirectToCheckout() — handles async loading + popup blockers
+     try {
+       const stripe = await stripePromise;
+       if (!stripe) throw new Error('Stripe.js failed to initialize. Check your network and try again.');
+       const { error } = await stripe.redirectToCheckout({ sessionId: safeSessionId });
+       if (error) {
+         console.error('[openStripeGateway] stripe.redirectToCheckout error:', error.message);
+         setStripeError('Could not open Stripe checkout: ' + error.message + '. Check your network or try again.');
+         setStripeProcessing(false);
+         return;
+       }
+       // Redirect in progress — do NOT reset stripeProcessing; page will unmount on navigation
+     } catch (stripeErr: any) {
+       console.error('[openStripeGateway] Stripe redirect error:', stripeErr.message || stripeErr);
+       setStripeError('Stripe checkout failed: ' + (stripeErr.message || String(stripeErr)));
+       setStripeProcessing(false);
+       return;
+     }
    } catch(e: any) {
      console.error('[openStripeGateway] error:', e.message || e);
      setStripeError(e.message === 'fetch timeout'
@@ -1432,9 +1450,28 @@ const stripeRedirectRef = useRef(0);
      console.log('[DEBUG] About to redirect to: ' + data.url);
      // Persist session_id so the ?paid=true handler survives Vite HMR reloads
      if (data.sessionId) sessionStorage.setItem('stripe_session_id', data.sessionId);
-     window.location.href = data.url;
+
+     // Use stripe.redirectToCheckout() — handles async loading + popup blockers
+     try {
+       const stripe = await stripePromise;
+       if (!stripe) throw new Error('Stripe.js failed to initialize. Check your network and try again.');
+       const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+       if (error) {
+         console.error('[handlePublish] stripe.redirectToCheckout error:', error.message);
+         setStripeError('Could not open Stripe checkout: ' + error.message + '. Check your network or try again.');
+         setStripeProcessing(false);
+         return;
+       }
+       // Redirect in progress — page will unmount on navigation
+     } catch (stripeErr: any) {
+       console.error('[handlePublish] Stripe redirect error:', stripeErr.message || stripeErr);
+       setStripeError('Stripe checkout failed: ' + (stripeErr.message || String(stripeErr)));
+       setStripeProcessing(false);
+       return;
+     }
    } catch {
      setStripeError('Could not connect to payment server. Please try again.');
+     setStripeProcessing(false);
    }
  };
 
