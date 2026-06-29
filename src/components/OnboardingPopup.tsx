@@ -1298,8 +1298,12 @@ const stripeRedirectRef = useRef(0);
  if (result.success) {
  const data = result.data;
  setScrapedData(data);
+ // Auto-fill websiteName + websiteDesc from scraped data (if fields are still empty)
+ // so user can see and edit them before subscribing. Use trimmed value to avoid
+ // whitespace-only strings that would make slug generation emit weird slugs.
+ if (!websiteName.trim()) setWebsiteName((data.title || '').trim());
+ if (!websiteDesc.trim()) setWebsiteDesc((data.description || '').trim());
  // Persist scraped data to sessionStorage immediately so it survives Stripe redirect
- // NOTE: websiteName and websiteDesc are NOT autofilled — user types their own name
  sessionStorage.setItem('popup_scraped_data', JSON.stringify(data));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
 
