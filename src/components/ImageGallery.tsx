@@ -90,7 +90,7 @@ export function ImageGallery({
     }
   }, [sortedImages.length, isEditing, user]);
 
-  const handlePropertyTextSave = async () => {
+  const handlePropertyTextSave = async (liveIntro?: string) => {
     if (!onPropertyUpdate) return;
     // Debounce: prevent accidental double-saves
     if (saveInProgressRef.current) {
@@ -99,7 +99,8 @@ export function ImageGallery({
     }
     saveInProgressRef.current = true;
     const titleToSave = propertyTitle;
-    const introToSave = propertyIntro;
+    // Use liveIntro if provided (from textarea onBlur), otherwise fall back to state
+    const introToSave = liveIntro !== undefined ? liveIntro : propertyIntro;
     console.log('[DEBUG ImageGallery] handlePropertyTextSave capturing title=', titleToSave?.slice(0,20), 'intro=', introToSave?.slice(0,20));
     // Guard: only write to DB if value actually changed
     const currentTitle = property?.property_title ?? '';
@@ -329,7 +330,7 @@ export function ImageGallery({
               <textarea
                 value={propertyIntro}
                 onChange={(e) => setPropertyIntro(e.target.value)}
-                onBlur={handlePropertyTextSave}
+                onBlur={(e) => { setPropertyIntro(e.target.value); handlePropertyTextSave(e.target.value); }}
                 className="w-full text-white resize-none font-normal p-2 mt-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] edit-intro-textarea"
                 rows={2}
                 placeholder="Enter property introduction..." 

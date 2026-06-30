@@ -178,6 +178,10 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
           name={name}
           value={value}
           onChange={handleInputChange}
+          onBlur={(e) => {
+            setFormData(prev => ({ ...prev, description: e.target.value }));
+            onSave?.({ ...formData, description: e.target.value });
+          }}
           className={`${editInputClass} edit-textarea`}
           rows={4}
         />
