@@ -15,6 +15,7 @@ import { Onboarding } from './pages/Onboarding';
 import { CustomerSite } from './pages/CustomerSite';
 import PaymentPage from './pages/PaymentPage';
 import { SaasAdminDashboard } from './pages/SaasAdminDashboard';
+import { supabase } from './lib/supabase';
 
 interface ErrorBoundaryProps { children: ReactNode; }
 interface ErrorBoundaryState { hasError: boolean; error: string; }
@@ -55,21 +56,50 @@ function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const saveAllRef = useRef<(() => Promise<void>) | null>(null);
+  // Track whether we've already validated/stashed sessionStorage — run exactly once
+  const sessionStorageCleanedRef = useRef(false);
 
+  // ── Init (runs once on mount) ────────────────────────────────────────────────
   useEffect(() => {
     initialize();
     loadBrandColor();
     loadFontAccent();
-    // Clear stale onboarding session data so it doesn't override nav title
-    sessionStorage.removeItem('popup_website_name');
-    sessionStorage.removeItem('popup_website_desc');
-    sessionStorage.removeItem('popup_scraped_data');
+  }, [initialize]);
 
-    // ── Listen for property-loaded event (hybrid static page boots React) ──
+  // ── Clear stale onboarding sessionStorage when user is first established ───────
+  // We can't do this in the init effect because user isn't loaded yet.
+  // This fires when user transitions null → loaded (first app load or after sign-in).
+  useEffect(() => {
+    if (sessionStorageCleanedRef.current || !user) return;
+    sessionStorageCleanedRef.current = true;
+
+    (async () => {
+      const slug = sessionStorage.getItem('popup_website_name');
+      if (!slug) return;
+      // Validate: does this user still own a property matching the stored slug?
+      // If not, clear all onboarding keys so a ghost @OBO Casa doesn't persist
+      // after a property was deleted from the DB.
+      try {
+        const { data } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('owner_id', user.id)
+          .limit(1);
+        // If user has at least one property, keep the slug; otherwise it's stale
+        if (!data || data.length === 0) {
+          sessionStorage.removeItem('popup_website_name');
+          sessionStorage.removeItem('popup_website_desc');
+          sessionStorage.removeItem('popup_scraped_data');
+        }
+      } catch { /* non-blocking */ }
+    })();
+  }, [user]);
+
+  // ── Listen for property-loaded event (hybrid static page boots React) ──────────
+  useEffect(() => {
     const handlePropertyLoaded = (e: Event) => {
       const { property, user, isStale } = (e as CustomEvent).detail;
       if (user && property && property.owner_id === user.id) {
-        // User is the owner — show the sidebar so they can publish
         setSidebarOpen(true);
         setIsEditing(true);
         setCanEdit(true);
@@ -80,7 +110,7 @@ function AppContent() {
     };
     window.addEventListener('property-loaded', handlePropertyLoaded);
     return () => window.removeEventListener('property-loaded', handlePropertyLoaded);
-  }, [initialize]);
+  }, []);
 
   const handleSaveAll = async () => {
     if (saveAllRef.current) await saveAllRef.current();
