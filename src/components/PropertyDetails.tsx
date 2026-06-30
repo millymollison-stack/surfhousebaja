@@ -182,7 +182,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             setFormData(prev => ({ ...prev, description: e.target.value }));
             onSave?.({ ...formData, description: e.target.value });
           }}
-          className={`${editInputClass} edit-textarea`}
+          className={`${editInputClass} edit-textarea whitespace-pre-line`}
           rows={4}
         />
       );
@@ -208,7 +208,7 @@ export function PropertyDetails({ property, isEditing, onEditingChange, onSave, 
             {isEditing ? (
               renderEditableText('description', formData.description, 'textarea')
             ) : (
-              <p className="hero-subtitle">{property.description || formData.description}</p>
+              <p className="whitespace-pre-line hero-subtitle">{property.description || formData.description}</p>
             )}
           </div>
         </div>
