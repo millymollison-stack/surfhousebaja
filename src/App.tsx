@@ -76,17 +76,21 @@ function AppContent() {
     (async () => {
       const slug = sessionStorage.getItem('popup_website_name');
       if (!slug) return;
-      // Validate: does this user still own a property matching the stored slug?
-      // If not, clear all onboarding keys so a ghost @OBO Casa doesn't persist
-      // after a property was deleted from the DB.
+      // Validate: does this user own a property whose slug matches popup_website_name?
+      // popup_website_name stores a display name (e.g. "OBO Casa"), not a slug,
+      // so we compare lowercase-stripped versions. If it doesn't match any of the
+      // user's properties, it's stale from a deleted property — clear it.
       try {
         const { data } = await supabase
           .from('properties')
-          .select('id')
-          .eq('owner_id', user.id)
-          .limit(1);
-        // If user has at least one property, keep the slug; otherwise it's stale
-        if (!data || data.length === 0) {
+          .select('id, title, slug')
+          .eq('owner_id', user.id);
+        const allSlugs = (data || []).map(p =>
+          (p.slug || p.title || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        );
+        const storedSlug = slug.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const isValid = allSlugs.some(s => s === storedSlug || storedSlug.includes(s) || s.includes(storedSlug));
+        if (!isValid) {
           sessionStorage.removeItem('popup_website_name');
           sessionStorage.removeItem('popup_website_desc');
           sessionStorage.removeItem('popup_scraped_data');
