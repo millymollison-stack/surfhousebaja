@@ -6,7 +6,7 @@ import { useAuth } from '../store/auth';
 import ColorPicker from './ColorPicker';
 import { applyFontAccent, loadFontAccent } from '../lib/fontAccent';
 
-export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges, siteName, onSiteNameChange, onOpenSidebar }: { 
+export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveChanges, siteName, onSiteNameChange, onOpenSidebar, canEdit }: { 
   children: React.ReactNode; 
   isEditing?: boolean;
   siteName?: string;
@@ -15,6 +15,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
   hasChanges?: boolean;
   onSaveChanges?: () => void;
   onOpenSidebar?: () => void;
+  canEdit?: boolean;
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -68,7 +69,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
           </Link>
           
           <div className="flex items-center space-x-3">
-            {isAdmin && (
+            {isAdmin && canEdit && (
               <>
                 {hasChanges ? (
                   <button

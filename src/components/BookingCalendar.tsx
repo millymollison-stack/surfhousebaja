@@ -81,9 +81,10 @@ export function BookingCalendar({
         .select('*')
         .eq('role', 'admin')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!adminUsers) return;
       setAdminProfile(adminUsers);
     } catch (err) {
       console.error('Failed to load admin profile:', err);

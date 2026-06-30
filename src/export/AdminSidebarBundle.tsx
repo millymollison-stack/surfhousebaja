@@ -118,13 +118,13 @@ const UserBookings = memo(function UserBookings({ bookings, onUpdateStatus, onRe
   const [isUpdating, setIsUpdating] = useState(false);
   const [isRefunding, setIsRefunding] = useState<string | null>(null);
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'saas_admin';
 
   useEffect(() => { if (!isAdmin) loadAdminProfile(); }, [isAdmin]);
 
   const loadAdminProfile = async () => {
     try {
-      const { data } = await supabase.from('profiles').select('*').eq('role', 'admin').limit(1).single();
+      const { data } = await supabase.from('profiles').select('*').eq('role', 'admin').limit(1).maybeSingle();
       if (data) setAdminProfile(data);
     } catch { /* silent */ }
   };
@@ -879,7 +879,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const { user, signOut, refreshUser } = useAuth();
   const navigate = useNavigate();
   const setPropertyTitle = useProperty(s => s.setTitle);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'saas_admin';
 
   const [openSection, setOpenSection] = useState<Section | null>(null);
   const [bookingCardOpen, setBookingCardOpen] = useState(false);
@@ -893,6 +893,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [nextBooking, setNextBooking] = useState<NextBooking | null>(null);
   const [imageCount, setImageCount] = useState(0);
   const [property, setProperty] = useState<Property | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
 
   const [connectData, setConnectData] = useState<StripeConnectData | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
@@ -905,29 +907,23 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates' });
+
+  // ── Sync propFields + imageCount when selected property changes ──
+  const syncPropertyFields = (prop: Property | null) => {
+    console.log('[syncPropertyFields] called with prop:', prop ? { id: prop.id, title: prop.title, address: prop.address } : null);
+    if (!prop) { setProperty(null); setPropFields({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' }); return; }
+    setProperty(prop);
+    setPropFields({ title: prop.title || '', address: prop.address || '', latitude: prop.latitude?.toString() || '', longitude: prop.longitude?.toString() || '', location_type: (prop.location_type as 'address' | 'coordinates') || 'coordinates' });
+    console.log('[syncPropertyFields] propFields now set to:', { title: prop.title || '', address: prop.address || '' });
+  };
   const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
   const [devUpdates, setDevUpdates] = useState(true);
   const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: false, marketing: false, advertising: false, analytics: false, influencers: false, social: false });
 
-  // Reset data each time sidebar opens to prevent stale-loader bug
-  const [dataKey, setDataKey] = useState(0);
-  useEffect(() => {
-    if (!isOpen) return;
-    setDataKey(k => k + 1);
-    if (user) {
-      loadData();
-      loadConnectData(); // Always refresh Stripe Connect data so credentials panel is up to date
-      loadSubscriptionData(); // Always refresh subscription status for credentials panel
-    }
-  }, [isOpen]);
-  // Refresh profile once on mount so role changes (e.g. admin upgrade) take effect without re-login
-  useEffect(() => {
-    if (!user) return;
-    refreshUser();
-  }, []);
-
+  // ── Data loaders (defined before use in useEffect) ───────────────────────
   const loadData = async () => {
-    if (!user) return;
+    if (!user) { console.error('[loadData] ABORT: user is null/undefined'); return; }
+    console.log('[loadData] STARTING, user.id:', user.id, 'isAdmin:', isAdmin);
     const key = dataKey; // capture current dataKey to detect stale calls
     // Reset booking/nextbooking state so loader shows while re-fetching
     setBookings([]);
@@ -937,19 +933,57 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     try {
       // Non-admin: only load bookings (filtered to this user) + profile
       // Admin: load everything including property + images
-      const [bookingsRes, profileRes, imagesRes, propRes] = isAdmin
-        ? await Promise.all([
-            supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }),
-            supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(),
-            supabase.from('property_images').select('id'),
-            supabase.from('properties').select('*').eq('owner_id', user.id).limit(1).maybeSingle(),
-          ])
-        : await Promise.all([
-            supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
-            supabase.from('profiles').select('full_name, phone_number').eq('id', user.id).maybeSingle(),
-          ]).then(([br, pr]) => [br, pr, { data: null }, { data: null }] as const);
+      console.log('[loadData] Querying properties for owner_id:', user.id);
+      let allPropsRes: any = { data: null };
+      try {
+        allPropsRes = isAdmin
+          ? await Promise.race([
+              supabase.from('properties').select('*').eq('owner_id', user.id).order('created_at', { ascending: false }),
+              new Promise<{data: null, error: null}>((_, reject) => setTimeout(() => reject(new Error('properties timeout')), 5000))
+            ])
+          : { data: null };
+      } catch(e) { console.error('[loadData] properties query error:', e); return; }
+      console.log('[loadData] Properties query done, allPropsRes:', JSON.stringify({ dataLength: allPropsRes?.data?.length, data: allPropsRes?.data, error: allPropsRes?.error }));
+      // ── FIRST: immediately set property data (before slow bookings query) ──
+      const props = allPropsRes.data ?? [];
+      console.log('[loadData] Properties loaded:', { isAdmin, userId: user.id, propsCount: props.length, props: props.map(p => ({ id: p.id, title: p.title })) });
+      setProperties(props);
+      const targetId = selectedPropertyId ?? (props[0]?.id ?? null);
+      setSelectedPropertyId(targetId);
+      const selected = props.find(p => p.id === targetId) ?? props[0] ?? null;
+      // syncPropertyFields is called immediately — before the stale check below
+      // so even if this loadData becomes stale, the property fields are already set
+      if (selected) {
+        console.log('[loadData] Immediately calling syncPropertyFields for:', { id: selected.id, title: selected.title });
+        syncPropertyFields(selected);
+      }
 
-      if (key !== dataKey) return; // stale response, discard
+      // ── SECOND: slow bookings + profile query (non-blocking) ──
+      let bookingsRes: any = { data: null, error: null };
+      let profileRes: any = { data: null, error: null };
+      try {
+        const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> => {
+          return Promise.race([
+            p,
+            new Promise<T>((resolve) => setTimeout(() => resolve({ data: null, error: 'timeout' } as T), ms))
+          ]);
+        };
+        if (isAdmin) {
+          [bookingsRes, profileRes] = await Promise.all([
+            withTimeout(supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }), 5000),
+            withTimeout(supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(), 5000),
+          ]);
+        } else {
+          [bookingsRes, profileRes] = await Promise.all([
+            withTimeout(supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', user.id).order('created_at', { ascending: false }), 5000),
+            withTimeout(supabase.from('profiles').select('full_name, phone_number').eq('id', user.id).maybeSingle(), 5000),
+          ]);
+        }
+      } catch(e) { console.error('[loadData] bookings/profile query error:', e); }
+      console.log('[loadData] Bookings query done, bookings count:', bookingsRes?.data?.length ?? 'null');
+
+      // ── STALE GUARD: only for non-property state ──
+      if (key !== dataKey) return;
       if (bookingsRes.data) {
         const valid = bookingsRes.data.filter(b => b && b.property);
         setBookings(valid);
@@ -968,10 +1002,13 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           setNextBooking({ guestName: featured.user?.full_name || 'Guest', location: featured.property?.address || featured.property?.title || '', guestCount: featured.guest_count, nights, startDay: sd, endDay: ed, month: format(start, 'MMM').toUpperCase(), status: featured.status });
         } else setNextBooking(null);
       }
-      if (imagesRes.data) setImageCount(imagesRes.data.length);
-      if (propRes.data) {
-        setProperty(propRes.data);
-        setPropFields({ title: propRes.data.title || '', address: propRes.data.address || '', latitude: propRes.data.latitude?.toString() || '', longitude: propRes.data.longitude?.toString() || '', location_type: (propRes.data.location_type as 'address' | 'coordinates') || 'coordinates' });
+
+      // Load image count for the selected property only
+      if (selected) {
+        const { data: selectedImgs } = await supabase.from('property_images').select('id').eq('property_id', selected.id);
+        setImageCount(selectedImgs?.length ?? 0);
+      } else {
+        setImageCount(0);
       }
       if (profileRes.data) {
         setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
@@ -981,9 +1018,45 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     } finally { setBookingsLoading(false); }
   };
 
+  const loadConnectData = async () => {
+    setConnectLoading(true);
+    try {
+      const session = await getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setConnectData(data);
+    } catch (err) { console.error(err); } finally { setConnectLoading(false); }
+  };
+
+  const loadSubscriptionData = async () => {
+    if (subLoading) return;
+    setSubLoading(true);
+    try {
+      const session = await getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription?action=get`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
+      const data = await res.json();
+      if (res.ok && data.subscription) setSubscriptionData(data.subscription);
+    } catch (err) { console.error(err); } finally { setSubLoading(false); }
+  };
+
+  // Reset data each time sidebar opens to prevent stale-loader bug
+  const [dataKey, setDataKey] = useState(0);
   useEffect(() => {
-    if (user) setContactFields({ full_name: user.full_name || '', email: user.email || '', phone_number: user.phone_number || '' });
-  }, [user]);
+    console.log('[useEffect loadData] firing, isOpen:', isOpen, 'user:', !!user);
+    if (!isOpen) return;
+    setDataKey(k => k + 1);
+    if (user) {
+      loadData();
+      loadConnectData(); // Always refresh Stripe Connect data so credentials panel is up to date
+      loadSubscriptionData(); // Always refresh subscription status for credentials panel
+    }
+  }, [isOpen, user]);
+  // Refresh profile once on mount so role changes (e.g. admin upgrade) take effect without re-login
+  useEffect(() => {
+    if (!user) return;
+    refreshUser();
+  }, []);
 
   const saveServices = async (updated: Record<ServiceKey, boolean>) => {
     if (!user) return;
@@ -1002,16 +1075,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     return session;
   };
 
-  const loadConnectData = async () => {
-    setConnectLoading(true);
-    try {
-      const session = await getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setConnectData(data);
-    } catch (err) { console.error(err); } finally { setConnectLoading(false); }
-  };
+
 
   // Listen for Stripe Connect account ID broadcast from OnboardingPopup / payment success
   useEffect(() => {
@@ -1102,16 +1166,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     }
   }, [connectData]);
 
-  const loadSubscriptionData = async () => {
-    if (subLoading) return;
-    setSubLoading(true);
-    try {
-      const session = await getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription?action=get`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
-      const data = await res.json();
-      if (res.ok && data.subscription) setSubscriptionData(data.subscription);
-    } catch (err) { console.error(err); } finally { setSubLoading(false); }
-  };
+
 
   const handleConnectOnboard = async () => {
     setConnectOnboarding(true);
@@ -1153,16 +1208,36 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     try {
       const saves: Promise<unknown>[] = [];
       // Admins save property fields too; non-admins only save contact info
-      if (isAdmin && property) saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type }).eq('id', property.id));
-      if (user) saves.push(supabase.from('profiles').update({ full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null }).eq('id', user.id));
-      await Promise.all(saves);
+      if (isAdmin && selectedPropertyId) {
+        console.log('[handleSave] Saving property:', { selectedPropertyId, title: propFields.title, address: propFields.address, latitude: propFields.latitude, longitude: propFields.longitude, location_type: propFields.location_type });
+        saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type }).eq('id', selectedPropertyId));
+      } else {
+        console.log('[handleSave] Skipping property save — isAdmin:', isAdmin, 'selectedPropertyId:', selectedPropertyId);
+      }
+      if (user) {
+        console.log('[handleSave] Saving profile:', { userId: user.id, full_name: contactFields.full_name, phone_number: contactFields.phone_number });
+        saves.push(supabase.from('profiles').update({ full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null }).eq('id', user.id));
+      }
+      // Use allSettled so partial failures don't roll back successful saves
+      const results = await Promise.allSettled(saves);
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) console.error('[handleSave] Some saves failed:', failures.map(r => (r as PromiseRejectedResult).reason));
+      else console.log('[handleSave] All saves succeeded');
       if (isAdmin && propFields.title) setPropertyTitle(propFields.title);
-      await loadData();
-    } catch (err) { console.error('Save failed', err); } finally { setIsEditing(false); setSaving(false); }
+      // Reload image count after save (property may have changed)
+    } catch (err) {
+      console.error('Save failed', err);
+    } finally {
+      // Unblock UI immediately — never leave button stuck in "Saving..."
+      setIsEditing(false);
+      setSaving(false);
+      // Reload data independently; don't let reload errors affect UI state
+      loadData().catch(err => console.error('[handleSave] loadData failed:', err));
+    }
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: 'approved' | 'denied', reason?: string) => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || (user.role !== 'admin' && user.role !== 'saas_admin')) return;
     setBookingsLoading(true);
     try {
       const { error } = await supabase.from('bookings').update({ status, updated_at: new Date().toISOString(), ...(reason ? { denial_reason: reason } : {}) }).eq('id', bookingId);
@@ -1172,7 +1247,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   const handleRefund = async (bookingId: string) => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || (user.role !== 'admin' && user.role !== 'saas_admin')) return;
     setBookingsLoading(true);
     try {
       const session = await getSession();
@@ -1224,6 +1299,28 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         <div className="sidebar-header">
           <h1 className="hero-title hero-title-edit">Profile</h1>
           <div className="sidebar-header-actions">
+            {isAdmin && properties.length > 0 && (
+              <select
+                value={selectedPropertyId ?? ''}
+                onChange={e => {
+                  const id = e.target.value;
+                  setSelectedPropertyId(id);
+                  const prop = properties.find(p => p.id === id) ?? null;
+                  syncPropertyFields(prop);
+                  // Also reload image count for new selection
+                  if (prop) {
+                    supabase.from('property_images').select('id').eq('property_id', prop.id).then(({ data }) => setImageCount(data?.length ?? 0));
+                  } else {
+                    setImageCount(0);
+                  }
+                }}
+                style={{ background: '#1a1a1a', color: '#ccc', border: '1px solid #333', borderRadius: 6, padding: '4px 8px', fontSize: 12, maxWidth: 140, cursor: 'pointer' }}
+              >
+                {properties.map(p => (
+                  <option key={p.id} value={p.id}>{p.title || p.slug || 'Untitled'}</option>
+                ))}
+              </select>
+            )}
             <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>
             {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel inline-flex-row"><X className="h-4 w-4" /><span className="btn-text">Cancel</span></button>}
             <button onClick={onClose} className="sidebar-btn-close"><X className="h-6 w-6" /></button>

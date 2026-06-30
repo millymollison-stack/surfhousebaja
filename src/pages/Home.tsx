@@ -15,7 +15,16 @@ import type { Property, PropertyImage, Booking, BlockedDate } from '../types';
 
 const SURF_HOUSE_BAJA_ID = 'efa8d280-afee-4971-9145-d591740f484d';
 
-export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange, onOpenSidebar }: { isEditing?: boolean; onHasChanges?: (hasChanges: boolean) => void; registerSaveAll?: (fn: () => Promise<void>) => void; onSiteNameChange?: (name: string) => void; onOpenSidebar?: () => void }) {
+interface HomeProps {
+  isEditing?: boolean;
+  onHasChanges?: (hasChanges: boolean) => void;
+  registerSaveAll?: (fn: () => Promise<void>) => void;
+  onSiteNameChange?: (name: string) => void;
+  onOpenSidebar?: () => void;
+  onCanEditChange?: (canEdit: boolean) => void;
+}
+
+export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange, onOpenSidebar, onCanEditChange }: HomeProps) {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [backgroundImages, setBackgroundImages] = useState<PropertyImage[]>([]);
@@ -33,6 +42,16 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const [defaultImages, setDefaultImages] = useState<PropertyImage[]>([]);
   const imageGallerySaveRef = useRef<(() => Promise<void>) | null>(null);
   const { user } = useAuth();
+
+  // Computed after property loads: true only for saas_admins OR the actual property owner
+  const canEdit = !!(user && property && (user.role === 'saas_admin' || property.owner_id === user.id));
+
+  // Notify App/Layout when canEdit changes (after property loads)
+  useEffect(() => {
+    if (property && user) {
+      onCanEditChange?.(canEdit);
+    }
+  }, [property, user, canEdit]);
   const navigate = useNavigate();
   const calendarRef = useRef<HTMLDivElement>(null);
 
@@ -447,11 +466,11 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         images={scrapedImages.length > 0 ? scrapedImages : images}
         property={scrapedProperty || property}
         isEditing={isEditing}
-        isAdmin={user?.role === 'admin'}
-        onImageUpload={user?.role === 'admin' ? handleImageUpload : undefined}
-        onImageDelete={user?.role === 'admin' ? handleImageDelete : undefined}
-        onImageUpdate={user?.role === 'admin' ? handleImageUpdate : undefined}
-        onPropertyUpdate={user?.role === 'admin' ? handlePropertyUpdate : undefined}
+        isAdmin={canEdit}
+        onImageUpload={canEdit ? handleImageUpload : undefined}
+        onImageDelete={canEdit ? handleImageDelete : undefined}
+        onImageUpdate={canEdit ? handleImageUpdate : undefined}
+        onPropertyUpdate={canEdit ? handlePropertyUpdate : undefined}
         registerSaveHandler={(fn) => { imageGallerySaveRef.current = fn; return true; }}
       />
 
@@ -460,7 +479,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           property={scrapedProperty || property}
           isEditing={isEditing}
           onEditingChange={setIsEditing}
-          onSave={user?.role === 'admin' ? handlePropertyUpdate : undefined}
+          onSave={canEdit ? handlePropertyUpdate : undefined}
           onBeforeSave={imageGallerySaveRef.current ?? undefined}
           onHasChanges={onHasChanges}
         />

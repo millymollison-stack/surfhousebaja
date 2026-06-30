@@ -50,7 +50,7 @@ function AppContent() {
   const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [siteName, setSiteName] = useState('@surfhousebaja');
+  const [siteName, setSiteName] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const saveAllRef = useRef<(() => Promise<void>) | null>(null);
 

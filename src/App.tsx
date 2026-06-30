@@ -51,8 +51,9 @@ function AppContent() {
   const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [siteName, setSiteName] = useState('@surfhousebaja');
+  const [siteName, setSiteName] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const saveAllRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -71,6 +72,7 @@ function AppContent() {
         // User is the owner — show the sidebar so they can publish
         setSidebarOpen(true);
         setIsEditing(true);
+        setCanEdit(true);
         if (isStale) {
           sessionStorage.setItem('__STALE__', '1');
         }
@@ -100,9 +102,10 @@ function AppContent() {
         siteName={siteName}
         onSiteNameChange={setSiteName}
         onOpenSidebar={() => setSidebarOpen(true)}
+        canEdit={canEdit}
       >
         <Routes>
-          <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; return true; }} onSiteNameChange={setSiteName} onOpenSidebar={() => setSidebarOpen(true)} />} />
+          <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; return true; }} onSiteNameChange={setSiteName} onOpenSidebar={() => setSidebarOpen(true)} onCanEditChange={setCanEdit} />} />
           <Route path="/auth/confirm" element={<EmailConfirmation />} />
           <Route path="/admin" element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
           <Route path="/property-admin" element={user ? <PropertyAdmin /> : <Navigate to="/login" replace />} />
