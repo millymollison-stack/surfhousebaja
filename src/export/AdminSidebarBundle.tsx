@@ -971,7 +971,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         if (isAdmin) {
           [bookingsRes, profileRes] = await Promise.all([
             withTimeout(supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }), 5000),
-            withTimeout(supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(), 5000),
+            withTimeout(supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status, full_name, phone_number').eq('id', user.id).maybeSingle(), 5000),
           ]);
         } else {
           [bookingsRes, profileRes] = await Promise.all([
@@ -1012,6 +1012,11 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       }
       if (profileRes.data) {
         setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
+        setContactFields(prev => ({
+          full_name: profileRes.data.full_name ?? prev.full_name ?? '',
+          email: prev.email ?? user?.email ?? '',
+          phone_number: profileRes.data.phone_number ?? prev.phone_number ?? '',
+        }));
       }
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Failed to load data');
