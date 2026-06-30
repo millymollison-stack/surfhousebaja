@@ -138,7 +138,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const { user, refreshUser } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
- const isMountedRef = useRef(true);
+ const isMountedRef = { current: true };
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
  // Inline auth state
@@ -282,12 +282,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
 
  const openStripeGateway = async (e?: React.MouseEvent) => {
   if (e) e.stopPropagation();
-  // Guard: prevent double-fire — check BEFORE incrementing so first click always works
-  if (stripeRedirectRef.current > 0) {
+  // Guard: prevent double-fire from rapid clicks
+  stripeRedirectRef.current++;
+  if (stripeRedirectRef.current > 1) {
     console.log('[openStripeGateway] already in flight — ignoring duplicate click');
+    stripeRedirectRef.current--;
     return;
   }
-  stripeRedirectRef.current++;
   console.log('[openStripeGateway] running...');
   // Clear any stale Stripe redirect state from previous page loads
   sessionStorage.removeItem('stripe_payment_returning');
@@ -385,27 +386,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('stripe_session_id', safeSessionId);
      sessionStorage.setItem('stripe_redirect_initiated', myTabId);
      console.log('[DEBUG] stripe_session_id saved=', safeSessionId, ', redirect href=', data.url);
-
-     // Use window.location.href for Stripe redirect — reliable, works in all browsers.
-     // Safety: if redirect fails to navigate within 1.5s, show error and reset button.
-     const redirectTimer = setTimeout(() => {
-       console.error('[openStripeGateway] Redirect timeout — Stripe may have been blocked');
-       setStripeError('Checkout page did not open. Check your popup blocker or try again.');
-       stripeRedirectRef.current = 0;
-       setStripeProcessing(false);
-     }, 1500);
-
      window.location.href = data.url;
-
-     // If redirect fires, this code never runs (page navigates away).
-     // The timer above is a safety net only.
    } catch(e: any) {
-     clearTimeout(redirectTimer);
      console.error('[openStripeGateway] error:', e.message || e);
      setStripeError(e.message === 'fetch timeout'
        ? 'Connection timed out. Check your network and try again.'
        : 'Could not connect to payment server. (' + (e.message || String(e)) + ')');
-     stripeRedirectRef.current = 0;
+   } finally {
+     stripeRedirectRef.current--; // decrement so next click can proceed
+     setStripeProcessing(false); // ALWAYS reset — prevents stuck button
    }
  };
 
@@ -812,10 +801,8 @@ const stripeRedirectRef = useRef(0);
  useEffect(() => {
  isMountedRef.current = true;
  const timer = setTimeout(() => {
- console.log('[OBP] auto-open timer firing, isMountedRef.current=', isMountedRef.current, ' POPUP_CLOSED_KEY=', sessionStorage.getItem(POPUP_CLOSED_KEY));
  if (isMountedRef.current && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
  setIsOpen(true);
- console.log('[OBP] setIsOpen(true) called');
  }
  }, 2000);
  return () => {
@@ -823,11 +810,6 @@ const stripeRedirectRef = useRef(0);
  clearTimeout(timer);
  };
  }, []);
-
-// DEBUG: track isOpen changes
-useEffect(() => {
-  console.log('[OBP] isOpen changed to:', isOpen);
-}, [isOpen]);
 
  // Handle return from Stripe Connect onboarding - ?return_url or ?stripe_connect_return in URL
  useEffect(() => {
@@ -1298,49 +1280,10 @@ useEffect(() => {
  if (result.success) {
  const data = result.data;
  setScrapedData(data);
- // Auto-fill websiteName + websiteDesc from scraped data (if fields are still empty)
- // so user can see and edit them before subscribing. Use trimmed value to avoid
- // whitespace-only strings that would make slug generation emit weird slugs.
- if (!websiteName.trim()) setWebsiteName((data.title || '').trim());
- if (!websiteDesc.trim()) setWebsiteDesc((data.description || '').trim());
  // Persist scraped data to sessionStorage immediately so it survives Stripe redirect
+ // NOTE: websiteName and websiteDesc are NOT autofilled — user types their own name
  sessionStorage.setItem('popup_scraped_data', JSON.stringify(data));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
-
- // ── Also persist to onboarding_data so migrate-property can find it ──
- // migrate-property looks for scraped_* prefixed fields and property_name
- try {
- const { data: { session: sess } } = await supabase.auth.getSession();
- if (sess) {
- const { error: odErr } = await supabase.from('onboarding_data').upsert({
- user_id: sess.user.id,
- scraped_title: data.title || null,
- scraped_location: data.location || null,
- scraped_description: data.description || null,
- scraped_hero_image: data.hero_image || null,
- scraped_images: data.images || [],
- scraped_guests: data.guests != null ? String(data.guests) : null,
- scraped_rating: data.rating != null ? String(data.rating) : null,
- scraped_reviews: data.reviews != null ? String(data.reviews) : null,
- hero_image: data.hero_image || null,
- images: data.images || [],
- bedrooms: data.bedrooms != null ? String(data.bedrooms) : null,
- beds: data.beds != null ? String(data.beds) : null,
- baths: data.baths != null ? String(data.baths) : null,
- property_name: data.title || null,
- property_desc: data.description || null,
- location: data.location || null,
- price: data.price || null,
- host_name: data.host_name || null,
- rating: data.rating != null ? String(data.rating) : null,
- reviews: data.reviews != null ? String(data.reviews) : null,
- }, { onConflict: 'user_id' });
- if (odErr) console.warn('[handleAirbnbScrape] onboarding_data upsert warn:', odErr.message);
- else console.log('[handleAirbnbScrape] onboarding_data saved for migrate-property');
- }
- } catch (err) {
- console.warn('[handleAirbnbScrape] failed to save onboarding_data:', err);
- }
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
  }
@@ -1454,25 +1397,11 @@ useEffect(() => {
      console.log('[DEBUG] About to redirect to: ' + data.url);
      // Persist session_id so the ?paid=true handler survives Vite HMR reloads
      if (data.sessionId) sessionStorage.setItem('stripe_session_id', data.sessionId);
-
-     // Use window.location.href for Stripe redirect — reliable, works in all browsers.
-     // Safety: if redirect fails to navigate within 1.5s, show error and reset button.
-     const redirectTimer2 = setTimeout(() => {
-       console.error('[handlePublish] Redirect timeout — Stripe may have been blocked');
-       setStripeError('Checkout page did not open. Check your popup blocker or try again.');
-       stripeRedirectRef.current = 0;
-       setStripeProcessing(false);
-     }, 1500);
-
      window.location.href = data.url;
-
-     // If redirect fires, this code never runs (page navigates away).
-     // The timer above is a safety net only.
    } catch {
-     clearTimeout(redirectTimer2);
      setStripeError('Could not connect to payment server. Please try again.');
-     stripeRedirectRef.current = 0;
    }
+ };
 
  const handleSaveSiteInPopup = async () => {
    console.log('[handleSaveSiteInPopup] 🚀 START user:', user?.id, 'email:', user?.email);
@@ -1684,7 +1613,6 @@ useEffect(() => {
 
  return (
  <>
- <div id="obp-render-test" data-isopen={String(isOpen)} style="position:fixed;top:0;left:50%;background:lime;z-index:99999;color:#000;padding:4px 8px;font-size:12px">isOpen={String(isOpen)}</div>
  {isOpen && (
  <div className="popup-backdrop" onClick={handleClose}>
  <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
@@ -1702,7 +1630,7 @@ useEffect(() => {
      {accountCreated && !user ? (
        <strong style={{color: '#2a9d4e'}}>✓ Account created — welcome, {authFullName || authEmail.split('@')[0]}!</strong>
      ) : user ? (
-       <><strong>{user?.full_name || user?.email}</strong></>
+       <><strong>{user.full_name || user.email}</strong></>
      ) : null}
    </div>
  ) : (
@@ -2345,5 +2273,4 @@ useEffect(() => {
 
  </>
  );
-}
 }
