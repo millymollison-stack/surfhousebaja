@@ -109,6 +109,12 @@ function CollapsibleSection({ title, content, isEditing, isAdmin, isOpen, onTogg
                   setEditedContent(e.target.value);
                   onHasChanges?.(true);
                 }}
+                onBlur={(e) => {
+                  setEditedContent(e.target.value);
+                  if (onUpdate && fieldName) {
+                    onUpdate({ [fieldName]: e.target.value });
+                  }
+                }}
                 className="w-full px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[var(--brand)] edit-section-textarea"
                 rows={6}
                 placeholder={`Enter ${title.toLowerCase()} information...`}
