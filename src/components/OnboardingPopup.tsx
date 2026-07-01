@@ -656,8 +656,8 @@ const stripeRedirectRef = useRef(0);
             const userTyped = ssGet('user_website_name');
             if (parsed.title) setWebsiteName(userTyped || parsed.title);
             if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
-            // Propagate scraped data to Home.tsx so the template behind the popup shows it immediately
-            if (onImported) onImported({ ...parsed, hero_image: parsed.images?.[1] || parsed.hero_image });
+            // NOTE: onImported is NOT called here. Images are NOT uploaded and data is NOT
+            // saved to DB at this stage. All of that happens ONLY when Subscribe is pressed.
           } catch { /* ignore corrupt JSON */ }
         }
 
@@ -1223,9 +1223,8 @@ const stripeRedirectRef = useRef(0);
  const saveToSupabase = async (overrides: any = {}) => {
  if (!user) return;
  try {
- // Read FRESH scraped data from sessionStorage so we capture ALL fields the scraper
- // returned — even if the data param passed to saveToSupabase had null text fields
- // (handleAirbnbScrape passes data immediately, before React state re-render). 
+ // Read FRESH scraped data from sessionStorage — this is the one true source
+ // when Subscribe is pressed. Images are Airbnb URLs at this point.
  const sessionScraped = (() => {
  try {
  const raw = ssGet('scraped_data');
@@ -1233,28 +1232,50 @@ const stripeRedirectRef = useRef(0);
  } catch { return null; }
  })();
 
- // ── CRITICAL: Preserve existing Supabase storage URLs if images were already ──
- // uploaded by handleImportedImages. If we overwrite with sessionStorage Airbnb URLs,
- // the published site will have broken image links after Supabase storage URLs expire.
- // We read existing image URLs from onboarding_data first; only use scraped URLs
- // if no existing URLs are found (first scrape, before handleImportedImages runs).
- let existingImages: { hero_image?: string; images?: string[] } = {};
- const { data: existing } = await supabase
-   .from('onboarding_data')
-   .select('scraped_hero_image, scraped_images')
-   .eq('user_id', user.id)
-   .maybeSingle();
- if (existing?.scraped_hero_image || (existing?.scraped_images && existing.scraped_images.length > 0)) {
-   existingImages = {
-     hero_image: existing.scraped_hero_image,
-     images: existing.scraped_images,
-   };
-   console.log('[saveToSupabase] Preserving existing Supabase storage URLs:', existingImages);
+ // ── Upload scraped images to Supabase storage ─────────────────────────────────
+ // This runs ONLY when Subscribe is pressed, not on scrape.
+ // We upload Airbnb URLs → Supabase storage, then save Supabase URLs to the DB.
+ const imageUrls: string[] = [];
+ const imageList = sessionScraped?.images || [];
+ console.log('[saveToSupabase] Uploading', imageList.length, 'images to Supabase storage...');
+ for (let i = 0; i < imageList.length; i++) {
+   const imgUrl = imageList[i];
+   try {
+     const response = await fetch(imgUrl);
+     const buffer = await response.arrayBuffer();
+     const filename = `onboarding/${user.id}/${Date.now()}-${i}.jpg`;
+     const { data: uploadData, error: uploadError } = await supabase.storage
+       .from('onboarding')
+       .upload(filename, buffer, { contentType: 'image/jpeg' });
+     if (uploadError) {
+       // Bucket may not exist — silently fall back to original Airbnb URL
+       console.warn('[saveToSupabase] Upload failed for', imgUrl, '- using original URL');
+       imageUrls.push(imgUrl);
+     } else {
+       const { data: { publicUrl } } = supabase.storage
+         .from('onboarding')
+         .getPublicUrl(filename);
+       imageUrls.push(publicUrl);
+       console.log('[saveToSupabase] Uploaded image', i + 1, '/', imageList.length, publicUrl.slice(0, 60));
+     }
+   } catch (err) {
+     // Network error — fall back to original URL
+     console.warn('[saveToSupabase] Network error for', imgUrl, '- using original URL');
+     imageUrls.push(imgUrl);
+   }
  }
 
+ // Use first uploaded image as hero_image; skip Airbnb placeholder if present
+ const isAirbnbPlaceholder = (url: string) => url.includes('muscache.com');
+ const realUrls = imageUrls.length > 0 && isAirbnbPlaceholder(imageUrls[0])
+   ? imageUrls.slice(1)
+   : imageUrls;
+ const primaryImage = realUrls[0] || imageUrls[0] || '';
+
+ // ── Save to onboarding_data with Supabase storage URLs ─────────────────────────
  const row = {
  user_id: user.id,
- property_name: sessionScraped?.title || websiteName || null,
+ property_name: websiteName || null,  // user types the name — NOT from scrape
  slug: websiteName ? websiteName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-') : null,
  property_desc: sessionScraped?.description || websiteDesc || null,
  airbnb_url: airbnbUrl,
@@ -1266,17 +1287,16 @@ const stripeRedirectRef = useRef(0);
  bookings_email: bookingsEmail,
  extras: extras,
  updated_at: new Date().toISOString(),
- // Merge scraped data from sessionStorage (primary) with any overrides.
- // IMPORTANT: Use existing Supabase storage URLs (from handleImportedImages) when
- // available, NOT the raw Airbnb URLs from sessionStorage.
- scraped_title: (sessionScraped?.title || overrides.scraped_title) || null,
- scraped_location: (sessionScraped?.location || overrides.scraped_location) || null,
- scraped_description: (sessionScraped?.description || overrides.scraped_description) || null,
- scraped_hero_image: existingImages.hero_image || (sessionScraped?.hero_image || overrides.scraped_hero_image) || null,
- scraped_images: (existingImages.images?.length ? existingImages.images : (sessionScraped?.images?.length ? sessionScraped.images : (overrides.scraped_images?.length ? overrides.scraped_images : null))),
- scraped_rating: (sessionScraped?.rating || overrides.scraped_rating) || null,
- scraped_reviews: (sessionScraped?.reviews || overrides.scraped_reviews) || null,
- scraped_guests: (sessionScraped?.guests || overrides.scraped_guests) || null,
+ // Store scraped data for reference but NOT as the live page title/description
+ // (user edits these in the popup before publishing)
+ scraped_title: sessionScraped?.title || null,
+ scraped_location: sessionScraped?.location || null,
+ scraped_description: sessionScraped?.description || null,
+ scraped_hero_image: primaryImage,
+ scraped_images: realUrls.length > 0 ? realUrls : imageUrls,
+ scraped_rating: sessionScraped?.rating ? String(sessionScraped.rating) : null,
+ scraped_reviews: sessionScraped?.reviews ? String(sessionScraped.reviews) : null,
+ scraped_guests: sessionScraped?.guests ? String(sessionScraped.guests) : null,
  };
 
  const { error } = await supabase
@@ -1325,12 +1345,10 @@ const stripeRedirectRef = useRef(0);
  if (result.success) {
  const data = result.data;
  setScrapedData(data);
- // Persist scraped data to sessionStorage immediately so it survives Stripe redirect
- // NOTE: websiteName and websiteDesc are NOT autofilled — user types their own name
+ // Persist raw scraped data (Airbnb URLs + text) to sessionStorage only.
+ // NO database save, NO image upload at this stage.
+ // Images are uploaded to Supabase storage ONLY when Subscribe is pressed (in saveToSupabase).
  ssSet('scraped_data', JSON.stringify(data));
- if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
-       // Also save to onboarding_data DB immediately so data survives beyond sessionStorage
-       await saveToSupabase();
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
  }
