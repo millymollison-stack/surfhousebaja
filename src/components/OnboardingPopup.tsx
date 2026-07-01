@@ -6,7 +6,7 @@ import './OnboardingPopup.css';
 import { TemplatePreview } from './TemplatePreview';
 import { FontDropdown } from './FontDropdown';
 import { FONT_OPTIONS, applyFontAccent } from '../lib/fontAccent';
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { saveBrandColor } from '../lib/brandColor';
 
 import { useAuth } from '../store/auth';
@@ -1251,11 +1251,12 @@ const stripeRedirectRef = useRef(0);
  }, [window.location.search, user]); // re-fires when URL changes or auth resolves
  
 
- // Save scraped data + create DB property record when Subscribe is pressed.
- // This runs SYNCHRONOUSLY (awaited by openStripeGateway) so the property exists
- // in DB BEFORE the user is sent to Stripe. On return, the user has data in DB.
- const saveToSupabase = async (): Promise<{ propertyId: string; slug: string } | null> => {
- if (!user) return null;
+ // Save scraped data to onboarding_data only (no property creation, no image upload).
+ // Property + images are created on PUBLISH via migrate-property edge function.
+ // This runs SYNCHRONOUSLY (awaited by openStripeGateway) so onboarding_data exists
+ // before the user leaves for Stripe — guaranteeing data survives the redirect.
+ const saveToSupabase = async (): Promise<void> => {
+ if (!user) return;
  try {
  // Read FRESH scraped data from sessionStorage
  const sessionScraped = (() => {
@@ -1265,42 +1266,6 @@ const stripeRedirectRef = useRef(0);
    } catch { return null; }
  })();
 
- // ── Upload scraped images to Supabase storage ─────────────────────────────────
- const imageUrls: string[] = [];
- const imageList = sessionScraped?.images || [];
- console.log('[saveToSupabase] Uploading', imageList.length, 'images...');
- for (let i = 0; i < imageList.length; i++) {
-   const imgUrl = imageList[i];
-   try {
-     const response = await fetch(imgUrl);
-     const buffer = await response.arrayBuffer();
-     const filename = `onboarding/${user.id}/${Date.now()}-${i}.jpg`;
-     const { data: uploadData, error: uploadError } = await supabase.storage
-       .from('onboarding')
-       .upload(filename, buffer, { contentType: 'image/jpeg' });
-     if (uploadError) {
-       console.warn('[saveToSupabase] Upload failed for', imgUrl, '- using original URL');
-       imageUrls.push(imgUrl);
-     } else {
-       const { data: { publicUrl } } = supabase.storage
-         .from('onboarding')
-         .getPublicUrl(filename);
-       imageUrls.push(publicUrl);
-     }
-   } catch (err) {
-     console.warn('[saveToSupabase] Network error for', imgUrl);
-     imageUrls.push(imgUrl);
-   }
- }
-
- // Skip Airbnb placeholder image
- const isAirbnbPlaceholder = (url: string) => url.includes('muscache.com');
- const realUrls = imageUrls.length > 0 && isAirbnbPlaceholder(imageUrls[0])
-   ? imageUrls.slice(1)
-   : imageUrls;
- const primaryImage = realUrls[0] || imageUrls[0] || '';
-
- // ── Generate slug and website name ─────────────────────────────────────────────
  const websiteNameVal = ssGet('user_website_name') || websiteName || sessionScraped?.title || 'my-property';
  const slug = websiteNameVal
    .toLowerCase()
@@ -1311,105 +1276,9 @@ const stripeRedirectRef = useRef(0);
    .replace(/\s+/g, '-')
    .replace(/-+/g, '-');
 
- // ── Check for existing pre-Stripe property (idempotency — skip insert if already exists) ─
- // This handles the case where user clicks Subscribe, Stripe redirects back,
- // then they click Subscribe again (duplicate click protection). Rather than
- // creating a second pre-* property, we update the existing one.
- const { data: existingPreProps } = await supabaseAdmin
-   .from('properties')
-   .select('id, slug')
-   .eq('owner_id', user.id)
-   .like('id', 'pre-%')
-   .limit(1);
-
- let propertyId: string;
- if (existingPreProps && existingPreProps.length > 0) {
-   // Already have a pre-* property — update it instead of creating a new one
-   propertyId = existingPreProps[0].id;
-   console.log('[saveToSupabase] Updating existing pre-Stripe property:', propertyId);
-   await supabaseAdmin
-     .from('properties')
-     .update({
-       title: sessionScraped?.title || websiteNameVal,
-       property_title: sessionScraped?.title || websiteNameVal,
-       slug,
-       description: sessionScraped?.description || websiteDesc || '',
-       property_intro: (sessionScraped?.description || '').slice(0, 200),
-       location: sessionScraped?.location || '',
-       address: sessionScraped?.location || '',
-       max_guests: sessionScraped?.guests || 4,
-       bedrooms: sessionScraped?.bedrooms || 1,
-       beds: sessionScraped?.beds || 1,
-       bathrooms: sessionScraped?.baths || 1,
-       price_per_night: sessionScraped?.price
-         ? parseFloat(sessionScraped.price.replace(/[^0-9.]/g, ''))
-         : 100,
-       hero_image: primaryImage,
-       site_url: `https://www.propbook.pro/props/${slug}`,
-       stripe_subscription_plan: planChoice || 'starter',
-     })
-     .eq('id', propertyId);
-   // Delete old images and re-insert fresh ones
-   if (realUrls.length > 0) {
-     await supabaseAdmin.from('property_images').delete().eq('property_id', propertyId);
-   }
- } else {
-   // No existing pre-* property — create a new one
-   propertyId = `pre-${user.id}-${Date.now()}`;
-   console.log('[saveToSupabase] Creating NEW pre-Stripe property:', propertyId);
-   const propertyInsert = {
-     id: propertyId,
-     title: sessionScraped?.title || websiteNameVal,
-     property_title: sessionScraped?.title || websiteNameVal,
-     slug,
-     description: sessionScraped?.description || websiteDesc || '',
-     property_intro: (sessionScraped?.description || '').slice(0, 200),
-     location: sessionScraped?.location || '',
-     address: sessionScraped?.location || '',
-     max_guests: sessionScraped?.guests || 4,
-     bedrooms: sessionScraped?.bedrooms || 1,
-     beds: sessionScraped?.beds || 1,
-     bathrooms: sessionScraped?.baths || 1,
-     price_per_night: sessionScraped?.price
-       ? parseFloat(sessionScraped.price.replace(/[^0-9.]/g, ''))
-       : 100,
-     owner_id: user.id,
-     hero_image: primaryImage,
-     site_url: `https://www.propbook.pro/props/${slug}`,
-     stripe_subscription_plan: planChoice || 'starter',
-     created_at: new Date().toISOString(),
-   };
-   const { error: propError } = await supabaseAdmin
-     .from('properties')
-     .insert(propertyInsert);
-   if (propError) {
-     console.warn('[saveToSupabase] Property insert error:', propError.message);
-   } else {
-     console.log('[saveToSupabase] ✅ Property created:', propertyId);
-   }
- }
-
- // ── Create property_images records ─────────────────────────────────────────────
- if (realUrls.length > 0) {
-   const imageRecords = realUrls.map((url: string, idx: number) => ({
-     property_id: propertyId,
-     url,
-     position: idx + 1,
-     is_featured: idx === 0,
-     is_main: idx === 0,
-     is_background: false,
-   }));
-   const { errors: imgErrors } = await supabaseAdmin
-     .from('property_images')
-     .insert(imageRecords);
-   if (imgErrors) {
-     console.warn('[saveToSupabase] Image insert errors:', imgErrors);
-   } else {
-     console.log('[saveToSupabase] ✅', realUrls.length, 'images inserted');
-   }
- }
-
- // ── Save onboarding_data (for form state persistence) ─────────────────────────
+ // Save scraped data with Airbnb image URLs — images are uploaded to Supabase storage
+ // ONLY on PUBLISH (in createNewSiteRecords), not here. This avoids blocking Stripe
+ // with slow image downloads and ensures migration handles the definitive image transfer.
  const row = {
    user_id: user.id,
    property_name: websiteNameVal,
@@ -1427,8 +1296,8 @@ const stripeRedirectRef = useRef(0);
    scraped_title: sessionScraped?.title || null,
    scraped_location: sessionScraped?.location || null,
    scraped_description: sessionScraped?.description || null,
-   scraped_hero_image: primaryImage,
-   scraped_images: realUrls,
+   scraped_hero_image: sessionScraped?.hero_image || sessionScraped?.images?.[0] || null,
+   scraped_images: sessionScraped?.images || [],
    scraped_rating: sessionScraped?.rating ? String(sessionScraped.rating) : null,
    scraped_reviews: sessionScraped?.reviews ? String(sessionScraped.reviews) : null,
    scraped_guests: sessionScraped?.guests ? String(sessionScraped.guests) : null,
@@ -1437,11 +1306,9 @@ const stripeRedirectRef = useRef(0);
    .from('onboarding_data')
    .upsert(row, { onConflict: 'user_id' });
  if (obError) console.warn('[saveToSupabase] onboarding_data error:', obError.message);
-
- return { propertyId, slug };
+ else console.log('[saveToSupabase] ✅ Saved to onboarding_data, slug:', slug);
  } catch (err) {
-   console.warn('[saveToSupabase] Non-fatal error (will continue to Stripe):', err);
-   return null;
+   console.warn('[saveToSupabase] Non-fatal error:', err);
  }
  };
 
@@ -1714,58 +1581,7 @@ const stripeRedirectRef = useRef(0);
      const finalSlug = data.slug;
      console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData images count:', resolvedScrapedData?.images?.length, 'userWebsiteName:', ssGet('user_website_name'), '-> slug:', finalSlug);
      console.log('[handleSaveSiteInPopup] 📝 first 3 image URLs:', resolvedScrapedData?.images?.slice(0, 3));
-
-     // ── Check if user already has a property (created by saveToSupabase on Subscribe) ───
-     // If so, skip INSERT — just update and migrate the existing record.
-     const { data: existingProps } = await supabase
-       .from('properties')
-       .select('id, slug')
-       .eq('owner_id', user.id)
-       .limit(1);
-     let result: { propertyId: string; siteUrl: string; slug: string };
-     if (existingProps && existingProps.length > 0) {
-       // Property already exists from saveToSupabase — update it with latest scraped data
-       console.log('[handleSaveSiteInPopup] ℹ️ Property already exists:', existingProps[0].id, '- skipping INSERT, will update + migrate');
-       result = {
-         propertyId: existingProps[0].id,
-         siteUrl: `https://www.propbook.pro/props/${existingProps[0].slug || finalSlug}`,
-         slug: existingProps[0].slug || finalSlug,
-       };
-       // Update the property with the latest scraped data
-       await supabaseAdmin
-         .from('properties')
-         .update({
-           title: resolvedScrapedData?.title || data.websiteName,
-           property_title: resolvedScrapedData?.title || data.websiteName,
-           description: resolvedScrapedData?.description || data.websiteDesc,
-           property_intro: (resolvedScrapedData?.description || '').slice(0, 200),
-           location: resolvedScrapedData?.location || '',
-           address: resolvedScrapedData?.location || '',
-           max_guests: resolvedScrapedData?.guests || 4,
-           bedrooms: resolvedScrapedData?.bedrooms || 1,
-           beds: resolvedScrapedData?.beds || 1,
-           bathrooms: resolvedScrapedData?.baths || 1,
-           price_per_night: resolvedScrapedData?.price
-             ? parseFloat(String(resolvedScrapedData.price).replace(/[^0-9.]/g, ''))
-             : 100,
-         })
-         .eq('id', result.propertyId);
-       // Update property images
-       if (resolvedScrapedData?.images?.length > 0) {
-         await supabaseAdmin.from('property_images').delete().eq('property_id', result.propertyId);
-         const imageRecords = resolvedScrapedData.images.map((url: string, idx: number) => ({
-           property_id: result.propertyId,
-           url,
-           position: idx + 1,
-           is_featured: idx === 0,
-           is_main: idx === 0,
-           is_background: false,
-         }));
-         await supabaseAdmin.from('property_images').insert(imageRecords);
-       }
-     } else {
-       result = await createNewSiteRecords(data);
-     }
+     const result = await createNewSiteRecords(data);
      console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);
      ssSet('site_url', result.siteUrl);
      ssSet('site_phase', 'saved');
