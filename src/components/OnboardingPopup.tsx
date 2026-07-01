@@ -799,11 +799,8 @@ const stripeRedirectRef = useRef(0);
 };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
- // Debounce the preview sync so typing keeps up - fire every 1s of inactivity
- clearTimeout(descSyncTimer.current);
- descSyncTimer.current = setTimeout(() => {
- if (onImported) onImported({ title: websiteName.trim() || 'surfhousebaja', description: val });
- }, 1000);
+ // NOTE: onImported is NOT called here — it is only for full scrape imports.
+ // The template description updates via the description prop passed from Home.tsx.
  };
  const handleNameBlur = () => {
  if (onSiteNameChange) {
@@ -812,14 +809,10 @@ const stripeRedirectRef = useRef(0);
  const display = stripped.trim().length > 0 ? '@' + stripped.trim().slice(0, 20) : '@surfhousebaja';
  onSiteNameChange(display);
  }
- if (onImported) {
- onImported({ title: websiteName.trim() || 'surfhousebaja', description: websiteDesc });
- }
  };
  const handleDescBlur = () => {
- if (onImported) {
- onImported({ title: websiteName.trim() || 'surfhousebaja', description: websiteDesc });
- }
+ // NOTE: onImported is NOT called here — description sync is handled via the
+ // description prop passed to the template, not via the import callback.
  };
 
  // Sync description to template (fires independently, no stale name capture)
@@ -1308,6 +1301,16 @@ const stripeRedirectRef = useRef(0);
  setImportError('');
  setCountdown(120);
 
+ // Guard against double-fire (same pattern as openStripeGateway/handlePublish)
+ stripeRedirectRef.current++;
+ if (stripeRedirectRef.current > 1) {
+   console.log('[handleAirbnbScrape] already in flight — ignoring duplicate click');
+   stripeRedirectRef.current--;
+   setIsImporting(false);
+   setCountdown(0);
+   return;
+ }
+
  const countInterval = setInterval(() => {
  setCountdown(c => {
  if (c <= 1) { clearInterval(countInterval); return 0; }
@@ -1337,6 +1340,7 @@ const stripeRedirectRef = useRef(0);
  } finally {
  setIsImporting(false);
  setCountdown(0);
+ stripeRedirectRef.current--; // decrement so Subscribe button can proceed
  }
  };
  const handlePublish = async (_e?: React.MouseEvent) => {
