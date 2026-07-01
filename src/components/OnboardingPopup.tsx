@@ -1239,6 +1239,26 @@ const stripeRedirectRef = useRef(0);
  return raw ? JSON.parse(raw) : null;
  } catch { return null; }
  })();
+
+ // ── CRITICAL: Preserve existing Supabase storage URLs if images were already ──
+ // uploaded by handleImportedImages. If we overwrite with sessionStorage Airbnb URLs,
+ // the published site will have broken image links after Supabase storage URLs expire.
+ // We read existing image URLs from onboarding_data first; only use scraped URLs
+ // if no existing URLs are found (first scrape, before handleImportedImages runs).
+ let existingImages: { hero_image?: string; images?: string[] } = {};
+ const { data: existing } = await supabase
+   .from('onboarding_data')
+   .select('scraped_hero_image, scraped_images')
+   .eq('user_id', user.id)
+   .maybeSingle();
+ if (existing?.scraped_hero_image || (existing?.scraped_images && existing.scraped_images.length > 0)) {
+   existingImages = {
+     hero_image: existing.scraped_hero_image,
+     images: existing.scraped_images,
+   };
+   console.log('[saveToSupabase] Preserving existing Supabase storage URLs:', existingImages);
+ }
+
  const row = {
  user_id: user.id,
  property_name: sessionScraped?.title || websiteName || null,
@@ -1253,13 +1273,14 @@ const stripeRedirectRef = useRef(0);
  bookings_email: bookingsEmail,
  extras: extras,
  updated_at: new Date().toISOString(),
- // Merge scraped data from sessionStorage (primary) with any overrides (allows
- // callers to pass specific fields). Only override non-empty values.
+ // Merge scraped data from sessionStorage (primary) with any overrides.
+ // IMPORTANT: Use existing Supabase storage URLs (from handleImportedImages) when
+ // available, NOT the raw Airbnb URLs from sessionStorage.
  scraped_title: (sessionScraped?.title || overrides.scraped_title) || null,
  scraped_location: (sessionScraped?.location || overrides.scraped_location) || null,
  scraped_description: (sessionScraped?.description || overrides.scraped_description) || null,
- scraped_hero_image: (sessionScraped?.hero_image || overrides.scraped_hero_image) || null,
- scraped_images: (sessionScraped?.images?.length ? sessionScraped.images : (overrides.scraped_images?.length ? overrides.scraped_images : null)),
+ scraped_hero_image: existingImages.hero_image || (sessionScraped?.hero_image || overrides.scraped_hero_image) || null,
+ scraped_images: (existingImages.images?.length ? existingImages.images : (sessionScraped?.images?.length ? sessionScraped.images : (overrides.scraped_images?.length ? overrides.scraped_images : null))),
  scraped_rating: (sessionScraped?.rating || overrides.scraped_rating) || null,
  scraped_reviews: (sessionScraped?.reviews || overrides.scraped_reviews) || null,
  scraped_guests: (sessionScraped?.guests || overrides.scraped_guests) || null,
