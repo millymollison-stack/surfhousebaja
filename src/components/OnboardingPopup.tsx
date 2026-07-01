@@ -153,6 +153,20 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const isMountedRef = useRef(true);
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+ // Hide payment calculator banner for users who already have an active subscription
+ const [isSubscribed, setIsSubscribed] = useState(false);
+ useEffect(() => {
+   if (!user?.id) return;
+   supabase.from('profiles').select('stripe_subscription_status').eq('id', user.id).single()
+     .then(({ data }) => {
+       if (data?.stripe_subscription_status === 'active' || data?.stripe_subscription_status === 'trialing') {
+         setIsSubscribed(true);
+         document.documentElement.setAttribute('data-has-subscription', 'true');
+       }
+     });
+ }, [user?.id]);
+
+
  // User-scoped sessionStorage — keys are scoped to user.id so different users on same browser don't share data
  const uid = user?.id ?? 'anon';
  const ssGet = (k: string) => sessionStorage.getItem(`popup_${uid}_${k}`);

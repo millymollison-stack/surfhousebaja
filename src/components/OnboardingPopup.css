@@ -785,3 +785,8 @@ hr {
 .popup-link:hover {
   opacity: 0.8;
 }
+
+/* Hide payment calculator banner for users with active subscription */
+[data-has-subscription='true'] .popup-total-banner {
+  display: none !important;
+}
