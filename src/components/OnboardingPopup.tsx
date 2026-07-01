@@ -1275,8 +1275,11 @@ const stripeRedirectRef = useRef(0);
  // ── Save to onboarding_data with Supabase storage URLs ─────────────────────────
  const row = {
  user_id: user.id,
- property_name: websiteName || null,  // user types the name — NOT from scrape
- slug: websiteName ? websiteName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-') : null,
+ property_name: ssGet('user_website_name') || websiteName || null,  // user types the name — NOT from scrape
+ slug: (() => {
+   const name = ssGet('user_website_name') || websiteName || '';
+   return name ? name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-') : null;
+ })(),
  property_desc: sessionScraped?.description || websiteDesc || null,
  airbnb_url: airbnbUrl,
  design_choice: designChoice,
