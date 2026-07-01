@@ -416,11 +416,13 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
   // Resolve property slug: prop > sessionStorage
   const slug = propertySlug || sessionStorage.getItem('popup_website_name') || '';
 
-  // Resolve current website URL: siteUrl prop > sessionStorage popup_site_url > window.location.origin (dev)
+  // Resolve current website URL: deployed siteUrl > propbook URL (if slug known) > localhost (dev)
   const popupSiteUrl = sessionStorage.getItem('popup_site_url');
-  const currentUrl = siteUrl || popupSiteUrl || (typeof window !== 'undefined' ? window.location.origin : null);
+  const propbookUrl = slug ? `https://www.propbook.pro/props/${slug}` : null;
+  const currentUrl = siteUrl || popupSiteUrl || propbookUrl || (typeof window !== 'undefined' ? window.location.origin : null);
 
-  const isDeployed = !!siteUrl;
+  // Deployed = site is live at a real URL (propbook or custom)
+  const isDeployed = !!(siteUrl || propbookUrl);
 
   // ── Publish countdown state ─────────────────────────────────────
   const [publishCountdown, setPublishCountdown] = useState(0);
@@ -493,6 +495,7 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
         {currentUrl ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <a href={currentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#111827', textDecoration: 'none', wordBreak: 'break-all', flex: 1 }}>{currentUrl}</a>
+            {!isDeployed && <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>(not published)</span>}
             <ExternalLink className="h-3.5 w-3.5" style={{ color: '#6b7280', flexShrink: 0 }} />
           </div>
         ) : (
@@ -1060,7 +1063,45 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         const { data: selectedImgs } = await supabase.from('property_images').select('id, url, position').eq('property_id', selected.id).order('position');
         setPropertyImages(selectedImgs ?? []);
       } else {
-        setPropertyImages([]);
+        // No published property yet — check onboarding_data for scraped data
+        const { data: obData } = await supabase
+          .from('onboarding_data')
+          .select('scraped_title, scraped_location, scraped_hero_image, scraped_images, scraped_rating, scraped_reviews, scraped_guests, scraped_description, bedrooms, beds, baths, slug, property_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (obData) {
+          console.log('[loadData] No published property — loading from onboarding_data:', obData);
+          // Populate PropertySection fields from onboarding_data scraped fields
+          setPropFields(prev => ({
+            ...prev,
+            title: obData.property_name || obData.scraped_title || '',
+            address: obData.scraped_location || '',
+            bedrooms: obData.bedrooms || '',
+            beds: obData.beds || '',
+            baths: obData.baths || '',
+            max_guests: obData.scraped_guests || '',
+            rating: obData.scraped_rating || '',
+            reviews: obData.scraped_reviews || '',
+            description: obData.scraped_description || '',
+          }));
+          // Set property images from onboarding_data scraped_images
+          const scrapedImgs: { id: string; url: string; position: number }[] = (obData.scraped_images || []).map((url: string, idx: number) => ({
+            id: `scraped-${idx}`,
+            url,
+            position: idx + 1,
+          }));
+          setPropertyImages(scrapedImgs);
+          // Pre-populate contact name from profile if not set yet (profile may not have full_name)
+          if (profileRes.data) {
+            setContactFields(prev => ({
+              full_name: profileRes.data.full_name || prev.full_name || obData.property_name || '',
+              email: user?.email || '',
+              phone_number: profileRes.data.phone_number || prev.phone_number || '',
+            }));
+          }
+        } else {
+          setPropertyImages([]);
+        }
       }
       if (profileRes.data) {
         setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
