@@ -223,6 +223,8 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
         pricePerNight: data.scrapedData?.price
           ? parseFloat(data.scrapedData.price.replace(/[^0-9.]/g, ''))
           : 150,
+        rating: data.scrapedData?.rating ?? null,
+        reviews: data.scrapedData?.reviews ?? null,
         heroImage: data.scrapedData?.hero_image || '',
         images: data.scrapedData?.images || [],
         stripeAccountId: data.userStripeAccountId || null,

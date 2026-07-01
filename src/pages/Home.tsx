@@ -114,8 +114,6 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         setError('Failed to load property details');
         console.error(err);
       } finally {
-        // Clear popup closed state so popup auto-opens on fresh page load
-        sessionStorage.removeItem('onboarding_popup_closed');
         setLoading(false);
       }
     }
@@ -412,6 +410,20 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     // Reset scraped data so popup mounts fresh next time
     setScrapedProperty(null);
     setScrapedImages([]);
+    sessionStorage.removeItem('home_scraped_property');
+    sessionStorage.removeItem('home_scraped_images');
+    // Also clear the onboarding form sessionStorage keys so popup is truly empty on next mount
+    sessionStorage.removeItem('popup_scraped_data');
+    sessionStorage.removeItem('popup_website_name');
+    sessionStorage.removeItem('popup_website_desc');
+    sessionStorage.removeItem('popup_user_website_name');
+    sessionStorage.removeItem('popup_plan');
+    sessionStorage.removeItem('popup_hosting');
+    sessionStorage.removeItem('popup_design');
+    sessionStorage.removeItem('popup_extras_seo');
+    sessionStorage.removeItem('popup_extras_ads');
+    sessionStorage.removeItem('popup_extras_analytics');
+    sessionStorage.removeItem('popup_extras_social');
     setResetKey(k => k + 1);
   };
 

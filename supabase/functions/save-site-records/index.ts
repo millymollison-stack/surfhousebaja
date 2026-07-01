@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
 
     const { title, slug, description, location, maxGuests, bedrooms, bathrooms, beds, baths,
             pricePerNight, heroImage, images, stripeAccountId, stripeAccountStatus,
-            userId, scrapedData } = body;
+            userId, scrapedData, rating, reviews } = body;
 
     // Fetch reference copy from the master Surf House Baja property
     // Only used as fallback when scrapedData doesn't provide rich content
@@ -71,6 +71,8 @@ Deno.serve(async (req: Request) => {
         bathrooms: bathrooms || 1,
         baths: baths || 1,
         price_per_night: pricePerNight || 150,
+        rating: rating ?? null,
+        reviews: reviews ?? null,
         hero_image: heroImage || "",
         images: images || [],
         stripe_account_id: stripeAccountId || null,

@@ -285,14 +285,22 @@ function googleMapsUrl(address: string, lat: string, lng: string): string {
   return '';
 }
 
-function PropertySection({ property, imageCount, isEditing, fields, onChange }: {
+function PropertySection({ property, images, isEditing, fields, onChange }: {
   property: Property | null;
-  imageCount: number;
+  images: { id: string; url: string; position: number }[];
   isEditing: boolean;
-  fields: { title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates' };
-  onChange: React.Dispatch<React.SetStateAction<{ title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates' }>>;
+  fields: { title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string; rating: string; reviews: string; description: string };
+  onChange: React.Dispatch<React.SetStateAction<{ title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string; rating: string; reviews: string; description: string }>>;
 }) {
   const mapsUrl = googleMapsUrl(fields.address, fields.latitude, fields.longitude);
+  const numField = (label: string, key: 'bedrooms' | 'beds' | 'baths' | 'max_guests') => (
+    <div className="sb-field-row">
+      <h4 className="sb-h4-grey">{label}</h4>
+      {isEditing
+        ? <input type="number" min="0" value={fields[key]} onChange={e => onChange(p => ({ ...p, [key]: e.target.value }))} className="sb-input" style={{ width: 80 }} />
+        : <p className="sb-field-value">{fields[key] || '—'}</p>}
+    </div>
+  );
   return (
     <div>
       <div className="sb-field-row">
@@ -358,10 +366,41 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
           </a>
         </div>
       )}
+      {/* Property stats — always visible */}
+      {numField('Bedrooms', 'bedrooms')}
+      {numField('Beds', 'beds')}
+      {numField('Baths', 'baths')}
+      {numField('Max guests', 'max_guests')}
+      {fields.rating ? (
+        <div className="sb-field-row">
+          <h4 className="sb-h4-grey">Rating</h4>
+          <p className="sb-field-value">★ {fields.rating}{fields.reviews ? ` (${fields.reviews} reviews)` : ''}</p>
+        </div>
+      ) : null}
+      {fields.description ? (
+        <div className="sb-field-row" style={{ borderBottom: 'none' }}>
+          <h4 className="sb-h4-grey">Description</h4>
+          <p className="sb-field-value" style={{ fontSize: '0.8rem', lineHeight: 1.5, maxHeight: 80, overflowY: 'auto' }}>{fields.description}</p>
+        </div>
+      ) : null}
+      {/* Image thumbnails */}
       <div className="sb-field-row" style={{ borderBottom: 'none' }}>
         <h4 className="sb-h4-grey">Uploaded photos</h4>
-        <p className="sb-field-value">{imageCount}</p>
+        <p className="sb-field-value">{images.length}</p>
       </div>
+      {images.length > 0 && (
+        <div style={{ padding: '8px 16px 12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          {images.slice(0, 6).map(img => (
+            <img
+              key={img.id}
+              src={img.url}
+              alt="Property"
+              style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 6, background: '#f3f4f6' }}
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -891,7 +930,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [nextBooking, setNextBooking] = useState<NextBooking | null>(null);
-  const [imageCount, setImageCount] = useState(0);
+  const [propertyImages, setPropertyImages] = useState<{ id: string; url: string; position: number }[]>([]);
   const [property, setProperty] = useState<Property | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
@@ -906,15 +945,28 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [subLoading, setSubLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates' });
+  const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '', rating: '', reviews: '', description: '' });
 
-  // ── Sync propFields + imageCount when selected property changes ──
+  // ── Sync propFields + propertyImages when selected property changes ──
   const syncPropertyFields = (prop: Property | null) => {
     console.log('[syncPropertyFields] called with prop:', prop ? { id: prop.id, title: prop.title, address: prop.address } : null);
-    if (!prop) { setProperty(null); setPropFields({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' }); return; }
+    if (!prop) { setProperty(null); setPropFields({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '', rating: '', reviews: '', description: '' }); return; }
     setProperty(prop);
-    setPropFields({ title: prop.title || '', address: prop.address || '', latitude: prop.latitude?.toString() || '', longitude: prop.longitude?.toString() || '', location_type: (prop.location_type as 'address' | 'coordinates') || 'coordinates' });
-    console.log('[syncPropertyFields] propFields now set to:', { title: prop.title || '', address: prop.address || '' });
+    setPropFields({
+      title: prop.title || '',
+      address: prop.address || '',
+      latitude: prop.latitude?.toString() || '',
+      longitude: prop.longitude?.toString() || '',
+      location_type: (prop.location_type as 'address' | 'coordinates') || 'coordinates',
+      bedrooms: prop.bedrooms != null ? String(prop.bedrooms) : '',
+      beds: prop.beds != null ? String(prop.beds) : '',
+      baths: (prop.baths ?? prop.bathrooms) != null ? String(prop.baths ?? prop.bathrooms) : '',
+      max_guests: prop.max_guests != null ? String(prop.max_guests) : '',
+      rating: prop.rating != null ? String(prop.rating) : '',
+      reviews: prop.reviews != null ? String(prop.reviews) : '',
+      description: prop.description || prop.property_intro || '',
+    });
+    console.log('[syncPropertyFields] propFields now set to:', { title: prop.title || '', address: prop.address || '', bedrooms: prop.bedrooms });
   };
   const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
   const [devUpdates, setDevUpdates] = useState(true);
@@ -1003,12 +1055,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         } else setNextBooking(null);
       }
 
-      // Load image count for the selected property only
+      // Load full image records for the selected property
       if (selected) {
-        const { data: selectedImgs } = await supabase.from('property_images').select('id').eq('property_id', selected.id);
-        setImageCount(selectedImgs?.length ?? 0);
+        const { data: selectedImgs } = await supabase.from('property_images').select('id, url, position').eq('property_id', selected.id).order('position');
+        setPropertyImages(selectedImgs ?? []);
       } else {
-        setImageCount(0);
+        setPropertyImages([]);
       }
       if (profileRes.data) {
         setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
@@ -1039,7 +1091,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     setSubLoading(true);
     try {
       const session = await getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription?action=get`, { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } });
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'get' }) });
       const data = await res.json();
       if (res.ok && data.subscription) setSubscriptionData(data.subscription);
     } catch (err) { console.error(err); } finally { setSubLoading(false); }
@@ -1131,8 +1183,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       const session = await getSession().catch(() => null);
       if (!session) return;
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription?action=get`,
-        { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } }
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'get' }) }
       ).catch(() => null);
       if (!res?.ok) return;
       const data = await res.json().catch(() => null);
@@ -1214,8 +1266,21 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       const saves: Promise<unknown>[] = [];
       // Admins save property fields too; non-admins only save contact info
       if (isAdmin && selectedPropertyId) {
-        console.log('[handleSave] Saving property:', { selectedPropertyId, title: propFields.title, address: propFields.address, latitude: propFields.latitude, longitude: propFields.longitude, location_type: propFields.location_type });
-        saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type }).eq('id', selectedPropertyId));
+        console.log('[handleSave] Saving property:', { selectedPropertyId, ...propFields });
+        saves.push(supabase.from('properties').update({
+          title: propFields.title || null,
+          address: propFields.address || null,
+          latitude: propFields.latitude ? parseFloat(propFields.latitude) : null,
+          longitude: propFields.longitude ? parseFloat(propFields.longitude) : null,
+          location_type: propFields.location_type,
+          bedrooms: propFields.bedrooms ? parseInt(propFields.bedrooms) : null,
+          beds: propFields.beds ? parseInt(propFields.beds) : null,
+          baths: propFields.baths ? parseInt(propFields.baths) : null,
+          max_guests: propFields.max_guests ? parseInt(propFields.max_guests) : null,
+          rating: propFields.rating ? parseFloat(propFields.rating) : null,
+          reviews: propFields.reviews ? parseInt(propFields.reviews) : null,
+          description: propFields.description || null,
+        }).eq('id', selectedPropertyId));
       } else {
         console.log('[handleSave] Skipping property save — isAdmin:', isAdmin, 'selectedPropertyId:', selectedPropertyId);
       }
@@ -1385,7 +1450,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {hasStripeAccount && connectData && !connectData.details_submitted && <p className="sb-credential-name" style={{ color: '#f59e0b', fontSize: '0.75rem' }}>Onboarding pending</p>}
               </div>
               <div className="sb-credential-row">
-                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">{property?.site_url ? new URL(property.site_url).pathName.slice(1) : 'No site published yet'}</p></div>
+                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">{property?.site_url ? (() => { try { return new URL(property.site_url).pathname.replace(/^\//, '') || 'Published site'; } catch { return 'Published site'; } })() : 'No site published yet'}</p></div>
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasEmail} /><p className="sb-credential-name">{displayUser.email}</p></div>
@@ -1411,7 +1476,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 </button>
                 {openSection === key && (
                   <div className="sb-section-body">
-                    {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
+                    {key === 'property' && <PropertySection property={property} images={propertyImages} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
                     {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={sessionStorage.getItem('popup_website_name') || undefined} propertyId={property?.id} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}

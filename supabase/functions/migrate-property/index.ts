@@ -36,38 +36,50 @@ Deno.serve(async (req: Request) => {
     let sourceImages: any[] = [];
     let sourceLabel = '';
 
-    // Use onboarding data if ANY scraped content is present (text OR images).
-    // Even partial data (only text, or only images) should be used — missing fields
-    // can be edited later. Only fall back to reference property if onboardingData is absent.
+    // Accept BOTH scraped-prefixed fields (from onboarding_data table)
+    // AND plain unprefixed fields (from the scraper API response via sessionStorage).
+    // The scraper API returns {title, description, guests, ...} not {scraped_title, ...}
     const scrapedImgList = onboardingData?.scraped_images || onboardingData?.images || [];
-    const hasRealText = onboardingData?.scraped_title != null ||
-                        onboardingData?.scraped_description != null ||
-                        onboardingData?.scraped_property_intro != null ||
-                        onboardingData?.property_name != null;
+    const scrapedTitle     = onboardingData?.scraped_title     ?? onboardingData?.title     ?? null;
+    const scrapedDesc      = onboardingData?.scraped_description ?? onboardingData?.description ?? null;
+    const scrapedPropIntro = onboardingData?.scraped_property_intro ?? onboardingData?.property_intro ?? null;
+    const scrapedGuests    = onboardingData?.scraped_guests    ?? onboardingData?.guests    ?? null;
+    const scrapedBeds      = onboardingData?.scraped_beds      ?? onboardingData?.beds      ?? null;
+    const scrapedBaths     = onboardingData?.scraped_baths     ?? onboardingData?.baths     ?? onboardingData?.bathrooms ?? null;
+    const scrapedLocation  = onboardingData?.scraped_location  ?? onboardingData?.location  ?? null;
+    const scrapedHero      = onboardingData?.scraped_hero_image ?? onboardingData?.hero_image ?? null;
+    const scrapedPrice     = onboardingData?.scraped_price     ?? onboardingData?.price     ?? null;
+    const scrapedRating    = onboardingData?.scraped_rating    ?? onboardingData?.rating    ?? null;
+    const scrapedReviews   = onboardingData?.scraped_reviews   ?? onboardingData?.reviews   ?? null;
+    const scrapedPropertyName = onboardingData?.property_name ?? null; // from onboarding_data upsert
+
+    const hasRealText = scrapedTitle != null || scrapedDesc != null || scrapedPropIntro != null || scrapedPropertyName != null;
     const hasRealImages = scrapedImgList.length >= 1;
     const hasOnboardingData = hasRealText || hasRealImages;
 
     console.log('[migrate-property] hasOnboardingData:', hasOnboardingData, '{ text:', hasRealText, 'images:', hasRealImages, '(' + scrapedImgList.length + ' total) }');
-    console.log('[migrate-property] scraped_title:', onboardingData?.scraped_title);
-    console.log('[migrate-property] scraped_description:', onboardingData?.scraped_description);
+    console.log('[migrate-property] scrapedTitle:', scrapedTitle, '| scrapedDesc length:', scrapedDesc?.length);
     console.log('[migrate-property] scraped_images length:', scrapedImgList.length);
     console.log('[migrate-property] scraped_images first 3:', scrapedImgList.slice(0, 3));
 
     if (hasOnboardingData) {
-      const heroImg = onboardingData.scraped_hero_image || onboardingData.hero_image || '';
+      const heroImg = scrapedHero || '';
       const imgList = scrapedImgList;
       console.log('[migrate-property] Using onboarding_data, heroImg:', heroImg, 'imgList length:', imgList.length);
       scrapedFields = {
-        title: onboardingData.scraped_title || onboardingData.property_name || '',
-        description: onboardingData.scraped_description || onboardingData.property_desc || '',
-        property_intro: onboardingData.scraped_property_intro || onboardingData.scraped_description || onboardingData.property_desc || '',
-        address: onboardingData.scraped_location || onboardingData.location || null,
+        title: scrapedTitle || scrapedPropertyName || '',
+        description: scrapedDesc || '',
+        property_intro: scrapedPropIntro || scrapedDesc || '',
+        address: scrapedLocation || null,
         hero_image: heroImg,
         images: imgList,
-        max_guests: onboardingData.scraped_guests || null,
-        bedrooms: onboardingData.bedrooms || null,
-        beds: onboardingData.beds || null,
-        baths: onboardingData.baths || onboardingData.bathrooms || null,
+        max_guests: scrapedGuests,
+        bedrooms: onboardingData?.bedrooms || null,
+        beds: scrapedBeds,
+        baths: scrapedBaths,
+        price_per_night: scrapedPrice ? (isNaN(Number(scrapedPrice)) ? null : Number(scrapedPrice)) : null,
+        rating: scrapedRating ? (isNaN(Number(scrapedRating)) ? null : Number(scrapedRating)) : null,
+        reviews: scrapedReviews ? (isNaN(Number(scrapedReviews)) ? null : Number(scrapedReviews)) : null,
       };
       sourceImages = imgList.map((url: string, i: number) => ({ url, position: i }));
       sourceLabel = 'onboarding_data';
@@ -144,6 +156,9 @@ Deno.serve(async (req: Request) => {
         url: img.url,
         caption: img.caption || null,
         position: img.position ?? i,
+        is_featured: i === 0,
+        is_main: i === 0,
+        is_background: i < 2,  // First 2 photos become background images (like save-site-records)
       }));
       await supabase.from("property_images").delete().eq("property_id", targetPropertyId);
       const { error: insertError } = await supabase.from("property_images").insert(newImageRows);
