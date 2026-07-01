@@ -371,15 +371,18 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           description: imported.description,
           location: imported.location,
           price: imported.price,
-          hero_image: primaryImage,
-          images: imageUrls,
+          scraped_hero_image: primaryImage,
+          scraped_images: imageUrls,
+          scraped_guests: imported.guests ? String(imported.guests) : null,
+          scraped_rating: imported.rating ? String(imported.rating) : null,
+          scraped_reviews: imported.reviews ? String(imported.reviews) : null,
+          scraped_title: imported.title,
+          scraped_location: imported.location,
+          scraped_description: imported.description,
           host_name: imported.host_name || null,
-          guests: imported.guests ? String(imported.guests) : null,
           bedrooms: imported.bedrooms ? String(imported.bedrooms) : null,
           beds: imported.beds ? String(imported.beds) : null,
           baths: imported.baths ? String(imported.baths) : null,
-          rating: imported.rating ? String(imported.rating) : null,
-          reviews: imported.reviews ? String(imported.reviews) : null,
         }, { onConflict: 'user_id' })
         .select()
         .single();

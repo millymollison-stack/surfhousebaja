@@ -1207,38 +1207,12 @@ const stripeRedirectRef = useRef(0);
         detail: { subscription_id: sessionData.subscription_id, status: sessionData.sub_status || 'active' },
       }));
 
-      // ── Step 5: Show building countdown while site is being built ──────────
-      setShowBuilding(true);
-      setBuildingCountdown(40);
-
-      // ── Step 6: Create and deploy the site ────────────────────────────────
-      // (scrapedData was restored from sessionStorage by the mount useEffect)
-      console.log('[DEBUG ?paid handler] Calling handleSaveSiteInPopup to create and deploy site...');
-      let createdSiteUrl = null;
-      try {
-        const siteResult = await handleSaveSiteInPopup();
-        createdSiteUrl = siteResult?.siteUrl || null;
-        console.log('[DEBUG ?paid handler] ✅ Site created at:', createdSiteUrl);
-      } catch (err) {
-        console.error('[DEBUG ?paid handler] handleSaveSiteInPopup failed:', err);
-      }
-
-      // ── Step 7: Save session data for CustomerSite to pick up after redirect ──
-      // CustomerSite checks sessionStorage (not URL params) so this survives the redirect
-      sessionStorage.setItem('stripe_paid_session', JSON.stringify({
-        sessionId: sessionId,
-        planName: sessionData.plan_name || 'Starter',
-        siteUrl: createdSiteUrl,
-      }));
-
-      // ── Step 8: Redirect to the deployed site ────────────────────────────────
-      if (createdSiteUrl) {
-        console.log('[DEBUG ?paid handler] Redirecting to:', createdSiteUrl);
-        // Redirect immediately — site is ready
-        window.location.href = createdSiteUrl!;
-      } else {
-        console.warn('[DEBUG ?paid handler] No siteUrl from handleSaveSiteInPopup — user may need to refresh');
-      }
+      // ── Step 5: Payment complete — stay on localhost, show success in popup ──
+      // handleSaveSiteInPopup and all redirect/countdown logic is TEMPORARILY DISABLED
+      // while we debug the image/database flow. User stays on localhost to see their template.
+      console.log('[DEBUG ?paid handler] ✅ Payment verified. Subscription active. Stay on localhost.');
+      setStripeProcessing(false);
+      if (!isOpen) setIsOpen(true);
 
     } catch (err) {
       console.error('[DEBUG ?paid handler] Error:', err);
@@ -1484,12 +1458,12 @@ const stripeRedirectRef = useRef(0);
            description: od.scraped_description || od.property_desc || '',
            hero_image: heroImg,
            images: imgList,
-           guests: od.scraped_guests || null,
+           guests: od.guests || null,
            bedrooms: od.bedrooms || null,
            beds: od.beds || null,
            baths: od.baths || null,
-           rating: od.scraped_rating || null,
-           reviews: od.scraped_reviews || null,
+           rating: od.rating || null,
+           reviews: od.reviews || null,
            host_name: null,
            price: '',
          };
