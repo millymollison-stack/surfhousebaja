@@ -797,9 +797,12 @@ const stripeRedirectRef = useRef(0);
  }
 
  // Keep calling loadSavedData when scrapedProperty/scrapedImages change
+ // Re-run loadSavedData when user resolves (null → real user) AND when scraped data arrives.
+ // Without user?.id in deps, loadSavedData would only fire on scrapedProperty changes
+ // and would miss loading data for users who sign in after page load.
  useEffect(() => {
  loadSavedData();
- }, [scrapedProperty, scrapedImages]);
+ }, [scrapedProperty, scrapedImages, user?.id]);
 
  // Sync websiteName to header AND to New Site Template
  useEffect(() => {
