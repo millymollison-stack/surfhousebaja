@@ -1305,6 +1305,8 @@ const stripeRedirectRef = useRef(0);
  // NOTE: websiteName and websiteDesc are NOT autofilled — user types their own name
  ssSet('scraped_data', JSON.stringify(data));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
+       // Also save to onboarding_data DB immediately so data survives beyond sessionStorage
+       await saveToSupabase();
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
  }
