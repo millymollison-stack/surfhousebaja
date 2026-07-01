@@ -138,7 +138,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  const { user, refreshUser } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
- const isMountedRef = { current: true };
+ const isMountedRef = useRef(true);
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
  // Inline auth state
@@ -320,6 +320,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    saveToSupabase().catch(e => console.warn('[openStripeGateway] async save failed (non-blocking):', e.message));
    console.log('[openStripeGateway] save fired async, redirecting to Stripe...');
 
+   console.log('[openStripeGateway] DEBUG 1: about to create fetchWithTimeout');
    // Timeout wrapper — if fetch takes >15s, treat as network error
    const fetchWithTimeout = (url: string, opts: RequestInit, timeoutMs = 20000) =>
      Promise.race([
@@ -1222,6 +1223,7 @@ const stripeRedirectRef = useRef(0);
  const row = {
  user_id: user.id,
  property_name: sessionScraped?.title || websiteName || null,
+ slug: websiteName ? websiteName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-') : null,
  property_desc: sessionScraped?.description || websiteDesc || null,
  airbnb_url: airbnbUrl,
  design_choice: designChoice,
