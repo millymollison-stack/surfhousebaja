@@ -1302,41 +1302,82 @@ const stripeRedirectRef = useRef(0);
    .replace(/\s+/g, '-')
    .replace(/-+/g, '-');
 
- // ── Create property record in DB (using supabaseAdmin for server-side access) ───
- // This is the KEY FIX: property is created BEFORE Stripe redirect, so returning
- // users always have data in DB even if they never click PUBLISH.
- const propertyId = `pre-${user.id}-${Date.now()}`;
- const propertyInsert = {
-   id: propertyId,
-   title: sessionScraped?.title || websiteNameVal,
-   property_title: sessionScraped?.title || websiteNameVal,
-   slug,
-   description: sessionScraped?.description || websiteDesc || '',
-   property_intro: (sessionScraped?.description || '').slice(0, 200),
-   location: sessionScraped?.location || '',
-   address: sessionScraped?.location || '',
-   max_guests: sessionScraped?.guests || 4,
-   bedrooms: sessionScraped?.bedrooms || 1,
-   beds: sessionScraped?.beds || 1,
-   bathrooms: sessionScraped?.baths || 1,
-   price_per_night: sessionScraped?.price
-     ? parseFloat(sessionScraped.price.replace(/[^0-9.]/g, ''))
-     : 100,
-   owner_id: user.id,  // CRITICAL: user owns this property from day one
-   hero_image: primaryImage,
-   site_url: `https://www.propbook.pro/props/${slug}`,
-   stripe_subscription_plan: planChoice || 'starter',
-   created_at: new Date().toISOString(),
- };
-
- console.log('[saveToSupabase] Creating property record for user', user.id, 'with slug', slug);
- const { error: propError } = await supabaseAdmin
+ // ── Check for existing pre-Stripe property (idempotency — skip insert if already exists) ─
+ // This handles the case where user clicks Subscribe, Stripe redirects back,
+ // then they click Subscribe again (duplicate click protection). Rather than
+ // creating a second pre-* property, we update the existing one.
+ const { data: existingPreProps } = await supabaseAdmin
    .from('properties')
-   .insert(propertyInsert);
- if (propError) {
-   console.warn('[saveToSupabase] Property insert error:', propError.message);
+   .select('id, slug')
+   .eq('owner_id', user.id)
+   .like('id', 'pre-%')
+   .limit(1);
+
+ let propertyId: string;
+ if (existingPreProps && existingPreProps.length > 0) {
+   // Already have a pre-* property — update it instead of creating a new one
+   propertyId = existingPreProps[0].id;
+   console.log('[saveToSupabase] Updating existing pre-Stripe property:', propertyId);
+   await supabaseAdmin
+     .from('properties')
+     .update({
+       title: sessionScraped?.title || websiteNameVal,
+       property_title: sessionScraped?.title || websiteNameVal,
+       slug,
+       description: sessionScraped?.description || websiteDesc || '',
+       property_intro: (sessionScraped?.description || '').slice(0, 200),
+       location: sessionScraped?.location || '',
+       address: sessionScraped?.location || '',
+       max_guests: sessionScraped?.guests || 4,
+       bedrooms: sessionScraped?.bedrooms || 1,
+       beds: sessionScraped?.beds || 1,
+       bathrooms: sessionScraped?.baths || 1,
+       price_per_night: sessionScraped?.price
+         ? parseFloat(sessionScraped.price.replace(/[^0-9.]/g, ''))
+         : 100,
+       hero_image: primaryImage,
+       site_url: `https://www.propbook.pro/props/${slug}`,
+       stripe_subscription_plan: planChoice || 'starter',
+     })
+     .eq('id', propertyId);
+   // Delete old images and re-insert fresh ones
+   if (realUrls.length > 0) {
+     await supabaseAdmin.from('property_images').delete().eq('property_id', propertyId);
+   }
  } else {
-   console.log('[saveToSupabase] ✅ Property created:', propertyId);
+   // No existing pre-* property — create a new one
+   propertyId = `pre-${user.id}-${Date.now()}`;
+   console.log('[saveToSupabase] Creating NEW pre-Stripe property:', propertyId);
+   const propertyInsert = {
+     id: propertyId,
+     title: sessionScraped?.title || websiteNameVal,
+     property_title: sessionScraped?.title || websiteNameVal,
+     slug,
+     description: sessionScraped?.description || websiteDesc || '',
+     property_intro: (sessionScraped?.description || '').slice(0, 200),
+     location: sessionScraped?.location || '',
+     address: sessionScraped?.location || '',
+     max_guests: sessionScraped?.guests || 4,
+     bedrooms: sessionScraped?.bedrooms || 1,
+     beds: sessionScraped?.beds || 1,
+     bathrooms: sessionScraped?.baths || 1,
+     price_per_night: sessionScraped?.price
+       ? parseFloat(sessionScraped.price.replace(/[^0-9.]/g, ''))
+       : 100,
+     owner_id: user.id,
+     hero_image: primaryImage,
+     site_url: `https://www.propbook.pro/props/${slug}`,
+     stripe_subscription_plan: planChoice || 'starter',
+     created_at: new Date().toISOString(),
+   };
+   const { error: propError } = await supabaseAdmin
+     .from('properties')
+     .insert(propertyInsert);
+   if (propError) {
+     console.warn('[saveToSupabase] Property insert error:', propError.message);
+   } else {
+     console.log('[saveToSupabase] ✅ Property created:', propertyId);
+   }
  }
 
  // ── Create property_images records ─────────────────────────────────────────────
