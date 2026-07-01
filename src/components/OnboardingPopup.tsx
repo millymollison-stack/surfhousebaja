@@ -581,7 +581,17 @@ const stripeRedirectRef = useRef(0);
  // at Subscribe-click time, before any async scrape can change React state.
 
  const handleClose = () => {
+ // Don't persist the closed state for active subscribers — their scraped data is
+ // already saved and they need the popup to reopen on reload so they can publish.
+ // Only set POPUP_CLOSED_KEY for non-subscribers (genuine first-time users who
+ // haven't completed onboarding yet).
+ (async () => {
+ const { data: profile } = await supabase.from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
+ const isActive = profile?.stripe_subscription_status === 'active' || profile?.stripe_subscription_status === 'trialing';
+ if (!isActive) {
  sessionStorage.setItem(POPUP_CLOSED_KEY, '1');
+ }
+ })();
  setIsOpen(false);
  if (onClose) onClose();
  };
@@ -610,14 +620,7 @@ const stripeRedirectRef = useRef(0);
  host_name: null,
  });
  // Auto-open popup when scraped data arrives - but NOT if user explicitly closed it
- // Also skip if user has an active subscription (they've already onboarded after Stripe)
  if (!isOpen && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
- // Check if user already has an active subscription before auto-opening
- const { data: profile } = await supabase.from('profiles').select('stripe_subscription_status').eq('id', user?.id).single();
- if (profile?.stripe_subscription_status === 'active' || profile?.stripe_subscription_status === 'trialing') {
- // User already subscribed — don't open popup
- return;
- }
  setIsOpen(true);
  }
  return;
@@ -632,6 +635,8 @@ const stripeRedirectRef = useRef(0);
             const userTyped = sessionStorage.getItem('popup_user_website_name');
             if (parsed.title) setWebsiteName(userTyped || parsed.title);
             if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
+            // Propagate scraped data to Home.tsx so the template behind the popup shows it immediately
+            if (onImported) onImported({ ...parsed, hero_image: parsed.images?.[1] || parsed.hero_image });
           } catch { /* ignore corrupt JSON */ }
         }
 
@@ -797,12 +802,25 @@ const stripeRedirectRef = useRef(0);
  };
 
  // Sync description to template (fires independently, no stale name capture)
- // Auto-open popup on mount (2s delay). Check sessionStorage so that if the user
- // closed the popup (which sets sessionStorage), we skip the auto-open after remount.
+ // Auto-open popup on mount (2s delay).
+ // ── IMPORTANT: Active subscribers should always get the popup open on reload so
+ // they can click PUBLISH MY SITE — their scraped data is already saved to
+ // sessionStorage/onboarding_data. We skip the auto-open ONLY for non-subscribers
+ // who explicitly closed the popup (POPUP_CLOSED_KEY is set by handleClose).
  useEffect(() => {
  isMountedRef.current = true;
- const timer = setTimeout(() => {
- if (isMountedRef.current && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
+ const timer = setTimeout(async () => {
+ if (!isMountedRef.current) return;
+ // Check if user has an active subscription — always open for them
+ const { data: profile } = await supabase.from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
+ const isActive = profile?.stripe_subscription_status === 'active' || profile?.stripe_subscription_status === 'trialing';
+ if (isActive) {
+ // Active subscriber: always open popup so they can publish
+ setIsOpen(true);
+ return;
+ }
+ // Non-subscriber: only open if they haven't explicitly closed the popup
+ if (!sessionStorage.getItem(POPUP_CLOSED_KEY)) {
  setIsOpen(true);
  }
  }, 2000);
@@ -943,8 +961,11 @@ const stripeRedirectRef = useRef(0);
                     ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
                     : null;
                   if (slug) {
-                    setStripeProcessing(true);
-                    setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
+                    // TEMPORARILY DISABLED — redirecting before site is built breaks the flow
+                    // setStripeProcessing(true);
+                    // setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
+                    setStripeProcessing(false);
+                    setIsOpen(true); // Re-open popup so sidebar/publish button can be tested
                     return;
                   }
                 }
@@ -992,8 +1013,11 @@ const stripeRedirectRef = useRef(0);
             ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
             : null;
           if (slug) {
-            setStripeProcessing(true);
-            setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
+            // TEMPORARILY DISABLED — redirecting before site is built breaks the flow
+            // setStripeProcessing(true);
+            // setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
+            setStripeProcessing(false);
+            setIsOpen(true); // Re-open popup so sidebar/publish button can be tested
             return;
           }
           // No slug — open popup and try to publish
