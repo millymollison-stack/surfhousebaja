@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const SOURCE_PROPERTY_ID = "efa8d280-afee-4971-9145-d591740f484d";
+const ONBOARDING_BUCKET = "onboarding";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -32,47 +33,41 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[migrate-property] Starting migration for user=${user.id}, targetProperty=${targetPropertyId}`);
 
+    // Accept BOTH scraped-prefixed fields (from onboarding_data table)
+    // AND plain unprefixed fields (from the scraper API response via sessionStorage).
+    const scrapedImgList  = onboardingData?.scraped_images || onboardingData?.images || [];
+    const scrapedTitle    = onboardingData?.scraped_title     ?? onboardingData?.title     ?? null;
+    const scrapedDesc    = onboardingData?.scraped_description ?? onboardingData?.description ?? null;
+    const scrapedPropIntro = onboardingData?.scraped_property_intro ?? onboardingData?.property_intro ?? null;
+    const scrapedGuests  = onboardingData?.scraped_guests    ?? onboardingData?.guests    ?? null;
+    const scrapedBeds    = onboardingData?.scraped_beds      ?? onboardingData?.beds      ?? null;
+    const scrapedBaths   = onboardingData?.scraped_baths     ?? onboardingData?.baths     ?? onboardingData?.bathrooms ?? null;
+    const scrapedLocation = onboardingData?.scraped_location  ?? onboardingData?.location  ?? null;
+    const scrapedHero    = onboardingData?.scraped_hero_image ?? onboardingData?.hero_image ?? null;
+    const scrapedPrice   = onboardingData?.scraped_price     ?? onboardingData?.price     ?? null;
+    const scrapedRating  = onboardingData?.scraped_rating    ?? onboardingData?.rating    ?? null;
+    const scrapedReviews = onboardingData?.scraped_reviews   ?? onboardingData?.reviews   ?? null;
+    const scrapedPropertyName = onboardingData?.property_name ?? null;
+
+    const hasRealText    = scrapedTitle != null || scrapedDesc != null || scrapedPropIntro != null || scrapedPropertyName != null;
+    const hasRealImages  = scrapedImgList.length >= 1;
+    const hasOnboardingData = hasRealText || hasRealImages;
+
+    console.log('[migrate-property] hasOnboardingData:', hasOnboardingData, '{ text:', hasRealText, 'images:', hasRealImages, '(' + scrapedImgList.length + ' total) }');
+
     let scrapedFields: Record<string, any> = {};
     let sourceImages: any[] = [];
     let sourceLabel = '';
 
-    // Accept BOTH scraped-prefixed fields (from onboarding_data table)
-    // AND plain unprefixed fields (from the scraper API response via sessionStorage).
-    // The scraper API returns {title, description, guests, ...} not {scraped_title, ...}
-    const scrapedImgList = onboardingData?.scraped_images || onboardingData?.images || [];
-    const scrapedTitle     = onboardingData?.scraped_title     ?? onboardingData?.title     ?? null;
-    const scrapedDesc      = onboardingData?.scraped_description ?? onboardingData?.description ?? null;
-    const scrapedPropIntro = onboardingData?.scraped_property_intro ?? onboardingData?.property_intro ?? null;
-    const scrapedGuests    = onboardingData?.scraped_guests    ?? onboardingData?.guests    ?? null;
-    const scrapedBeds      = onboardingData?.scraped_beds      ?? onboardingData?.beds      ?? null;
-    const scrapedBaths     = onboardingData?.scraped_baths     ?? onboardingData?.baths     ?? onboardingData?.bathrooms ?? null;
-    const scrapedLocation  = onboardingData?.scraped_location  ?? onboardingData?.location  ?? null;
-    const scrapedHero      = onboardingData?.scraped_hero_image ?? onboardingData?.hero_image ?? null;
-    const scrapedPrice     = onboardingData?.scraped_price     ?? onboardingData?.price     ?? null;
-    const scrapedRating    = onboardingData?.scraped_rating    ?? onboardingData?.rating    ?? null;
-    const scrapedReviews   = onboardingData?.scraped_reviews   ?? onboardingData?.reviews   ?? null;
-    const scrapedPropertyName = onboardingData?.property_name ?? null; // from onboarding_data upsert
-
-    const hasRealText = scrapedTitle != null || scrapedDesc != null || scrapedPropIntro != null || scrapedPropertyName != null;
-    const hasRealImages = scrapedImgList.length >= 1;
-    const hasOnboardingData = hasRealText || hasRealImages;
-
-    console.log('[migrate-property] hasOnboardingData:', hasOnboardingData, '{ text:', hasRealText, 'images:', hasRealImages, '(' + scrapedImgList.length + ' total) }');
-    console.log('[migrate-property] scrapedTitle:', scrapedTitle, '| scrapedDesc length:', scrapedDesc?.length);
-    console.log('[migrate-property] scraped_images length:', scrapedImgList.length);
-    console.log('[migrate-property] scraped_images first 3:', scrapedImgList.slice(0, 3));
-
     if (hasOnboardingData) {
-      const heroImg = scrapedHero || '';
-      const imgList = scrapedImgList;
-      console.log('[migrate-property] Using onboarding_data, heroImg:', heroImg, 'imgList length:', imgList.length);
+      console.log('[migrate-property] Using onboarding_data, heroImg:', scrapedHero, 'imgList length:', scrapedImgList.length);
       scrapedFields = {
         title: scrapedTitle || scrapedPropertyName || '',
         description: scrapedDesc || '',
         property_intro: scrapedPropIntro || scrapedDesc || '',
         address: scrapedLocation || null,
-        hero_image: heroImg,
-        images: imgList || null,
+        hero_image: scrapedHero || '',
+        images: scrapedImgList || null,
         max_guests: scrapedGuests,
         bedrooms: onboardingData?.bedrooms || null,
         beds: scrapedBeds,
@@ -81,11 +76,12 @@ Deno.serve(async (req: Request) => {
         rating: scrapedRating ? (isNaN(Number(scrapedRating)) ? null : Number(scrapedRating)) : null,
         reviews: scrapedReviews ? (isNaN(Number(scrapedReviews)) ? null : Number(scrapedReviews)) : null,
       };
-      sourceImages = imgList.map((url: string, i: number) => ({ url, position: i }));
+      // Keep original Airbnb URLs for now — we'll upload to Supabase storage below
+      sourceImages = scrapedImgList.map((url: string, i: number) => ({ url, position: i }));
       sourceLabel = 'onboarding_data';
     } else {
       // No onboarding data found — fall back to reference property
-      console.warn('[migrate-property] ⚠️ No scraped data in onboardingData (text=', hasRealText, 'images=', hasRealImages, '). Falling back to reference property.');
+      console.warn('[migrate-property] ⚠️ No scraped data. Falling back to reference property.');
       const { data: sourceProperty, error: sourceError } = await supabase
         .from("properties")
         .select("*")
@@ -140,7 +136,7 @@ Deno.serve(async (req: Request) => {
       if (scrapedFields[k] === undefined || scrapedFields[k] === null) delete scrapedFields[k];
     });
 
-    console.log(`[migrate-property] Copying fields: ${Object.keys(scrapedFields).join(', ')}`);
+    console.log(`[migrate-property] Updating properties table with: ${Object.keys(scrapedFields).join(', ')}`);
 
     const { error: updateError } = await supabase
       .from("properties")
@@ -149,26 +145,68 @@ Deno.serve(async (req: Request) => {
 
     if (updateError) throw new Error(`Failed to update target property: ${updateError.message}`);
 
+    // ── Upload images to Supabase storage and save Supabase URLs to property_images ──
     if (sourceImages && sourceImages.length > 0) {
-      console.log(`[migrate-property] Replacing ${sourceImages.length} images from ${sourceLabel}...`);
-      const newImageRows = sourceImages.map((img: any, i: number) => ({
+      console.log(`[migrate-property] Processing ${sourceImages.length} images...`);
+
+      // Upload Airbnb/external images to Supabase storage
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < sourceImages.length; i++) {
+        const img = sourceImages[i];
+        const imgUrl = img.url;
+        if (!imgUrl) continue;
+
+        try {
+          // Fetch the image from the external URL
+          const imgRes = await fetch(imgUrl);
+          if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
+          const buffer = await imgRes.arrayBuffer();
+          const ext = imgUrl.split('.').pop()?.split('?')[0] || 'jpg';
+          const filename = `properties/${targetPropertyId}/${Date.now()}-${i}.${ext}`;
+          const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+
+          const { error: uploadError } = await supabase.storage
+            .from(ONBOARDING_BUCKET)
+            .upload(filename, buffer, { contentType });
+
+          if (uploadError) {
+            // Storage upload failed — fall back to original URL
+            console.warn(`[migrate-property] Upload failed for ${imgUrl}, using original URL`);
+            uploadedUrls.push(imgUrl);
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from(ONBOARDING_BUCKET)
+              .getPublicUrl(filename);
+            uploadedUrls.push(publicUrl);
+            console.log(`[migrate-property] Uploaded image ${i + 1}/${sourceImages.length}`);
+          }
+        } catch (err) {
+          console.warn(`[migrate-property] Could not upload image ${imgUrl}:`, err);
+          uploadedUrls.push(imgUrl); // Fall back to original URL
+        }
+      }
+
+      // Build property_images rows with Supabase storage URLs
+      const newImageRows = uploadedUrls.map((url: string, i: number) => ({
         property_id: targetPropertyId,
-        url: img.url,
-        caption: img.caption || null,
-        position: img.position ?? i,
+        url,
+        caption: null,
+        position: i,
         is_featured: i === 0,
         is_main: i === 0,
-        is_background: i < 2,  // First 2 photos become background images (like save-site-records)
+        is_background: i < 2,
       }));
+
+      // Replace existing property_images
       await supabase.from("property_images").delete().eq("property_id", targetPropertyId);
       const { error: insertError } = await supabase.from("property_images").insert(newImageRows);
       if (insertError) {
         console.warn(`[migrate-property] ⚠️ Image insert failed: ${insertError.message}`);
       } else {
-        console.log(`[migrate-property] ✅ Copied ${newImageRows.length} images`);
+        console.log(`[migrate-property] ✅ Saved ${newImageRows.length} images (Supabase storage URLs)`);
       }
     } else {
-      console.log(`[migrate-property] No onboarding images — preserving existing property_images (from save-site-records)`);
+      console.log(`[migrate-property] No images to migrate`);
     }
 
     if (!hasOnboardingData) {
