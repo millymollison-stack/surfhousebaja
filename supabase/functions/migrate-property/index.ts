@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
         property_intro: scrapedPropIntro || scrapedDesc || '',
         address: scrapedLocation || null,
         hero_image: heroImg,
-        images: imgList,
+        images: imgList || null,
         max_guests: scrapedGuests,
         bedrooms: onboardingData?.bedrooms || null,
         beds: scrapedBeds,
