@@ -843,22 +843,28 @@ const stripeRedirectRef = useRef(0);
 
  // Sync description to template (fires independently, no stale name capture)
  // Auto-open popup on mount (2s delay).
- // ── IMPORTANT: Active subscribers should always get the popup open on reload so
- // they can click PUBLISH MY SITE — their scraped data is already saved to
- // sessionStorage/onboarding_data. We skip the auto-open ONLY for non-subscribers
- // who explicitly closed the popup (POPUP_CLOSED_KEY is set by handleClose).
+ // ── IMPORTANT: For active subscribers, we call loadSavedData() (not setIsOpen)
+ // because the user may already be logged in and the popup may already be mounted.
+ // setIsOpen(true) is a no-op when isOpen is already true — we need loadSavedData
+ // to populate the form fields from scrapedProperty prop (set by Home.tsx from DB).
  useEffect(() => {
  isMountedRef.current = true;
  const timer = setTimeout(async () => {
  if (!isMountedRef.current) return;
- // Check if user has an active subscription — always open for them
+
+ // Check if user has an active subscription
  const { data: profile } = await supabase.from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
  const isActive = profile?.stripe_subscription_status === 'active' || profile?.stripe_subscription_status === 'trialing';
+
  if (isActive) {
- // Active subscriber: always open popup so they can publish
- setIsOpen(true);
+ // Active subscriber: load their data and open the popup.
+ // loadSavedData reads scrapedProperty from props (set by Home.tsx from DB) and
+ // populates form fields, then calls setIsOpen(true). This refreshes the form
+ // even if the popup is already mounted — unlike setIsOpen which is a no-op when already true.
+ await loadSavedData();
  return;
  }
+
  // Non-subscriber: only open if they haven't explicitly closed the popup
  if (!ssGet('closed')) {
  setIsOpen(true);
@@ -868,7 +874,7 @@ const stripeRedirectRef = useRef(0);
  isMountedRef.current = false;
  clearTimeout(timer);
  };
- }, []);
+ }, [scrapedProperty]);
 
  // Handle return from Stripe Connect onboarding - ?return_url or ?stripe_connect_return in URL
  useEffect(() => {
