@@ -6,7 +6,7 @@ import './OnboardingPopup.css';
 import { TemplatePreview } from './TemplatePreview';
 import { FontDropdown } from './FontDropdown';
 import { FONT_OPTIONS, applyFontAccent } from '../lib/fontAccent';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { saveBrandColor } from '../lib/brandColor';
 
 import { useAuth } from '../store/auth';
@@ -350,10 +350,12 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    }
    console.log('[openStripeGateway] validated — userId:', userIdValue, 'slug:', slugValue);
 
-   // Fire-and-forget: save form data to Supabase asynchronously.
-   // Do NOT await — Stripe redirect is the critical path and must not be blocked.
-   saveToSupabase().catch(e => console.warn('[openStripeGateway] async save failed (non-blocking):', e.message));
-   console.log('[openStripeGateway] save fired async, redirecting to Stripe...');
+   // BLOCKING SAVE: property must be in DB before we redirect to Stripe.
+   // This ensures returning users ALWAYS have their data, even if they close the
+   // browser mid-Stripe or the redirect fails.
+   console.log('[openStripeGateway] Saving scraped data to DB before Stripe redirect...');
+   await saveToSupabase();
+   console.log('[openStripeGateway] ✅ DB save complete, redirecting to Stripe...');
 
    console.log('[openStripeGateway] DEBUG 1: about to create fetchWithTimeout');
    // Timeout wrapper — if fetch takes >15s, treat as network error
@@ -737,12 +739,19 @@ const stripeRedirectRef = useRef(0);
  const savedExtras = ssGet('extras_seo');
  if (savedExtras) setExtras({ seo: savedExtras === 'true', ads: ssGet('extras_ads') === 'true', analytics: ssGet('extras_analytics') === 'true', social: ssGet('extras_social') === 'true' });
 
+ // Only load onboarding_data for authenticated users with a real user ID.
+ // Guard: skip if user is not yet authenticated to prevent empty-user_id records
+ // in the DB from contaminating a fresh user.
+ if (!user?.id) return;
  try {
  const { data, error } = await supabase
  .from('onboarding_data')
  .select('*')
- .eq('user_id', user?.id || '')
+ .eq('user_id', user.id)
  .maybeSingle();
+
+ // Only load for authenticated users — skip if no real user ID (prevents
+ // empty-user_id records in DB from contaminating a fresh signed-in user)
 
  if (error && error.code !== 'PGRST116') {
  console.warn('Could not load saved onboarding data:', error.message);
@@ -1233,25 +1242,24 @@ const stripeRedirectRef = useRef(0);
  }, [window.location.search, user]); // re-fires when URL changes or auth resolves
  
 
- // Save or update onboarding data in Supabase
- const saveToSupabase = async (overrides: any = {}) => {
- if (!user) return;
+ // Save scraped data + create DB property record when Subscribe is pressed.
+ // This runs SYNCHRONOUSLY (awaited by openStripeGateway) so the property exists
+ // in DB BEFORE the user is sent to Stripe. On return, the user has data in DB.
+ const saveToSupabase = async (): Promise<{ propertyId: string; slug: string } | null> => {
+ if (!user) return null;
  try {
- // Read FRESH scraped data from sessionStorage — this is the one true source
- // when Subscribe is pressed. Images are Airbnb URLs at this point.
+ // Read FRESH scraped data from sessionStorage
  const sessionScraped = (() => {
- try {
- const raw = ssGet('scraped_data');
- return raw ? JSON.parse(raw) : null;
- } catch { return null; }
+   try {
+     const raw = ssGet('scraped_data');
+     return raw ? JSON.parse(raw) : null;
+   } catch { return null; }
  })();
 
  // ── Upload scraped images to Supabase storage ─────────────────────────────────
- // This runs ONLY when Subscribe is pressed, not on scrape.
- // We upload Airbnb URLs → Supabase storage, then save Supabase URLs to the DB.
  const imageUrls: string[] = [];
  const imageList = sessionScraped?.images || [];
- console.log('[saveToSupabase] Uploading', imageList.length, 'images to Supabase storage...');
+ console.log('[saveToSupabase] Uploading', imageList.length, 'images...');
  for (let i = 0; i < imageList.length; i++) {
    const imgUrl = imageList[i];
    try {
@@ -1262,7 +1270,6 @@ const stripeRedirectRef = useRef(0);
        .from('onboarding')
        .upload(filename, buffer, { contentType: 'image/jpeg' });
      if (uploadError) {
-       // Bucket may not exist — silently fall back to original Airbnb URL
        console.warn('[saveToSupabase] Upload failed for', imgUrl, '- using original URL');
        imageUrls.push(imgUrl);
      } else {
@@ -1270,63 +1277,121 @@ const stripeRedirectRef = useRef(0);
          .from('onboarding')
          .getPublicUrl(filename);
        imageUrls.push(publicUrl);
-       console.log('[saveToSupabase] Uploaded image', i + 1, '/', imageList.length, publicUrl.slice(0, 60));
      }
    } catch (err) {
-     // Network error — fall back to original URL
-     console.warn('[saveToSupabase] Network error for', imgUrl, '- using original URL');
+     console.warn('[saveToSupabase] Network error for', imgUrl);
      imageUrls.push(imgUrl);
    }
  }
 
- // Use first uploaded image as hero_image; skip Airbnb placeholder if present
+ // Skip Airbnb placeholder image
  const isAirbnbPlaceholder = (url: string) => url.includes('muscache.com');
  const realUrls = imageUrls.length > 0 && isAirbnbPlaceholder(imageUrls[0])
    ? imageUrls.slice(1)
    : imageUrls;
  const primaryImage = realUrls[0] || imageUrls[0] || '';
 
- // ── Save to onboarding_data with Supabase storage URLs ─────────────────────────
- const row = {
- user_id: user.id,
- property_name: ssGet('user_website_name') || websiteName || null,  // user types the name — NOT from scrape
- slug: (() => {
-   const name = ssGet('user_website_name') || websiteName || '';
-   return name ? name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-') : null;
- })(),
- property_desc: sessionScraped?.description || websiteDesc || null,
- airbnb_url: airbnbUrl,
- design_choice: designChoice,
- bank_choice: bankChoice,
- hosting_choice: hostingChoice,
- plan_choice: planChoice,
- email: user.email,
- bookings_email: bookingsEmail,
- extras: extras,
- updated_at: new Date().toISOString(),
- // Store scraped data for reference but NOT as the live page title/description
- // (user edits these in the popup before publishing)
- scraped_title: sessionScraped?.title || null,
- scraped_location: sessionScraped?.location || null,
- scraped_description: sessionScraped?.description || null,
- scraped_hero_image: primaryImage,
- scraped_images: realUrls.length > 0 ? realUrls : imageUrls,
- scraped_rating: sessionScraped?.rating ? String(sessionScraped.rating) : null,
- scraped_reviews: sessionScraped?.reviews ? String(sessionScraped.reviews) : null,
- scraped_guests: sessionScraped?.guests ? String(sessionScraped.guests) : null,
+ // ── Generate slug and website name ─────────────────────────────────────────────
+ const websiteNameVal = ssGet('user_website_name') || websiteName || sessionScraped?.title || 'my-property';
+ const slug = websiteNameVal
+   .toLowerCase()
+   .normalize('NFD')
+   .replace(/[\u0300-\u036f]/g, '')
+   .replace(/[^a-z0-9\s-]/g, '')
+   .trim()
+   .replace(/\s+/g, '-')
+   .replace(/-+/g, '-');
+
+ // ── Create property record in DB (using supabaseAdmin for server-side access) ───
+ // This is the KEY FIX: property is created BEFORE Stripe redirect, so returning
+ // users always have data in DB even if they never click PUBLISH.
+ const propertyId = `pre-${user.id}-${Date.now()}`;
+ const propertyInsert = {
+   id: propertyId,
+   title: sessionScraped?.title || websiteNameVal,
+   property_title: sessionScraped?.title || websiteNameVal,
+   slug,
+   description: sessionScraped?.description || websiteDesc || '',
+   property_intro: (sessionScraped?.description || '').slice(0, 200),
+   location: sessionScraped?.location || '',
+   address: sessionScraped?.location || '',
+   max_guests: sessionScraped?.guests || 4,
+   bedrooms: sessionScraped?.bedrooms || 1,
+   beds: sessionScraped?.beds || 1,
+   bathrooms: sessionScraped?.baths || 1,
+   price_per_night: sessionScraped?.price
+     ? parseFloat(sessionScraped.price.replace(/[^0-9.]/g, ''))
+     : 100,
+   owner_id: user.id,  // CRITICAL: user owns this property from day one
+   hero_image: primaryImage,
+   site_url: `https://www.propbook.pro/props/${slug}`,
+   stripe_subscription_plan: planChoice || 'starter',
+   created_at: new Date().toISOString(),
  };
 
- const { error } = await supabase
- .from('onboarding_data')
- .upsert(row, { onConflict: 'user_id' });
-
- if (error) {
- console.warn('Supabase save error:', error.message);
+ console.log('[saveToSupabase] Creating property record for user', user.id, 'with slug', slug);
+ const { error: propError } = await supabaseAdmin
+   .from('properties')
+   .insert(propertyInsert);
+ if (propError) {
+   console.warn('[saveToSupabase] Property insert error:', propError.message);
  } else {
- console.log('Saved to Supabase onboarding_data');
+   console.log('[saveToSupabase] ✅ Property created:', propertyId);
  }
+
+ // ── Create property_images records ─────────────────────────────────────────────
+ if (realUrls.length > 0) {
+   const imageRecords = realUrls.map((url: string, idx: number) => ({
+     property_id: propertyId,
+     url,
+     position: idx + 1,
+     is_featured: idx === 0,
+     is_main: idx === 0,
+     is_background: false,
+   }));
+   const { errors: imgErrors } = await supabaseAdmin
+     .from('property_images')
+     .insert(imageRecords);
+   if (imgErrors) {
+     console.warn('[saveToSupabase] Image insert errors:', imgErrors);
+   } else {
+     console.log('[saveToSupabase] ✅', realUrls.length, 'images inserted');
+   }
+ }
+
+ // ── Save onboarding_data (for form state persistence) ─────────────────────────
+ const row = {
+   user_id: user.id,
+   property_name: websiteNameVal,
+   slug,
+   property_desc: sessionScraped?.description || websiteDesc || null,
+   airbnb_url: airbnbUrl,
+   design_choice: designChoice,
+   bank_choice: bankChoice,
+   hosting_choice: hostingChoice,
+   plan_choice: planChoice,
+   email: user.email,
+   bookings_email: bookingsEmail,
+   extras,
+   updated_at: new Date().toISOString(),
+   scraped_title: sessionScraped?.title || null,
+   scraped_location: sessionScraped?.location || null,
+   scraped_description: sessionScraped?.description || null,
+   scraped_hero_image: primaryImage,
+   scraped_images: realUrls,
+   scraped_rating: sessionScraped?.rating ? String(sessionScraped.rating) : null,
+   scraped_reviews: sessionScraped?.reviews ? String(sessionScraped.reviews) : null,
+   scraped_guests: sessionScraped?.guests ? String(sessionScraped.guests) : null,
+ };
+ const { error: obError } = await supabase
+   .from('onboarding_data')
+   .upsert(row, { onConflict: 'user_id' });
+ if (obError) console.warn('[saveToSupabase] onboarding_data error:', obError.message);
+
+ return { propertyId, slug };
  } catch (err) {
- console.warn('Could not save to Supabase (table may not exist yet):', err);
+   console.warn('[saveToSupabase] Non-fatal error (will continue to Stripe):', err);
+   return null;
  }
  };
 
@@ -1599,7 +1664,58 @@ const stripeRedirectRef = useRef(0);
      const finalSlug = data.slug;
      console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData images count:', resolvedScrapedData?.images?.length, 'userWebsiteName:', ssGet('user_website_name'), '-> slug:', finalSlug);
      console.log('[handleSaveSiteInPopup] 📝 first 3 image URLs:', resolvedScrapedData?.images?.slice(0, 3));
-     const result = await createNewSiteRecords(data);
+
+     // ── Check if user already has a property (created by saveToSupabase on Subscribe) ───
+     // If so, skip INSERT — just update and migrate the existing record.
+     const { data: existingProps } = await supabase
+       .from('properties')
+       .select('id, slug')
+       .eq('owner_id', user.id)
+       .limit(1);
+     let result: { propertyId: string; siteUrl: string; slug: string };
+     if (existingProps && existingProps.length > 0) {
+       // Property already exists from saveToSupabase — update it with latest scraped data
+       console.log('[handleSaveSiteInPopup] ℹ️ Property already exists:', existingProps[0].id, '- skipping INSERT, will update + migrate');
+       result = {
+         propertyId: existingProps[0].id,
+         siteUrl: `https://www.propbook.pro/props/${existingProps[0].slug || finalSlug}`,
+         slug: existingProps[0].slug || finalSlug,
+       };
+       // Update the property with the latest scraped data
+       await supabaseAdmin
+         .from('properties')
+         .update({
+           title: resolvedScrapedData?.title || data.websiteName,
+           property_title: resolvedScrapedData?.title || data.websiteName,
+           description: resolvedScrapedData?.description || data.websiteDesc,
+           property_intro: (resolvedScrapedData?.description || '').slice(0, 200),
+           location: resolvedScrapedData?.location || '',
+           address: resolvedScrapedData?.location || '',
+           max_guests: resolvedScrapedData?.guests || 4,
+           bedrooms: resolvedScrapedData?.bedrooms || 1,
+           beds: resolvedScrapedData?.beds || 1,
+           bathrooms: resolvedScrapedData?.baths || 1,
+           price_per_night: resolvedScrapedData?.price
+             ? parseFloat(String(resolvedScrapedData.price).replace(/[^0-9.]/g, ''))
+             : 100,
+         })
+         .eq('id', result.propertyId);
+       // Update property images
+       if (resolvedScrapedData?.images?.length > 0) {
+         await supabaseAdmin.from('property_images').delete().eq('property_id', result.propertyId);
+         const imageRecords = resolvedScrapedData.images.map((url: string, idx: number) => ({
+           property_id: result.propertyId,
+           url,
+           position: idx + 1,
+           is_featured: idx === 0,
+           is_main: idx === 0,
+           is_background: false,
+         }));
+         await supabaseAdmin.from('property_images').insert(imageRecords);
+       }
+     } else {
+       result = await createNewSiteRecords(data);
+     }
      console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);
      ssSet('site_url', result.siteUrl);
      ssSet('site_phase', 'saved');
