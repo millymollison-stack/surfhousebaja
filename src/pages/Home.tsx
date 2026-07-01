@@ -67,11 +67,26 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   useEffect(() => {
     async function loadProperty() {
       try {
-        // Always load from surfhousebaja database on first load
+        let targetPropertyId = SURF_HOUSE_BAJA_ID;
+
+        // ── Priority 1: If user is logged in and has a published property, load that ──
+        // This takes precedence over the demo property so returning users see their own site
+        if (user?.id) {
+          const { data: userProps } = await supabase
+            .from('properties')
+            .select('id')
+            .eq('owner_id', user.id)
+            .limit(1);
+          if (userProps && userProps.length > 0) {
+            targetPropertyId = userProps[0].id;
+            console.log('[Home] User has property in DB:', targetPropertyId, '— loading that instead of demo');
+          }
+        }
+
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .eq('id', SURF_HOUSE_BAJA_ID)
+          .eq('id', targetPropertyId)
           .single();
 
         if (propError) throw propError;
@@ -81,7 +96,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         const { data: imgData, error: imgError } = await supabase
           .from('property_images')
           .select('*')
-          .eq('property_id', SURF_HOUSE_BAJA_ID)
+          .eq('property_id', targetPropertyId)
           .order('position');
 
         if (imgError) throw imgError;
@@ -98,14 +113,14 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         const { data: bkgData, error: bkgError } = await supabase
           .from('bookings')
           .select('*')
-          .eq('property_id', SURF_HOUSE_BAJA_ID)
+          .eq('property_id', targetPropertyId)
           .in('status', ['approved', 'pending']);
         if (bkgError) throw bkgError;
 
         const { data: blkData, error: blkError } = await supabase
           .from('blocked_dates')
           .select('*')
-          .eq('property_id', SURF_HOUSE_BAJA_ID);
+          .eq('property_id', targetPropertyId);
         if (blkError) throw blkError;
 
         setBookings(bkgData || []);
@@ -119,34 +134,48 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     }
 
     loadProperty();
-  }, []);
+  }, [user]);
 
   // ── Restore scraped data from sessionStorage after Stripe redirect ─────────
   // This survives the Home component remount that happens when Stripe redirects
   // back to the app with ?paid=true&session_id=...
+  // Only applies when user has NO property in DB yet (i.e. still in onboarding).
+  // Once they have a published property, the DB is authoritative and this is skipped.
   useEffect(() => {
     if (!user) return;
-    try {
-      const savedProp = sessionStorage.getItem('home_scraped_property');
-      const savedImgs = sessionStorage.getItem('home_scraped_images');
-      if (savedProp) {
-        const prop = JSON.parse(savedProp);
-        // Only restore if it looks like a real scraped property (has title or property_title)
-        if (prop.title || prop.property_title) {
-          console.log('[Home] Restoring scrapedProperty from sessionStorage:', prop.title || prop.property_title);
-          setScrapedProperty(prop);
+    (async () => {
+      try {
+        // Check if user already has a published property — if so, skip sessionStorage restore
+        const { data: existingProps } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('owner_id', user.id)
+          .limit(1);
+        if (existingProps && existingProps.length > 0) {
+          console.log('[Home] User already has property in DB — sessionStorage scraped data skipped');
+          return;
         }
-      }
-      if (savedImgs) {
-        const imgs = JSON.parse(savedImgs);
-        if (Array.isArray(imgs) && imgs.length > 0) {
-          console.log('[Home] Restoring scrapedImages from sessionStorage:', imgs.length, 'images');
-          setScrapedImages(imgs);
+
+        const savedProp = sessionStorage.getItem('home_scraped_property');
+        const savedImgs = sessionStorage.getItem('home_scraped_images');
+        if (savedProp) {
+          const prop = JSON.parse(savedProp);
+          if (prop.title || prop.property_title) {
+            console.log('[Home] Restoring scrapedProperty from sessionStorage:', prop.title || prop.property_title);
+            setScrapedProperty(prop);
+          }
         }
+        if (savedImgs) {
+          const imgs = JSON.parse(savedImgs);
+          if (Array.isArray(imgs) && imgs.length > 0) {
+            console.log('[Home] Restoring scrapedImages from sessionStorage:', imgs.length, 'images');
+            setScrapedImages(imgs);
+          }
+        }
+      } catch (e) {
+        console.warn('[Home] Could not restore scraped data from sessionStorage:', e);
       }
-    } catch (e) {
-      console.warn('[Home] Could not restore scraped data from sessionStorage:', e);
-    }
+    })();
   }, [user]);
 
 
