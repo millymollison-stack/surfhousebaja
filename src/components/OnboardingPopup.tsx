@@ -36,6 +36,18 @@ export interface OnboardingPopupProps {
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
 const POPUP_CLOSED_KEY = 'onboarding_popup_closed';
 
+// ── User-scoped sessionStorage helpers ─────────────────────────────────────────
+// Keys are prefixed with user ID so different users on the same browser don't share state
+export function popupGet(userId: string, key: string): string | null {
+  return sessionStorage.getItem(`popup_${userId}_${key}`);
+}
+export function popupSet(userId: string, key: string, value: string): void {
+  sessionStorage.setItem(`popup_${userId}_${key}`, value);
+}
+export function popupRemove(userId: string, key: string): void {
+  sessionStorage.removeItem(`popup_${userId}_${key}`);
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Convert any string to a URL-safe slug */
@@ -140,6 +152,15 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
  const isMountedRef = useRef(true);
  const descSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+ // User-scoped sessionStorage — keys are scoped to user.id so different users on same browser don't share data
+ const uid = user?.id ?? 'anon';
+ const ssGet = (k: string) => sessionStorage.getItem(`popup_${uid}_${k}`);
+ const ssSet = (k: string, v: string) => sessionStorage.setItem(`popup_${uid}_${k}`, v);
+ const ssRem = (k: string) => sessionStorage.removeItem(`popup_${uid}_${k}`);
+ const ssGetRaw = (k: string) => sessionStorage.getItem(k);
+ const ssSetRaw = (k: string, v: string) => sessionStorage.setItem(k, v);
+ const ssRemRaw = (k: string) => sessionStorage.removeItem(k);
 
  // Inline auth state
  const [authEmail, setAuthEmail] = useState('');
@@ -294,7 +315,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   sessionStorage.removeItem('stripe_payment_returning');
   sessionStorage.removeItem('stripe_redirect_initiated');
   // Re-save popup_website_name from current React state so it's fresh when we return from Stripe
-  sessionStorage.setItem('popup_website_name', websiteName);
+  ssSet('website_name', websiteName);
   console.log('[openStripeGateway] clicked, user:', !!user, 'planChoice:', planChoice);
    if (!user) {
      setStripeError('Please sign in or create an account above first.');
@@ -589,7 +610,7 @@ const stripeRedirectRef = useRef(0);
  const { data: profile } = await supabase.from('profiles').select('stripe_subscription_status').eq('id', user?.id).maybeSingle();
  const isActive = profile?.stripe_subscription_status === 'active' || profile?.stripe_subscription_status === 'trialing';
  if (!isActive) {
- sessionStorage.setItem(POPUP_CLOSED_KEY, '1');
+ ssSet('closed', '1');
  }
  })();
  setIsOpen(false);
@@ -606,7 +627,7 @@ const stripeRedirectRef = useRef(0);
  const imgs = scrapedImages?.map((img: any) => img.url) || [];
  // Restore user's ORIGINAL website name (saved before scrape could overwrite it).
  // Use popup_user_website_name first, then fall back to scraped title.
- const userTypedName = sessionStorage.getItem('popup_user_website_name');
+ const userTypedName = ssGet('user_website_name');
  setWebsiteName(userTypedName || scrapedProperty.property_title || scrapedProperty.title || '');
  setScrapedData({
  title: scrapedProperty.property_title || scrapedProperty.title || '',
@@ -620,19 +641,19 @@ const stripeRedirectRef = useRef(0);
  host_name: null,
  });
  // Auto-open popup when scraped data arrives - but NOT if user explicitly closed it
- if (!isOpen && !sessionStorage.getItem(POPUP_CLOSED_KEY)) {
+ if (!isOpen && !ssGet('closed')) {
  setIsOpen(true);
  }
  return;
  }
 
-        const savedScraped = sessionStorage.getItem('popup_scraped_data');
+        const savedScraped = ssGet('scraped_data');
         if (savedScraped) {
           try {
             const parsed = JSON.parse(savedScraped);
             setScrapedData(parsed);
             // Restore user's typed website name first, fall back to scraped title
-            const userTyped = sessionStorage.getItem('popup_user_website_name');
+            const userTyped = ssGet('user_website_name');
             if (parsed.title) setWebsiteName(userTyped || parsed.title);
             if (parsed.description) setWebsiteDesc(parsed.description.slice(0, 200));
             // Propagate scraped data to Home.tsx so the template behind the popup shows it immediately
@@ -645,9 +666,9 @@ const stripeRedirectRef = useRef(0);
           sessionStorage.removeItem('stripe_payment_done');
           if (!isOpen) setIsOpen(true);
           setShowCongrats(true);
-          const restoredName = sessionStorage.getItem('popup_website_name') || 'surfhousebaja';
+          const restoredName = ssGet('website_name') || 'surfhousebaja';
           if (onImported) {
-            onImported({ title: restoredName, description: sessionStorage.getItem('popup_website_desc') || '' });
+            onImported({ title: restoredName, description: ssGet('website_desc') || '' });
           }
 
           // ── Load migration property data from Supabase ────────────────────────
@@ -689,18 +710,18 @@ const stripeRedirectRef = useRef(0);
 
 
  // Restore form field selections from sessionStorage (from before Stripe redirect)
- const savedPlan = sessionStorage.getItem('popup_plan');
+ const savedPlan = ssGet('plan');
  if (savedPlan) setPlanChoice(savedPlan);
- const savedHosting = sessionStorage.getItem('popup_hosting');
+ const savedHosting = ssGet('hosting');
  if (savedHosting) setHostingChoice(savedHosting);
- const savedDesign = sessionStorage.getItem('popup_design');
+ const savedDesign = ssGet('design');
  if (savedDesign) setDesignChoice(savedDesign);
- const savedName = sessionStorage.getItem('popup_website_name');
+ const savedName = ssGet('website_name');
  if (savedName) setWebsiteName(savedName);
- const savedDesc = sessionStorage.getItem('popup_website_desc');
+ const savedDesc = ssGet('website_desc');
  if (savedDesc) setWebsiteDesc(savedDesc);
- const savedExtras = sessionStorage.getItem('popup_extras_seo');
- if (savedExtras) setExtras({ seo: savedExtras === 'true', ads: sessionStorage.getItem('popup_extras_ads') === 'true', analytics: sessionStorage.getItem('popup_extras_analytics') === 'true', social: sessionStorage.getItem('popup_extras_social') === 'true' });
+ const savedExtras = ssGet('extras_seo');
+ if (savedExtras) setExtras({ seo: savedExtras === 'true', ads: ssGet('extras_ads') === 'true', analytics: ssGet('extras_analytics') === 'true', social: ssGet('extras_social') === 'true' });
 
  try {
  const { data, error } = await supabase
@@ -773,8 +794,8 @@ const stripeRedirectRef = useRef(0);
  const cleaned = val.startsWith('@') ? val.slice(1) : val;
  setWebsiteName(cleaned);
  // Persist to sessionStorage IMMEDIATELY so a subsequent scrape cannot overwrite it
- sessionStorage.setItem('popup_website_name', cleaned);
- sessionStorage.setItem('popup_user_website_name', cleaned); // also used by slug chain
+ ssSet('website_name', cleaned);
+ ssSet('user_website_name', cleaned); // also used by slug chain
 };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
@@ -820,7 +841,7 @@ const stripeRedirectRef = useRef(0);
  return;
  }
  // Non-subscriber: only open if they haven't explicitly closed the popup
- if (!sessionStorage.getItem(POPUP_CLOSED_KEY)) {
+ if (!ssGet('closed')) {
  setIsOpen(true);
  }
  }, 2000);
@@ -872,7 +893,7 @@ const stripeRedirectRef = useRef(0);
    // can re-fire once user resolves and complete the site creation
    if (showBuilding && buildingCountdown === 0) {
      // If site was created, redirect to it. If not, close popup so they can click PUBLISH.
-     const siteUrl = sessionStorage.getItem('popup_site_url');
+     const siteUrl = ssGet('site_url');
      if (siteUrl) {
        window.location.href = siteUrl;
      } else {
@@ -957,8 +978,8 @@ const stripeRedirectRef = useRef(0);
                 const subStatus = profileData?.stripe_subscription_status || session.user.stripe_subscription_status;
 
                 if (subStatus === 'active' || subStatus === 'trialing') {
-                  const slug = sessionStorage.getItem('popup_website_name')
-                    ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
+                  const slug = ssGet('website_name')
+                    ? ssGet('website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
                     : null;
                   if (slug) {
                     // TEMPORARILY DISABLED — redirecting before site is built breaks the flow
@@ -977,7 +998,7 @@ const stripeRedirectRef = useRef(0);
                   const recoveryRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}`, 'Apikey': supabaseAnonKey },
-                    body: JSON.stringify({ action: 'get_session', session_id: sessionId, userId: session.user.id, slug: sessionStorage.getItem('popup_website_name') || 'my-property' }),
+                    body: JSON.stringify({ action: 'get_session', session_id: sessionId, userId: session.user.id, slug: ssGet('website_name') || 'my-property' }),
                   });
                   const recoveryData = await recoveryRes.json();
                   console.log('[DEBUG ?paid handler] Retry recovery response:', JSON.stringify(recoveryData));
@@ -1009,8 +1030,8 @@ const stripeRedirectRef = useRef(0);
         if (subStatus === 'active' || subStatus === 'trialing') {
           // Webhook fired successfully — redirect to the new property site
           console.log('[DEBUG ?paid handler] Subscription active (webhook fired) — redirecting to property site');
-          const slug = sessionStorage.getItem('popup_website_name')
-            ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
+          const slug = ssGet('website_name')
+            ? ssGet('website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
             : null;
           if (slug) {
             // TEMPORARILY DISABLED — redirecting before site is built breaks the flow
@@ -1022,7 +1043,7 @@ const stripeRedirectRef = useRef(0);
           }
           // No slug — open popup and try to publish
           console.log('[DEBUG ?paid handler] No slug found — falling back to congrats modal');
-          const websiteName = sessionStorage.getItem('popup_website_name') || '';
+          const websiteName = ssGet('website_name') || '';
           if (!isOpen) setIsOpen(true);
           setShowCongrats(true);
           if (websiteName) setWebsiteName(websiteName);
@@ -1053,7 +1074,7 @@ const stripeRedirectRef = useRef(0);
               action: 'get_session',
               session_id: sessionId,
               userId: user.id,
-              slug: sessionStorage.getItem('popup_website_name') || 'my-property',
+              slug: ssGet('website_name') || 'my-property',
             }),
           });
           const recoveryData = await recoveryRes.json();
@@ -1140,7 +1161,7 @@ const stripeRedirectRef = useRef(0);
 
       // ── Step 1: Verify payment directly with Stripe ───────────────────────────
       // Call our edge function which uses the secret key to verify with Stripe
-      const slug = sessionStorage.getItem('popup_website_name') || websiteName || 'surfhousebaja';
+      const slug = ssGet('website_name') || websiteName || 'surfhousebaja';
       const userId = session.user.id;
       const sessionRes = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription`, {
         method: 'POST',
@@ -1240,7 +1261,7 @@ const stripeRedirectRef = useRef(0);
  // (handleAirbnbScrape passes data immediately, before React state re-render). 
  const sessionScraped = (() => {
  try {
- const raw = sessionStorage.getItem('popup_scraped_data');
+ const raw = ssGet('scraped_data');
  return raw ? JSON.parse(raw) : null;
  } catch { return null; }
  })();
@@ -1308,7 +1329,7 @@ const stripeRedirectRef = useRef(0);
  setScrapedData(data);
  // Persist scraped data to sessionStorage immediately so it survives Stripe redirect
  // NOTE: websiteName and websiteDesc are NOT autofilled — user types their own name
- sessionStorage.setItem('popup_scraped_data', JSON.stringify(data));
+ ssSet('scraped_data', JSON.stringify(data));
  if (onImported) onImported({ ...data, hero_image: data.images?.[1] || data.hero_image });
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
@@ -1404,21 +1425,21 @@ const stripeRedirectRef = useRef(0);
      // Redirect to Stripe Checkout hosted page
      // IMPORTANT: Use the user's ORIGINAL typed website name (saved BEFORE any scrape
      // could overwrite it). This is the ONE TRUE SOURCE for the slug and page title.
-     sessionStorage.setItem('popup_user_website_name', websiteName);
-     sessionStorage.setItem('popup_plan', planChoice);
-     sessionStorage.setItem('popup_hosting', hostingChoice);
-     sessionStorage.setItem('popup_design', designChoice);
-     sessionStorage.setItem('popup_extras_seo', extras.seo ? 'true' : 'false');
-     sessionStorage.setItem('popup_extras_ads', extras.ads ? 'true' : 'false');
-     sessionStorage.setItem('popup_extras_analytics', extras.analytics ? 'true' : 'false');
-     sessionStorage.setItem('popup_extras_social', extras.social ? 'true' : 'false');
-     sessionStorage.setItem('popup_website_name', websiteName);
-     sessionStorage.setItem('popup_website_desc', websiteDesc);
+     ssSet('user_website_name', websiteName);
+     ssSet('plan', planChoice);
+     ssSet('hosting', hostingChoice);
+     ssSet('design', designChoice);
+     ssSet('extras_seo', extras.seo ? 'true' : 'false');
+     ssSet('extras_ads', extras.ads ? 'true' : 'false');
+     ssSet('extras_analytics', extras.analytics ? 'true' : 'false');
+     ssSet('extras_social', extras.social ? 'true' : 'false');
+     ssSet('website_name', websiteName);
+     ssSet('website_desc', websiteDesc);
      // Pass property name to sidebar via sessionStorage
-     sessionStorage.setItem('popup_property_name', scrapedData?.title || websiteName || '');
+     ssSet('property_name', scrapedData?.title || websiteName || '');
      // Persist scraped data so it survives the Stripe redirect remount
      if (scrapedData) {
-       sessionStorage.setItem('popup_scraped_data', JSON.stringify(scrapedData));
+       ssSet('scraped_data', JSON.stringify(scrapedData));
      }
      console.log('[DEBUG] About to redirect to: ' + data.url);
      // Persist session_id so the ?paid=true handler survives Vite HMR reloads
@@ -1443,7 +1464,7 @@ const stripeRedirectRef = useRef(0);
      // 1. React state (live, from parent props)
      // 2. sessionStorage (survives Stripe redirect remount)
      // 3. onboarding_data table (persisted for users who scraped before this fix)
-     let resolvedScrapedData = scrapedData || JSON.parse(sessionStorage.getItem('popup_scraped_data') || 'null');
+     let resolvedScrapedData = scrapedData || JSON.parse(ssGet('scraped_data') || 'null');
      // Declare od in outer scope so it's available for websiteName/slug fallback below
      let od: any = null;
      if (!resolvedScrapedData) {
@@ -1504,7 +1525,7 @@ const stripeRedirectRef = useRef(0);
      // Read scraped data from sessionStorage before building the data object
      const scrapedFromSession = (() => {
        try {
-         const raw = sessionStorage.getItem('popup_scraped_data');
+         const raw = ssGet('scraped_data');
          return raw ? JSON.parse(raw) : null;
        } catch { return null; }
      })();
@@ -1515,7 +1536,7 @@ const stripeRedirectRef = useRef(0);
        userStripeAccountId: popupConnectAccountId || null,
        bookingsEmail: user.email,
        // websiteName field — use the user's original typed input (saved before scrape could overwrite it)
-       websiteName: sessionStorage.getItem('popup_user_website_name')
+       websiteName: ssGet('user_website_name')
          || (od?.property_name ? String(od.property_name) : null)
          || websiteName
          || user.full_name
@@ -1533,19 +1554,19 @@ const stripeRedirectRef = useRef(0);
        //           → od.property_name (saved property name from DB)
        //           → 'My Property' (never fall back to user.full_name — causes garbled slugs)
        slug: createSlug(
-         sessionStorage.getItem('popup_user_website_name')
+         ssGet('user_website_name')
          || (resolvedScrapedData?.title ? String(resolvedScrapedData.title) : null)
          || (od?.property_name ? String(od.property_name) : null)
          || 'My Property'
        ),
      };
      const finalSlug = data.slug;
-     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData images count:', resolvedScrapedData?.images?.length, 'userWebsiteName:', sessionStorage.getItem('popup_user_website_name'), '-> slug:', finalSlug);
+     console.log('[handleSaveSiteInPopup] 📝 websiteName:', websiteName, 'plan:', planChoice, 'scrapedData images count:', resolvedScrapedData?.images?.length, 'userWebsiteName:', ssGet('user_website_name'), '-> slug:', finalSlug);
      console.log('[handleSaveSiteInPopup] 📝 first 3 image URLs:', resolvedScrapedData?.images?.slice(0, 3));
      const result = await createNewSiteRecords(data);
      console.log('[handleSaveSiteInPopup] ✅ Site records created:', result.slug, result.propertyId, result.siteUrl);
-     sessionStorage.setItem('popup_site_url', result.siteUrl);
-     sessionStorage.setItem('popup_site_phase', 'saved');
+     ssSet('site_url', result.siteUrl);
+     ssSet('site_phase', 'saved');
 
      // ── Migrate scraped data from onboarding_data into the new property ──
      // Source is now the user's own onboarding_data (fixed to save scraped_* fields).

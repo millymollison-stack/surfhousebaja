@@ -150,7 +150,26 @@ export const useAuth = create<AuthState>((set) => ({
     } catch (error) {
       console.error('Sign out error:', error);
     } finally {
-      // Always clear local state — don't let a failed server call leave the UI stuck
+      // Clear all popup onboarding sessionStorage keys (old unscoped + new user-scoped)
+      // to prevent new users on the same browser seeing previous user's scraped data
+      const popupPrefixes = [
+        'popup_scraped_data', 'popup_website_name', 'popup_website_desc',
+        'popup_user_website_name', 'popup_plan', 'popup_hosting', 'popup_design',
+        'popup_extras_seo', 'popup_extras_ads', 'popup_extras_analytics',
+        'popup_extras_social', 'popup_site_url',
+        'home_scraped_property', 'home_scraped_images',
+        'stripe_payment_returning', 'stripe_payment_done',
+        'stripe_paid_flag', 'stripe_session_id', 'stripe_redirect_initiated',
+        'onboarding_popup_closed',
+      ];
+      popupPrefixes.forEach(k => sessionStorage.removeItem(k));
+      // Also clear any user-scoped popup keys
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith('popup_') || key.startsWith('home_') || key.startsWith('stripe_') || key.startsWith('onboarding_')) && key.includes('_')) {
+          sessionStorage.removeItem(key);
+        }
+      }
       set({ user: null, error: null, loading: false });
     }
   },

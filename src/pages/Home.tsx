@@ -156,8 +156,9 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
           return;
         }
 
-        const savedProp = sessionStorage.getItem('home_scraped_property');
-        const savedImgs = sessionStorage.getItem('home_scraped_images');
+        const uid = user.id;
+        const savedProp = sessionStorage.getItem(`home_${uid}_scraped_property`);
+        const savedImgs = sessionStorage.getItem(`home_${uid}_scraped_images`);
         if (savedProp) {
           const prop = JSON.parse(savedProp);
           if (prop.title || prop.property_title) {
@@ -179,24 +180,26 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   }, [user]);
 
 
-  // ── Persist scraped data to sessionStorage whenever it changes ──────────────
-  // This ensures scraped data survives Stripe redirect page remounts
+  // ── Persist scraped data to user-scoped sessionStorage ────────────────────────
+  // Keys are scoped to user.id so different users on the same browser don't share data
   useEffect(() => {
+    if (!user?.id) return;
     if (scrapedProperty) {
-      sessionStorage.setItem('home_scraped_property', JSON.stringify(scrapedProperty));
+      sessionStorage.setItem(`home_${user.id}_scraped_property`, JSON.stringify(scrapedProperty));
     } else {
-      sessionStorage.removeItem('home_scraped_property');
+      sessionStorage.removeItem(`home_${user.id}_scraped_property`);
     }
-  }, [scrapedProperty]);
+  }, [scrapedProperty, user?.id]);
 
 
   useEffect(() => {
+    if (!user?.id) return;
     if (scrapedImages && scrapedImages.length > 0) {
-      sessionStorage.setItem('home_scraped_images', JSON.stringify(scrapedImages));
+      sessionStorage.setItem(`home_${user.id}_scraped_images`, JSON.stringify(scrapedImages));
     } else {
-      sessionStorage.removeItem('home_scraped_images');
+      sessionStorage.removeItem(`home_${user.id}_scraped_images`);
     }
-  }, [scrapedImages]);
+  }, [scrapedImages, user?.id]);
 
   const handlePropertyUpdate = async (updates: Partial<Property>, onUpdated?: (updated: Property) => void) => {
     const callId = Math.random().toString(36).slice(2,8);
@@ -439,9 +442,24 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     // Reset scraped data so popup mounts fresh next time
     setScrapedProperty(null);
     setScrapedImages([]);
+    // Clear user-scoped sessionStorage keys so next user on same browser gets fresh state
+    const uid = user?.id || 'anon';
+    sessionStorage.removeItem(`home_${uid}_scraped_property`);
+    sessionStorage.removeItem(`home_${uid}_scraped_images`);
+    sessionStorage.removeItem(`popup_${uid}_scraped_data`);
+    sessionStorage.removeItem(`popup_${uid}_website_name`);
+    sessionStorage.removeItem(`popup_${uid}_website_desc`);
+    sessionStorage.removeItem(`popup_${uid}_user_website_name`);
+    sessionStorage.removeItem(`popup_${uid}_plan`);
+    sessionStorage.removeItem(`popup_${uid}_hosting`);
+    sessionStorage.removeItem(`popup_${uid}_design`);
+    sessionStorage.removeItem(`popup_${uid}_extras_seo`);
+    sessionStorage.removeItem(`popup_${uid}_extras_ads`);
+    sessionStorage.removeItem(`popup_${uid}_extras_analytics`);
+    sessionStorage.removeItem(`popup_${uid}_extras_social`);
+    // Also clear legacy unscoped keys
     sessionStorage.removeItem('home_scraped_property');
     sessionStorage.removeItem('home_scraped_images');
-    // Also clear the onboarding form sessionStorage keys so popup is truly empty on next mount
     sessionStorage.removeItem('popup_scraped_data');
     sessionStorage.removeItem('popup_website_name');
     sessionStorage.removeItem('popup_website_desc');
