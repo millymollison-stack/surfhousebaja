@@ -1520,7 +1520,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       // Always save contact fields to user profile — contact section should work independently
       if (user) {
         console.log('[handleSave] Saving profile:', { userId: user.id, full_name: contactFields.full_name, phone_number: contactFields.phone_number });
-        saves.push(supabase.from('profiles').update({ full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null }).eq('id', user.id));
+        const profileUpdate = { full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null };
+        console.log('[handleSave] Profile update payload:', JSON.stringify(profileUpdate));
+        saves.push(supabase.from('profiles').update(profileUpdate).eq('id', user.id).then(res => {
+          console.log('[handleSave] Profile update result:', JSON.stringify({ success: !res.error, error: res.error?.message, data: res.data }));
+          return res;
+        }));
       }
       // Use allSettled so partial failures don't roll back successful saves
       const results = await Promise.allSettled(saves);
