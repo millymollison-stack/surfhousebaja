@@ -139,7 +139,7 @@ function AppContent() {
         canEdit={canEdit}
       >
         <Routes>
-          <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; return true; }} onSiteNameChange={setSiteName} onOpenSidebar={() => setSidebarOpen(true)} onCanEditChange={setCanEdit} />} />
+          <Route path="/" element={<Home isEditing={isEditing} onHasChanges={setHasChanges} registerSaveAll={(fn) => { saveAllRef.current = fn; return true; }} onSiteNameChange={setSiteName} onOpenSidebar={() => setSidebarOpen(true)} onCanEditChange={setCanEdit} onOnboardingComplete={() => { setIsEditing(true); setCanEdit(true); }} />} />
           <Route path="/auth/confirm" element={<EmailConfirmation />} />
           <Route path="/admin" element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
           <Route path="/property-admin" element={user ? <PropertyAdmin /> : <Navigate to="/login" replace />} />

@@ -22,9 +22,10 @@ interface HomeProps {
   onSiteNameChange?: (name: string) => void;
   onOpenSidebar?: () => void;
   onCanEditChange?: (canEdit: boolean) => void;
+  onOnboardingComplete?: () => void;
 }
 
-export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange, onOpenSidebar, onCanEditChange }: HomeProps) {
+export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange, onOpenSidebar, onCanEditChange, onOnboardingComplete }: HomeProps) {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [backgroundImages, setBackgroundImages] = useState<PropertyImage[]>([]);
@@ -473,6 +474,13 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     setResetKey(k => k + 1);
   };
 
+  // Called when onboarding completes (user finishes PUBLISH step)
+  // Notifies App to enable edit mode immediately so the Edit button appears
+  const handleOnboardingComplete = () => {
+    console.log('[Home] handleOnboardingComplete fired');
+    onOnboardingComplete?.();
+  };
+
   const handleBookingSubmit = async (bookingData: {
     start_date: string;
     end_date: string;
@@ -623,7 +631,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         scrapedProperty={scrapedProperty}
         scrapedImages={scrapedImages}
         onSiteNameChange={onSiteNameChange}
-        onComplete={undefined}
+        onComplete={handleOnboardingComplete}
         onOpenSidebar={onOpenSidebar}
       />
     </div>
