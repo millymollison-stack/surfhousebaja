@@ -462,13 +462,14 @@ function PropertySection({ property, images, isEditing, fields, onChange, obData
   );
 }
 
-function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteName, propertySlug, propertyId }: {
+function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteName, propertySlug, propertyId, allCredentialsMet }: {
   devUpdates: boolean; setDevUpdates: (v: boolean) => void;
   serverIp?: string | null;
   siteUrl?: string | null;
   websiteName?: string;
   propertySlug?: string;
   propertyId?: string;
+  allCredentialsMet: boolean;
 }) {
   // Resolve property slug: prop > sessionStorage
   const slug = propertySlug || sessionStorage.getItem('popup_website_name') || '';
@@ -1841,7 +1842,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {openSection === key && (
                   <div className="sb-section-body">
                     {key === 'property' && <PropertySection property={property} images={propertyImages} isEditing={isEditing} fields={propFields} onChange={setPropFields} obData={obData} />}
-                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={slug || sessionStorage.getItem('popup_website_name') || undefined} propertyId={property?.id} />}
+                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={slug || sessionStorage.getItem('popup_website_name') || undefined} propertyId={property?.id} allCredentialsMet={allCredentialsMet} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}
