@@ -385,17 +385,17 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         }
       })();
 
-      // Hero subtitle gets first 200 chars (same as popup preview), rest goes to description box
-      const heroText = (imported.description || '').slice(0, 200);
-      const descText = (imported.description || '').slice(200);
-      console.log('[Home] setScrapedProperty:', { description: descText, property_intro: heroText, title: imported.title });
+      // Use the FULL description — no splitting. The template truncates at display time.
+      // Splitting HTML at character boundaries corrupts tags and makes the description unreadable.
+      const fullDescription = imported.description || '';
+      console.log('[Home] setScrapedProperty:', { property_intro: fullDescription.slice(0, 100), title: imported.title });
       setScrapedProperty({
         // NOTE: do NOT set id to property?.id — that points to the old demo property.
         // A real id will be assigned when the site is published.
         title: imported.title || property?.title || '',
-        description: descText,
+        description: fullDescription,
         property_title: imported.title || property?.property_title || '',
-        property_intro: heroText,
+        property_intro: fullDescription,
         location: imported.location || property?.location || '',
         price_per_night: imported.price || property?.price_per_night || null,
         max_guests: imported.guests || property?.max_guests || null,

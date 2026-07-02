@@ -1502,59 +1502,62 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     } catch (err) { alert('Failed to open billing portal. Please try again.'); } finally { setCheckoutLoading(null); }
   };
 
+  // ── Save contact info to user profile — completely independent of property save ──
+  const handleSaveContact = async () => {
+    if (!user) return;
+    const profileUpdate = { full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null };
+    console.log('[handleSaveContact] Saving profile:', { userId: user.id, ...profileUpdate });
+    const { data, error } = await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
+    if (error) {
+      console.error('[handleSaveContact] Profile update failed:', error.message);
+    } else {
+      console.log('[handleSaveContact] Profile saved successfully');
+    }
+    return { data, error };
+  };
+
+  // ── Save property fields — admins only ──
+  const handleSaveProperty = async () => {
+    if (!isAdmin || !selectedPropertyId) return;
+    console.log('[handleSaveProperty] Saving property:', { selectedPropertyId, ...propFields });
+    const { data, error } = await supabase.from('properties').update({
+      title: propFields.title || null,
+      address: propFields.address || null,
+      latitude: propFields.latitude ? parseFloat(propFields.latitude) : null,
+      longitude: propFields.longitude ? parseFloat(propFields.longitude) : null,
+      location_type: propFields.location_type,
+      bedrooms: propFields.bedrooms ? parseInt(propFields.bedrooms) : null,
+      beds: propFields.beds ? parseInt(propFields.beds) : null,
+      baths: propFields.baths ? parseInt(propFields.baths) : null,
+      max_guests: propFields.max_guests ? parseInt(propFields.max_guests) : null,
+      rating: propFields.rating ? parseFloat(propFields.rating) : null,
+      reviews: propFields.reviews ? parseInt(propFields.reviews) : null,
+      description: propFields.description || null,
+      slug: slug || sessionStorage.getItem('popup_website_name') || null,
+    }).eq('id', selectedPropertyId);
+    if (error) console.error('[handleSaveProperty] Property update failed:', error.message);
+    else console.log('[handleSaveProperty] Property saved successfully');
+    return { data, error };
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      const saves: Promise<unknown>[] = [];
-      // Admins save property fields too; non-admins only save contact info
-      if (isAdmin && selectedPropertyId) {
-        console.log('[handleSave] Saving property:', { selectedPropertyId, ...propFields });
-        saves.push(supabase.from('properties').update({
-          title: propFields.title || null,
-          address: propFields.address || null,
-          latitude: propFields.latitude ? parseFloat(propFields.latitude) : null,
-          longitude: propFields.longitude ? parseFloat(propFields.longitude) : null,
-          location_type: propFields.location_type,
-          bedrooms: propFields.bedrooms ? parseInt(propFields.bedrooms) : null,
-          beds: propFields.beds ? parseInt(propFields.beds) : null,
-          baths: propFields.baths ? parseInt(propFields.baths) : null,
-          max_guests: propFields.max_guests ? parseInt(propFields.max_guests) : null,
-          rating: propFields.rating ? parseFloat(propFields.rating) : null,
-          reviews: propFields.reviews ? parseInt(propFields.reviews) : null,
-          description: propFields.description || null,
-          slug: slug || sessionStorage.getItem('popup_website_name') || null,
-        }).eq('id', selectedPropertyId));
-      } else {
-        console.log('[handleSave] Skipping property save — isAdmin:', isAdmin, 'selectedPropertyId:', selectedPropertyId);
-      }
-      // Always save contact fields to user profile — contact section should work independently
-      if (user) {
-        console.log('[handleSave] Saving profile:', { userId: user.id, full_name: contactFields.full_name, phone_number: contactFields.phone_number });
-        const profileUpdate = { full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null };
-        console.log('[handleSave] Profile update payload:', JSON.stringify(profileUpdate));
-        saves.push(supabase.from('profiles').update(profileUpdate).eq('id', user.id).then(res => {
-          console.log('[handleSave] Profile update result:', JSON.stringify({ success: !res.error, error: res.error?.message, data: res.data }));
-          return res;
-        }));
-      }
-      // Use allSettled so partial failures don't roll back successful saves
-      const results = await Promise.allSettled(saves);
-      const failures = results.filter(r => r.status === 'rejected');
-      if (failures.length > 0) console.error('[handleSave] Some saves failed:', failures.map(r => (r as PromiseRejectedResult).reason));
-      else {
-        console.log('[handleSave] All saves succeeded');
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
+      // Contact save is ALWAYS first and independent — it must never fail due to property issues
+      await handleSaveContact();
+      // Property save is secondary — admins only, may fail gracefully
+      await handleSaveProperty();
+      // Show success regardless — contact save is the critical path
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
       if (isAdmin && propFields.title) setPropertyTitle(propFields.title);
-      // Reload image count after save (property may have changed)
     } catch (err) {
-      console.error('Save failed', err);
+      // Unexpected synchronous error — try at least to save contact
+      console.error('[handleSave] Unexpected error, attempting contact save:', err);
+      await handleSaveContact().catch(console.error);
     } finally {
-      // Unblock UI immediately — never leave button stuck in "Saving..."
       setIsEditing(false);
       setSaving(false);
-      // Reload data independently; don't let reload errors affect UI state
       loadData().catch(err => console.error('[handleSave] loadData failed:', err));
     }
   };

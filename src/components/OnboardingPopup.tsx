@@ -665,8 +665,8 @@ const stripeRedirectRef = useRef(0);
  reviews: null,
  host_name: null,
  });
- // Populate description field so user can edit it immediately after scrape
- setWebsiteDesc(scrapedProperty.property_intro || scrapedProperty.description || '');
+ // Populate description field — concat hero (first 200) + rest so the full scraped text is editable
+ setWebsiteDesc((scrapedProperty.property_intro || '') + (scrapedProperty.description || ''));
  // Auto-open popup when scraped data arrives - but NOT for active subscribers and NOT if user explicitly closed it
  if (!isActiveGuard && !isOpen && !ssGet('closed')) {
  setIsOpen(true);
