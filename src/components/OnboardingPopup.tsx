@@ -424,7 +424,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('stripe_session_id', safeSessionId);
      sessionStorage.setItem('stripe_redirect_initiated', myTabId);
      console.log('[DEBUG] stripe_session_id saved=', safeSessionId, ', redirect href=', data.url);
-     window.location.href = data.url;
+     window.location.href = data.url; // Redirect to Stripe — return redirect is disabled
    } catch(e: any) {
      console.error('[openStripeGateway] error:', e.message || e);
      setStripeError(e.message === 'fetch timeout'
@@ -717,6 +717,10 @@ const stripeRedirectRef = useRef(0);
               onImported({
                 title: migProp.property_title || restoredName,
                 description: migProp.property_intro || migProp.description || '',
+                images: imgUrls,
+                hero_image: imgUrls[0] || '',
+                location: migProp.location || '',
+                guests: migProp.max_guests || null,
               });
             }
           }
@@ -789,6 +793,17 @@ const stripeRedirectRef = useRef(0);
  reviews: data.scraped_reviews || data.reviews || null,
  host_name: data.host_name || null,
  });
+ // Notify parent (Home.tsx) so scrapedImages state is updated with restored images
+ if (onImported) {
+ onImported({
+ title: data.scraped_title || data.property_name || '',
+ description: data.scraped_description || data.property_desc || '',
+ images: imgList,
+ hero_image: heroImg,
+ location: data.scraped_location || data.location || '',
+ guests: data.scraped_guests || data.guests || null,
+ });
+ }
  }
  }
  } catch (err) {
@@ -857,11 +872,11 @@ const stripeRedirectRef = useRef(0);
  const isActive = profile?.stripe_subscription_status === 'active' || profile?.stripe_subscription_status === 'trialing';
 
  if (isActive) {
- // Active subscriber: load their data and open the popup.
- // loadSavedData reads scrapedProperty from props (set by Home.tsx from DB) and
- // populates form fields, then calls setIsOpen(true). This refreshes the form
- // even if the popup is already mounted — unlike setIsOpen which is a no-op when already true.
- await loadSavedData();
+ // Active subscriber: do NOT open the onboarding popup.
+ // They are a client — use the sidebar to edit and publish.
+ // Clear any stale payment flags so loadSavedData won't re-open the popup.
+ ssRem('closed');
+ try { sessionStorage.removeItem('stripe_payment_done'); } catch {}
  return;
  }
 
@@ -898,6 +913,8 @@ const stripeRedirectRef = useRef(0);
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
 // ── Countdown timer for building/redirect screen ──────────────────────────
+ // COMMENTED OUT — building modal is disabled; sidebar PUBLISH button drives the flow
+ /*
  useEffect(() => {
    if (!showBuilding) return;
    const interval = setInterval(() => {
@@ -914,19 +931,16 @@ const stripeRedirectRef = useRef(0);
 
  useEffect(() => {
    // Redirect when countdown hits 0 (site should be ready by then)
-   // Guard: don't redirect if auth isn't ready — stay on page so the handler
-   // can re-fire once user resolves and complete the site creation
    if (showBuilding && buildingCountdown === 0) {
-     // If site was created, redirect to it. If not, close popup so they can click PUBLISH.
      const siteUrl = ssGet('site_url');
      if (siteUrl) {
-       window.location.href = siteUrl;
+       console.log('[DEBUG building] Countdown expired, site ready at:', siteUrl, '— NOT redirecting (disabled)');
      } else {
        console.warn('[DEBUG building] Countdown expired, no site URL — closing popup');
-       setIsOpen(false);
      }
    }
  }, [showBuilding, buildingCountdown, user]);
+ */
 
  // Handle return from Stripe Checkout redirect - ?paid=true&session_id=XXX
  // Dual-path: URL params (normal) + sessionStorage fallback (survives Vite HMR reloads
@@ -1032,8 +1046,8 @@ const stripeRedirectRef = useRef(0);
                     await supabase.from('profiles').update({ stripe_subscription_status: recoveryData.sub_status || 'active', stripe_subscription_id: recoveryData.subscription_id, stripe_customer_id: recoveryData.customer_id }).eq('id', session.user.id);
                     await supabase.auth.refreshSession();
                     await refreshUser();
-                    setShowBuilding(true);
-                    setBuildingCountdown(40);
+                    // setShowBuilding(true); // disabled — sidebar PUBLISH button drives the flow
+                    // setBuildingCountdown(40);
                     try {
                       const siteResult = await handleSaveSiteInPopup();
                       if (siteResult?.siteUrl) window.location.href = siteResult.siteUrl;
@@ -1116,8 +1130,8 @@ const stripeRedirectRef = useRef(0);
             await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
             await supabase.auth.refreshSession();
             await refreshUser();
-            setShowBuilding(true);
-            setBuildingCountdown(40);
+            // setShowBuilding(true); // disabled — sidebar PUBLISH button drives the flow
+            // setBuildingCountdown(40);
             try {
               const siteResult = await handleSaveSiteInPopup();
               const createdSiteUrl = siteResult?.siteUrl || null;
@@ -1227,17 +1241,55 @@ const stripeRedirectRef = useRef(0);
       await supabase.auth.refreshSession();
       await refreshUser();
 
-      // ── Step 4: Tell sidebar to update ─────────────────────────────────────
-      window.dispatchEvent(new CustomEvent('subscription-updated', {
-        detail: { subscription_id: sessionData.subscription_id, status: sessionData.sub_status || 'active' },
-      }));
+      // ── Step 3b: Notify sidebar immediately (before slow site creation starts) ──
+      // Store subscription data in sessionStorage as backup for when sidebar mounts later
+      const subData = {
+        subscription_id: sessionData.subscription_id,
+        status: sessionData.sub_status || 'active',
+        plan: sessionData.subscription?.plan || 'starter',
+        amount: sessionData.amount_total || 1000,
+        interval: 'month',
+        current_period_end: sessionData.subscription?.current_period_end || Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+        customer_id: sessionData.customer_id,
+      };
+      try { sessionStorage.setItem('sidebar_subscription_data', JSON.stringify(subData)); } catch { /* ignore */ }
+      window.dispatchEvent(new CustomEvent('subscription-updated', { detail: subData }));
+      console.log('[DEBUG ?paid handler] Dispatched subscription-updated immediately after profile update');
 
-      // ── Step 5: Payment complete — stay on localhost, show success in popup ──
-      // handleSaveSiteInPopup and all redirect/countdown logic is TEMPORARILY DISABLED
-      // while we debug the image/database flow. User stays on localhost to see their template.
-      console.log('[DEBUG ?paid handler] ✅ Payment verified. Subscription active. Stay on localhost.');
+      // ── Step 4: Create site (property + migration + deploy) ──────────────
       setStripeProcessing(false);
-      if (!isOpen) setIsOpen(true);
+      // setShowBuilding(true); // disabled — sidebar PUBLISH button drives the flow
+      // setBuildingCountdown(40);
+      let siteResult: any = null;
+      try {
+        siteResult = await handleSaveSiteInPopup();
+        if (siteResult?.siteUrl) {
+          console.log('[DEBUG ?paid handler] ✅ Site created:', siteResult.siteUrl, '— staying on localhost to show template');
+        }
+        setShowCongrats(true);
+        // ── Step 5: Tell sidebar to update — AFTER property is created ──────────
+        console.log('[DEBUG ?paid handler] Dispatching subscription-updated event with full data');
+        window.dispatchEvent(new CustomEvent('subscription-updated', {
+          detail: {
+            subscription_id: sessionData.subscription_id,
+            status: sessionData.sub_status || 'active',
+            plan: sessionData.subscription?.plan || 'starter',
+            amount: sessionData.amount_total || 1000,
+            interval: 'month',
+            current_period_end: sessionData.subscription?.current_period_end || Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+            customer_id: sessionData.customer_id,
+          },
+        }));
+        // Keep popup open to show success, then close after a delay (only after site creation finishes)
+        setTimeout(() => {
+          setIsOpen(false);
+          setShowCongrats(false);
+        }, 3000);
+      } catch (siteErr) {
+        console.error('[DEBUG ?paid handler] Site creation failed:', siteErr);
+        setStripeError('Payment confirmed but site creation failed. Please try publishing from the sidebar.');
+        // Don't auto-open popup on failure — let them use the sidebar
+      }
 
     } catch (err) {
       console.error('[DEBUG ?paid handler] Error:', err);
@@ -1256,8 +1308,10 @@ const stripeRedirectRef = useRef(0);
  // This runs SYNCHRONOUSLY (awaited by openStripeGateway) so onboarding_data exists
  // before the user leaves for Stripe — guaranteeing data survives the redirect.
  const saveToSupabase = async (): Promise<void> => {
- if (!user) return;
+ console.log('[saveToSupabase] START, user.id:', user?.id);
+ if (!user) { console.warn('[saveToSupabase] early exit — no user'); return; }
  try {
+ console.log('[saveToSupabase] reading sessionStorage scraped_data...');
  // Read FRESH scraped data from sessionStorage
  const sessionScraped = (() => {
    try {
@@ -1302,9 +1356,12 @@ const stripeRedirectRef = useRef(0);
    scraped_reviews: sessionScraped?.reviews ? String(sessionScraped.reviews) : null,
    scraped_guests: sessionScraped?.guests ? String(sessionScraped.guests) : null,
  };
+ console.log('[saveToSupabase] row ready, slug:', slug, 'scraped_images count:', row.scraped_images?.length);
+ console.log('[saveToSupabase] Calling supabase.onboarding_data.upsert...');
  const { error: obError } = await supabase
    .from('onboarding_data')
    .upsert(row, { onConflict: 'user_id' });
+ console.log('[saveToSupabase] upsert returned, error:', obError?.message);
  if (obError) console.warn('[saveToSupabase] onboarding_data error:', obError.message);
  else console.log('[saveToSupabase] ✅ Saved to onboarding_data, slug:', slug);
  } catch (err) {
@@ -1343,11 +1400,21 @@ const stripeRedirectRef = useRef(0);
  clearInterval(countInterval);
  if (result.success) {
  const data = result.data;
+ console.log('[handleAirbnbScrape] SUCCESS, data.images count:', data?.images?.length, 'data.title:', data?.title);
  setScrapedData(data);
  // Persist raw scraped data (Airbnb URLs + text) to sessionStorage only.
  // NO database save, NO image upload at this stage.
  // Images are uploaded to Supabase storage ONLY when Subscribe is pressed (in saveToSupabase).
  ssSet('scraped_data', JSON.stringify(data));
+ // Notify parent (Home.tsx) so scrapedImages state is updated and the
+ // image slider in the site template populates immediately after scrape.
+ console.log('[handleAirbnbScrape] calling onImported, onImported is', typeof onImported);
+ if (onImported) {
+ console.log('[handleAirbnbScrape] onImported called with data.title:', data.title);
+ onImported(data);
+ } else {
+ console.warn('[handleAirbnbScrape] onImported is NOT defined — popup will not notify Home.tsx!');
+ }
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
  }
@@ -2223,7 +2290,10 @@ const stripeRedirectRef = useRef(0);
  </div>
  )}
 
- {/* Building countdown modal — shown while site is being created + deployed */}
+ {/* BUILDING COUNTDOWN MODAL — COMMENTED OUT
+ When site creation is in progress, nothing is shown to the user.
+ The sidebar PUBLISH button drives the flow for active subscribers. */}
+ {/*
  {showBuilding && (
  <div className="stripe-modal-backdrop" style={{ zIndex: 99999 }}>
  <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px 32px' }}>
@@ -2240,6 +2310,7 @@ const stripeRedirectRef = useRef(0);
  </div>
  </div>
  )}
+ */}
 
  {/* Success modal — shown after Stripe payment completes */}
  {showCongrats && (

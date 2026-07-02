@@ -324,101 +324,65 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     reviews?: number;
     host_name?: string;
   }) => {
-    console.log('[Home] Received imported data:', imported.title);
+    console.log('[Home] handleImportedImages RECEIVED:', imported.title, 'images count:', imported.images?.length);
 
     try {
-      // Upload images to 'onboarding' bucket in Supabase Storage
-      const imageUrls: string[] = [];
+      // Use original Airbnb URLs immediately — don't wait for Supabase upload.
+      // Upload runs in background; if it succeeds we swap in the Supabase URLs.
       const imageList = imported.images || [];
-      for (let i = 0; i < imageList.length; i++) {
-        const imgUrl = imageList[i];
-        try {
-          const response = await fetch(imgUrl);
-          const buffer = await response.arrayBuffer();
-          const filename = `onboarding/${Date.now()}-${i}.jpg`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('onboarding')
-            .upload(filename, buffer, { contentType: 'image/jpeg' });
-          if (uploadError) {
-            // Bucket may not exist — silently fall back to original Airbnb URL
-            imageUrls.push(imgUrl);
-          } else {
-            const { data: { publicUrl } } = supabase.storage
+
+      // Build initial PropertyImage[] from original scraped URLs right away
+      const initialImages: PropertyImage[] = imageList.map((url: string, idx: number) => ({
+        id: `scraped-${Date.now()}-${idx}`,
+        property_id: 'scrape',
+        url,
+        position: idx + 1,
+        is_featured: idx === 0,
+        is_main: idx === 0,
+        is_background: false,
+        created_at: new Date().toISOString(),
+      }));
+      setScrapedImages(initialImages);
+
+      // Now upload to Supabase storage in the background (non-blocking)
+      (async () => {
+        const imageUrls: string[] = [];
+        for (let i = 0; i < imageList.length; i++) {
+          const imgUrl = imageList[i];
+          try {
+            const response = await fetch(imgUrl);
+            const buffer = await response.arrayBuffer();
+            const filename = `onboarding/${Date.now()}-${i}.jpg`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
               .from('onboarding')
-              .getPublicUrl(filename);
-            imageUrls.push(publicUrl);
+              .upload(filename, buffer, { contentType: 'image/jpeg' });
+            if (uploadError) {
+              imageUrls.push(imgUrl); // bucket missing — keep original
+            } else {
+              const { data: { publicUrl } } = supabase.storage
+                .from('onboarding')
+                .getPublicUrl(filename);
+              imageUrls.push(publicUrl);
+            }
+          } catch {
+            imageUrls.push(imgUrl);
           }
-        } catch {
-          // Network error — silently fall back to original URL
-          imageUrls.push(imgUrl);
         }
-      }
 
-      // Fallback: if no images uploaded, use imported.images as-is (for manual/base64)
-      if (imageUrls.length === 0 && imageList.length > 0) {
-        imageUrls.push(...imageList);
-      }
+        // Fallback: if no images uploaded, use original URLs
+        if (imageUrls.length === 0 && imageList.length > 0) {
+          imageUrls.push(...imageList);
+        }
 
-      // Use hero_image from images array if no separate hero_image
-      const primaryImage = imageUrls[0] || imported.hero_image || '';
+        // Swap in Supabase (or fallback) URLs
+        if (imageUrls.length > 0) {
+          setScrapedImages(prev => prev.map((img, idx) => ({
+            ...img,
+            url: imageUrls[idx] || img.url,
+          })));
+        }
+      })();
 
-      // Save to onboarding_data table — use upsert to handle re-onboarding (user already has a row)
-      const { data: onboardingRecord, error: insertError } = await supabase
-        .from('onboarding_data')
-        .upsert({
-          user_id: user.id,
-          property_name: imported.title,
-          description: imported.description,
-          location: imported.location,
-          price: imported.price,
-          scraped_hero_image: primaryImage,
-          scraped_images: imageUrls,
-          scraped_guests: imported.guests ? String(imported.guests) : null,
-          scraped_rating: imported.rating ? String(imported.rating) : null,
-          scraped_reviews: imported.reviews ? String(imported.reviews) : null,
-          scraped_title: imported.title,
-          scraped_location: imported.location,
-          scraped_description: imported.description,
-          host_name: imported.host_name || null,
-          bedrooms: imported.bedrooms ? String(imported.bedrooms) : null,
-          beds: imported.beds ? String(imported.beds) : null,
-          baths: imported.baths ? String(imported.baths) : null,
-        }, { onConflict: 'user_id' })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.log('[Home] onboarding_data upsert error:', insertError.message);
-      } else {
-        console.log('[Home] Saved to onboarding_data, id:', onboardingRecord?.id);
-      }
-
-      // Build final image list: upload blob/base64 images to Supabase, keep existing URLs as-is
-      const isDataUrl = (s: string) => s.startsWith('data:');
-      const finalUrls: string[] = imageUrls.length > 0
-        ? imageUrls
-        : (imageList || []).map((img: string) => img);
-
-      // Airbnb placeholder skip: only drop first if it's a muscache.com URL (real Airbnb scrape)
-      const isAirbnbPlaceholder = (url: string) => url.includes('muscache.com');
-      const realUrls = finalUrls.length > 0 && isAirbnbPlaceholder(finalUrls[0])
-        ? finalUrls.slice(1)
-        : finalUrls;
-
-      // Only wipe images if we actually have new realUrls; otherwise keep existing scrapedImages
-      if (realUrls.length > 0 || (scrapedImages && scrapedImages.length === 0)) {
-        const newImages: PropertyImage[] = realUrls.map((url: string, idx: number) => ({
-          id: `scraped-${Date.now()}-${idx}`,
-          property_id: 'scrape', // placeholder — will be replaced with real property_id on publish
-          url,
-          position: idx + 1,
-          is_featured: idx === 0,
-          is_main: idx === 0,
-          is_background: false,
-          created_at: new Date().toISOString(),
-        }));
-        setScrapedImages(newImages);
-      }
       // Hero subtitle gets first 200 chars (same as popup preview), rest goes to description box
       const heroText = (imported.description || '').slice(0, 200);
       const descText = (imported.description || '').slice(200);
@@ -434,6 +398,38 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         price_per_night: imported.price || property?.price_per_night || null,
         max_guests: imported.guests || property?.max_guests || null,
       });
+
+      // Upsert onboarding_data in background (fire-and-forget)
+      const primaryImage = (imported.images || [])[0] || imported.hero_image || '';
+      supabase
+        .from('onboarding_data')
+        .upsert({
+          user_id: user.id,
+          property_name: imported.title,
+          description: imported.description,
+          location: imported.location,
+          price: imported.price,
+          scraped_hero_image: primaryImage,
+          scraped_images: imported.images || [],
+          scraped_guests: imported.guests ? String(imported.guests) : null,
+          scraped_rating: imported.rating ? String(imported.rating) : null,
+          scraped_reviews: imported.reviews ? String(imported.reviews) : null,
+          scraped_title: imported.title,
+          scraped_location: imported.location,
+          scraped_description: imported.description,
+          host_name: imported.host_name || null,
+          bedrooms: imported.bedrooms ? String(imported.bedrooms) : null,
+          beds: imported.beds ? String(imported.beds) : null,
+          baths: imported.baths ? String(imported.baths) : null,
+        }, { onConflict: 'user_id' })
+        .select()
+        .then(({ data: onboardingRecord, error: insertError }) => {
+          if (insertError) {
+            console.log('[Home] onboarding_data upsert error:', insertError.message);
+          } else {
+            console.log('[Home] Saved to onboarding_data, id:', onboardingRecord?.id);
+          }
+        });
 
 
     } catch (err) {

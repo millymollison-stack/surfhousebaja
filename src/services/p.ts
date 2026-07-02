@@ -212,7 +212,7 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
         'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
       },
       body: JSON.stringify({
-        title: data.scrapedData?.title || data.websiteName,
+        title: data.websiteName,
         slug,
         description: data.scrapedData?.description || data.websiteDesc,
         location: data.scrapedData?.location || '',

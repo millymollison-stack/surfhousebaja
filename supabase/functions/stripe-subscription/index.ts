@@ -227,6 +227,49 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── Handle billing_portal action (Stripe customer portal) ─────────────────
+    if (action === 'billing_portal') {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
+
+      // Get the user's stripe_customer_id from their profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!profile?.stripe_customer_id) {
+        throw new Error("No Stripe customer on file — complete checkout first");
+      }
+
+      const returnUrl = body.return_url || 'https://www.propbook.pro';
+
+      // Create a Stripe billing portal session
+      const portalRes = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${stripeKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          customer: profile.stripe_customer_id,
+          return_url: returnUrl,
+        }).toString(),
+      });
+
+      if (!portalRes.ok) {
+        const errText = await portalRes.text();
+        throw new Error(`Billing portal error: ${errText}`);
+      }
+
+      const portalData = await portalRes.json();
+      return new Response(
+        JSON.stringify({ url: portalData.url }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // ── Handle deploy action (original flow) ─────────────────────────────────
     console.log(`[stripe-subscription] Deploy for user=${userId}, slug=${slug}`);
 

@@ -62,7 +62,6 @@ Deno.serve(async (req: Request) => {
     if (hasOnboardingData) {
       console.log('[migrate-property] Using onboarding_data, heroImg:', scrapedHero, 'imgList length:', scrapedImgList.length);
       scrapedFields = {
-        title: scrapedTitle || scrapedPropertyName || '',
         description: scrapedDesc || '',
         property_intro: scrapedPropIntro || scrapedDesc || '',
         address: scrapedLocation || null,

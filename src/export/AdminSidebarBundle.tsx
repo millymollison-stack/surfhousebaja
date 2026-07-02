@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/auth';
 import { useProperty } from '../store/property';
 import type { Profile, Booking, Property } from '../types';
+import { createNewSiteRecords, deployViaUploadPhp } from '../services/p';
 
 // ─────────────────────────────────────────────
 // SECTION 1 — Extended Profile (app type + services fields)
@@ -277,6 +278,7 @@ interface SubscriptionData {
   interval: string;
   current_period_end: number;
   cancel_at_period_end: boolean;
+  customer_id?: string;
 }
 
 function googleMapsUrl(address: string, lat: string, lng: string): string {
@@ -285,12 +287,13 @@ function googleMapsUrl(address: string, lat: string, lng: string): string {
   return '';
 }
 
-function PropertySection({ property, images, isEditing, fields, onChange }: {
+function PropertySection({ property, images, isEditing, fields, onChange, obData }: {
   property: Property | null;
   images: { id: string; url: string; position: number }[];
   isEditing: boolean;
   fields: { title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string; rating: string; reviews: string; description: string };
   onChange: React.Dispatch<React.SetStateAction<{ title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string; rating: string; reviews: string; description: string }>>;
+  obData?: any;
 }) {
   const mapsUrl = googleMapsUrl(fields.address, fields.latitude, fields.longitude);
   const numField = (label: string, key: 'bedrooms' | 'beds' | 'baths' | 'max_guests') => (
@@ -400,6 +403,60 @@ function PropertySection({ property, images, isEditing, fields, onChange }: {
             />
           ))}
         </div>
+      )}
+
+      {/* ── Onboarding data (only shown when user has onboarding_data but no published property) ── */}
+      {obData && (
+        <>
+          {obData.airbnb_url ? (
+            <div className="sb-field-row">
+              <h4 className="sb-h4-grey">Airbnb URL</h4>
+              <a href={obData.airbnb_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#2563eb', textDecoration: 'underline', wordBreak: 'break-all' }}>
+                {obData.airbnb_url.length > 40 ? obData.airbnb_url.slice(0, 40) + '…' : obData.airbnb_url}
+              </a>
+            </div>
+          ) : null}
+          {obData.design_choice ? (
+            <div className="sb-field-row">
+              <h4 className="sb-h4-grey">Design source</h4>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: 9999, background: obData.design_choice === 'airbnb' ? '#dbeafe' : '#f3f4f6', color: obData.design_choice === 'airbnb' ? '#1d4ed8' : '#374151' }}>
+                {obData.design_choice === 'airbnb' ? '🏠 Airbnb scrape' : '✨ Design from scratch'}
+              </span>
+            </div>
+          ) : null}
+          {obData.hosting_choice ? (
+            <div className="sb-field-row">
+              <h4 className="sb-h4-grey">Hosting</h4>
+              <p className="sb-field-value" style={{ textTransform: 'capitalize' }}>{obData.hosting_choice}</p>
+            </div>
+          ) : null}
+          {obData.plan_choice ? (
+            <div className="sb-field-row">
+              <h4 className="sb-h4-grey">Plan</h4>
+              <p className="sb-field-value" style={{ textTransform: 'capitalize' }}>{obData.plan_choice}</p>
+            </div>
+          ) : null}
+          {obData.extras ? (() => {
+            const extrasObj = typeof obData.extras === 'string' ? JSON.parse(obData.extras) : obData.extras;
+            const active = Object.entries(extrasObj || {}).filter(([_, v]) => v).map(([k]) => k);
+            return active.length > 0 ? (
+              <div className="sb-field-row" style={{ borderBottom: 'none' }}>
+                <h4 className="sb-h4-grey">Add-ons</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {active.map(k => (
+                    <span key={k} style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 7px', borderRadius: 9999, background: '#fef3c7', color: '#92400e', textTransform: 'capitalize' }}>{k}</span>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })() : null}
+          {obData.bookings_email ? (
+            <div className="sb-field-row" style={{ borderBottom: 'none' }}>
+              <h4 className="sb-h4-grey">Bookings email</h4>
+              <p className="sb-field-value" style={{ fontSize: '0.8rem' }}>{obData.bookings_email}</p>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -594,17 +651,17 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
             )}
             <button
               onClick={startPublishCountdown}
-              disabled={!propertyId || !propertySlug}
+              disabled={!propertyId || !propertySlug || !allCredentialsMet}
               style={{
                 width: '100%',
                 padding: '10px 16px',
-                background: (propertyId && propertySlug) ? '#2563eb' : '#9ca3af',
+                background: (propertyId && propertySlug && allCredentialsMet) ? '#2563eb' : '#9ca3af',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,
                 fontSize: '0.9rem',
                 fontWeight: 600,
-                cursor: (propertyId && propertySlug) ? 'pointer' : 'not-allowed',
+                cursor: (propertyId && propertySlug && allCredentialsMet) ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -928,6 +985,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [showCredentials, setShowCredentials] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const [bookings, setBookings] = useState<(Booking & { property: Property; user: Profile })[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
@@ -949,12 +1007,17 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '', rating: '', reviews: '', description: '' });
+  const [publishLoading, setPublishLoading] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [slug, setSlug] = useState('');
+  const [obData, setObData] = useState<any>(null); // raw onboarding_data for non-published-property users
 
   // ── Sync propFields + propertyImages when selected property changes ──
   const syncPropertyFields = (prop: Property | null) => {
     console.log('[syncPropertyFields] called with prop:', prop ? { id: prop.id, title: prop.title, address: prop.address } : null);
-    if (!prop) { setProperty(null); setPropFields({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '', rating: '', reviews: '', description: '' }); return; }
+    if (!prop) { setProperty(null); setObData(null); setSlug(sessionStorage.getItem('popup_website_name') || ''); setPropFields({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '', rating: '', reviews: '', description: '' }); return; }
     setProperty(prop);
+    setObData(null); // clear onboarding_data display rows — published property takes priority
     setPropFields({
       title: prop.title || '',
       address: prop.address || '',
@@ -969,9 +1032,10 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       reviews: prop.reviews != null ? String(prop.reviews) : '',
       description: prop.description || prop.property_intro || '',
     });
-    console.log('[syncPropertyFields] propFields now set to:', { title: prop.title || '', address: prop.address || '', bedrooms: prop.bedrooms });
+    setSlug(prop.slug || sessionStorage.getItem('popup_website_name') || '');
+    console.log('[syncPropertyFields] propFields now set to:', { title: prop.title || '', address: prop.address || '', bedrooms: prop.bedrooms, slug: prop.slug });
   };
-  const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
+  const [contactFields, setContactFields] = useState({ full_name: '', email: user?.email || '', phone_number: '' });
   const [devUpdates, setDevUpdates] = useState(true);
   const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: false, marketing: false, advertising: false, analytics: false, influencers: false, social: false });
 
@@ -1011,6 +1075,34 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       if (selected) {
         console.log('[loadData] Immediately calling syncPropertyFields for:', { id: selected.id, title: selected.title });
         syncPropertyFields(selected);
+      } else {
+        // No property in DB yet — try to pre-populate from onboarding_data
+        // so the sidebar form isn't blank when the user opens it before PUBLISH
+        console.log('[loadData] No property found — loading from onboarding_data to pre-populate form');
+        try {
+          const { data: od } = await supabase
+            .from('onboarding_data')
+            .select('property_name, scraped_title, scraped_location, scraped_description, scraped_guests, scraped_rating, scraped_reviews, bedrooms, beds, baths')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (od) {
+            console.log('[loadData] onboarding_data found:', od);
+            setPropFields({
+              title: od.property_name || od.scraped_title || '',
+              address: od.scraped_location || '',
+              latitude: '',
+              longitude: '',
+              location_type: 'coordinates',
+              bedrooms: od.bedrooms || '',
+              beds: od.beds || '',
+              baths: od.baths || '',
+              max_guests: od.scraped_guests || '',
+              rating: od.scraped_rating || '',
+              reviews: od.scraped_reviews || '',
+              description: od.scraped_description || '',
+            });
+          }
+        } catch(e) { console.warn('[loadData] onboarding_data load failed:', e); }
       }
 
       // ── SECOND: slow bookings + profile query (non-blocking) ──
@@ -1026,16 +1118,17 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         if (isAdmin) {
           [bookingsRes, profileRes] = await Promise.all([
             withTimeout(supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }), 5000),
-            withTimeout(supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status, full_name, phone_number').eq('id', user.id).maybeSingle(), 5000),
+            withTimeout(supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status, full_name, phone_number, stripe_subscription_status, stripe_customer_id').eq('id', user.id).maybeSingle(), 5000),
           ]);
         } else {
           [bookingsRes, profileRes] = await Promise.all([
             withTimeout(supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', user.id).order('created_at', { ascending: false }), 5000),
-            withTimeout(supabase.from('profiles').select('full_name, phone_number').eq('id', user.id).maybeSingle(), 5000),
+            withTimeout(supabase.from('profiles').select('full_name, phone_number, stripe_subscription_status, stripe_customer_id').eq('id', user.id).maybeSingle(), 5000),
           ]);
         }
       } catch(e) { console.error('[loadData] bookings/profile query error:', e); }
       console.log('[loadData] Bookings query done, bookings count:', bookingsRes?.data?.length ?? 'null');
+      console.log('[loadData] Profile query result:', JSON.stringify({ data: profileRes?.data, error: profileRes?.error, userId: user.id, isAdmin }));
 
       // ── STALE GUARD: only for non-property state ──
       if (key !== dataKey) return;
@@ -1066,11 +1159,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         // No published property yet — check onboarding_data for scraped data
         const { data: obData } = await supabase
           .from('onboarding_data')
-          .select('scraped_title, scraped_location, scraped_hero_image, scraped_images, scraped_rating, scraped_reviews, scraped_guests, scraped_description, bedrooms, beds, baths, slug, property_name')
+          .select('scraped_title, scraped_location, scraped_hero_image, scraped_images, scraped_rating, scraped_reviews, scraped_guests, scraped_description, bedrooms, beds, baths, slug, property_name, airbnb_url, design_choice, hosting_choice, plan_choice, extras, bookings_email')
           .eq('user_id', user.id)
           .maybeSingle();
         if (obData) {
           console.log('[loadData] No published property — loading from onboarding_data:', obData);
+          setObData(obData); // store raw obData for PropertySection display rows
           // Populate PropertySection fields from onboarding_data scraped fields
           setPropFields(prev => ({
             ...prev,
@@ -1091,24 +1185,54 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
             position: idx + 1,
           }));
           setPropertyImages(scrapedImgs);
-          // Pre-populate contact name from profile if not set yet (profile may not have full_name)
+          // Pre-populate contact name from profile — always use fresh profile data when available
           if (profileRes.data) {
+            console.log('[loadData] Setting contact fields from profileRes.data:', { full_name: profileRes.data.full_name, phone_number: profileRes.data.phone_number });
             setContactFields(prev => ({
               full_name: profileRes.data.full_name || prev.full_name || obData.property_name || '',
-              email: user?.email || '',
+              email: user?.email || prev.email || '',
               phone_number: profileRes.data.phone_number || prev.phone_number || '',
             }));
           }
+          // Also set slug from onboarding_data or sessionStorage
+          setSlug(obData.slug || sessionStorage.getItem('popup_website_name') || '');
         } else {
-          setPropertyImages([]);
+          // No onboarding_data either — try sessionStorage directly for fresh users
+          const ssWebsiteName = sessionStorage.getItem('popup_website_name');
+          if (ssWebsiteName) {
+            setSlug(ssWebsiteName);
+            setPropFields(prev => ({
+              ...prev,
+              title: prev.title || ssWebsiteName || '',
+            }));
+          }
+          const ssScrapedData = sessionStorage.getItem('scraped_data');
+          if (ssScrapedData) {
+            try {
+              const sd = JSON.parse(ssScrapedData);
+              setPropFields(prev => ({
+                ...prev,
+                title: prev.title || sd.title || '',
+                address: prev.address || sd.location || '',
+                bedrooms: prev.bedrooms || sd.bedrooms || '',
+                beds: prev.beds || sd.beds || '',
+                baths: prev.baths || sd.baths || '',
+                max_guests: prev.max_guests || sd.maxGuests || sd.max_guests || '',
+                rating: prev.rating || sd.rating || '',
+                reviews: prev.reviews || sd.reviews || '',
+                description: prev.description || sd.description || '',
+              }));
+            } catch { /* ignore parse errors */ }
+          }
         }
       }
       if (profileRes.data) {
+        console.log('[loadData] Setting contact fields from profileRes.data (no property branch):', { full_name: profileRes.data.full_name, phone_number: profileRes.data.phone_number });
         setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
         setContactFields(prev => ({
-          full_name: profileRes.data.full_name ?? prev.full_name ?? '',
-          email: prev.email ?? user?.email ?? '',
-          phone_number: profileRes.data.phone_number ?? prev.phone_number ?? '',
+          full_name: profileRes.data.full_name || prev.full_name || '',
+          email: user?.email || prev.email || '',
+          phone_number: profileRes.data.phone_number || prev.phone_number || '',
         }));
       }
     } catch (err) {
@@ -1131,11 +1255,19 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (subLoading) return;
     setSubLoading(true);
     try {
-      const session = await getSession();
+      const session = await getSession().catch(err => { console.error('[loadSubscriptionData] getSession failed:', err); return null; });
+      if (!session) return;
+      console.log('[loadSubscriptionData] Calling stripe-subscription action=get, token userId:', session?.user?.id);
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'get' }) });
-      const data = await res.json();
-      if (res.ok && data.subscription) setSubscriptionData(data.subscription);
-    } catch (err) { console.error(err); } finally { setSubLoading(false); }
+      const data = await res.json().catch(() => ({}));
+      console.log('[loadSubscriptionData] Response:', JSON.stringify({ ok: res.ok, subscription: data.subscription }));
+      if (res.ok && data.subscription) {
+        setSubscriptionData(data.subscription);
+        console.log('[loadSubscriptionData] ✅ subscriptionData set:', data.subscription.status, data.subscription.plan);
+      } else {
+        console.warn('[loadSubscriptionData] No subscription in response — profile.stripe_subscription_status may be null');
+      }
+    } catch (err) { console.error('[loadSubscriptionData] Error:', err); } finally { setSubLoading(false); }
   };
 
   // Reset data each time sidebar opens to prevent stale-loader bug
@@ -1149,6 +1281,49 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       loadConnectData(); // Always refresh Stripe Connect data so credentials panel is up to date
       loadSubscriptionData(); // Always refresh subscription status for credentials panel
     }
+  }, [isOpen, user]);
+
+  // ── Reload sidebar data after payment creates property ──
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleSubscriptionUpdated = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.log('[subscription-updated event] ✅ FIRED — reloading sidebar data', detail);
+      // Immediately set subscription data from event so UI updates without waiting for API round-trip
+      if (detail?.status) {
+        setSubscriptionData(prev => ({
+          id: detail.subscription_id || prev?.id || '',
+          status: detail.status,
+          plan: detail.plan || prev?.plan || 'starter',
+          amount: detail.amount || prev?.amount || 1000,
+          interval: detail.interval || prev?.interval || 'month',
+          current_period_end: detail.current_period_end || prev?.current_period_end || 0,
+          customer_id: detail.customer_id || prev?.customer_id || '',
+        }));
+      }
+      loadData();
+      loadConnectData();
+      loadSubscriptionData();
+    };
+    window.addEventListener('subscription-updated', handleSubscriptionUpdated);
+    // Also check sessionStorage on mount — popup may have saved subscription data there
+    try {
+      const stored = sessionStorage.getItem('sidebar_subscription_data');
+      if (stored && !subscriptionData) {
+        const detail = JSON.parse(stored);
+        console.log('[sidebar mount] Found subscription data in sessionStorage:', detail);
+        setSubscriptionData({
+          id: detail.subscription_id || '',
+          status: detail.status || 'active',
+          plan: detail.plan || 'starter',
+          amount: detail.amount || 1000,
+          interval: detail.interval || 'month',
+          current_period_end: detail.current_period_end || 0,
+          customer_id: detail.customer_id || '',
+        });
+      }
+    } catch { /* ignore */ }
+    return () => window.removeEventListener('subscription-updated', handleSubscriptionUpdated);
   }, [isOpen, user]);
   // Refresh profile once on mount so role changes (e.g. admin upgrade) take effect without re-login
   useEffect(() => {
@@ -1301,6 +1476,21 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     } catch { alert('Failed to start checkout. Please try again.'); } finally { setCheckoutLoading(null); }
   };
 
+  const handleManageBilling = async () => {
+    setCheckoutLoading('billing');
+    try {
+      const session = await getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'billing_portal', return_url: window.location.href }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      window.location.href = data.url;
+    } catch (err) { alert('Failed to open billing portal. Please try again.'); } finally { setCheckoutLoading(null); }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -1321,10 +1511,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
           rating: propFields.rating ? parseFloat(propFields.rating) : null,
           reviews: propFields.reviews ? parseInt(propFields.reviews) : null,
           description: propFields.description || null,
+          slug: slug || sessionStorage.getItem('popup_website_name') || null,
         }).eq('id', selectedPropertyId));
       } else {
         console.log('[handleSave] Skipping property save — isAdmin:', isAdmin, 'selectedPropertyId:', selectedPropertyId);
       }
+      // Always save contact fields to user profile — contact section should work independently
       if (user) {
         console.log('[handleSave] Saving profile:', { userId: user.id, full_name: contactFields.full_name, phone_number: contactFields.phone_number });
         saves.push(supabase.from('profiles').update({ full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null }).eq('id', user.id));
@@ -1333,7 +1525,11 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       const results = await Promise.allSettled(saves);
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length > 0) console.error('[handleSave] Some saves failed:', failures.map(r => (r as PromiseRejectedResult).reason));
-      else console.log('[handleSave] All saves succeeded');
+      else {
+        console.log('[handleSave] All saves succeeded');
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
       if (isAdmin && propFields.title) setPropertyTitle(propFields.title);
       // Reload image count after save (property may have changed)
     } catch (err) {
@@ -1344,6 +1540,98 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       setSaving(false);
       // Reload data independently; don't let reload errors affect UI state
       loadData().catch(err => console.error('[handleSave] loadData failed:', err));
+    }
+  };
+
+  const handlePublishFromSidebar = async () => {
+    if (!user) { setPublishError('Not signed in.'); return; }
+    if (!property?.id) { setPublishError('No property found. Please reload.'); return; }
+    setPublishLoading(true);
+    setPublishError(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // ── Reload fresh property data from DB ──────────────────────────────
+      const { data: freshProp } = await supabase
+        .from('properties')
+        .select('title, address, description, hero_image, images, guests, bedrooms, beds, bathrooms, latitude, longitude')
+        .eq('id', property.id)
+        .single();
+
+      // ── Resolve slug ──────────────────────────────────────────────────────
+      const websiteName = sessionStorage.getItem('popup_website_name') || freshProp?.title || property?.title || 'My Property';
+      const slug = sessionStorage.getItem('popup_website_name')
+        ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
+        : (property?.slug || websiteName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-'));
+
+      // ── Build scrapedData from fresh property ─────────────────────────────
+      const scrapedData = freshProp ? {
+        title: freshProp.title || '',
+        location: freshProp.address || '',
+        description: freshProp.description || '',
+        hero_image: freshProp.hero_image || '',
+        images: freshProp.images || [],
+        guests: freshProp.guests || null,
+        bedrooms: freshProp.bedrooms || null,
+        beds: freshProp.beds || null,
+        baths: freshProp.bathrooms ?? 1,
+        rating: null,
+        reviews: null,
+        host_name: null,
+        price: '',
+      } : null;
+
+      const siteData = {
+        email: user.email,
+        userId: user.id,
+        userStripeAccountId: connectData?.account_id || null,
+        bookingsEmail: user.email,
+        websiteName,
+        websiteDesc: freshProp?.description || '',
+        slug,
+        planChoice: subscriptionData?.plan as 'starter' | 'pro' | 'agency' || 'starter',
+        hostingChoice: 'our' as const,
+        designChoice: '',
+        extras: { seo: false, ads: false, analytics: false, social: false },
+        scrapedData,
+        bankChoice: '',
+      };
+
+      // Create records + deploy
+      const result = await createNewSiteRecords(siteData);
+      sessionStorage.setItem('popup_site_url', result.siteUrl);
+
+      // Deploy to Hostinger
+      let deployUrl: string | undefined;
+      try {
+        deployUrl = await deployViaUploadPhp(
+          result.slug,
+          result.propertyId,
+          supabaseUrl,
+          supabaseAnonKey,
+          siteData,
+          (msg) => console.log('[sidebar publish]', msg)
+        );
+      } catch (deployErr) {
+        console.warn('[sidebar publish] Deploy failed (non-fatal):', deployErr);
+      }
+
+      // Update property site_url in DB
+      await supabase.from('properties').update({ site_url: result.siteUrl, status: 'active' }).eq('id', result.propertyId);
+
+      // Reload sidebar data
+      loadData();
+      loadConnectData();
+      loadSubscriptionData();
+
+      setPublishError(null);
+      alert(`Site published!\n${result.siteUrl}`);
+    } catch (err) {
+      console.error('[sidebar publish] Error:', err);
+      setPublishError(err instanceof Error ? err.message : 'Publish failed. Please try again.');
+    } finally {
+      setPublishLoading(false);
     }
   };
 
@@ -1401,38 +1689,17 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const hasWebsite = !!(property?.site_url);
   const hasEmail = !!displayUser.email;
   const hasSubscription = !!(subscriptionData?.status === 'active');
+  const allCredentialsMet = hasStripeAccount && hasWebsite && hasEmail && hasSubscription;
 
   return (
     <>
       {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
       <div className={`sidebar-panel ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        {/* Header */}
+        {/* Header — show property name if available, fallback to Profile */}
         <div className="sidebar-header">
           <h1 className="hero-title hero-title-edit">Profile</h1>
           <div className="sidebar-header-actions">
-            {isAdmin && properties.length > 0 && (
-              <select
-                value={selectedPropertyId ?? ''}
-                onChange={e => {
-                  const id = e.target.value;
-                  setSelectedPropertyId(id);
-                  const prop = properties.find(p => p.id === id) ?? null;
-                  syncPropertyFields(prop);
-                  // Also reload image count for new selection
-                  if (prop) {
-                    supabase.from('property_images').select('id').eq('property_id', prop.id).then(({ data }) => setImageCount(data?.length ?? 0));
-                  } else {
-                    setImageCount(0);
-                  }
-                }}
-                style={{ background: '#1a1a1a', color: '#ccc', border: '1px solid #333', borderRadius: 6, padding: '4px 8px', fontSize: 12, maxWidth: 140, cursor: 'pointer' }}
-              >
-                {properties.map(p => (
-                  <option key={p.id} value={p.id}>{p.title || p.slug || 'Untitled'}</option>
-                ))}
-              </select>
-            )}
-            <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : isEditing ? 'Done' : 'Edit'}</span></button>
+            <button onClick={() => isEditing ? handleSave() : setIsEditing(true)} disabled={saving} className="sidebar-btn-edit">{isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}<span>{saving ? 'Saving...' : saved ? 'Saved ✓' : isEditing ? 'Done' : 'Edit'}</span></button>
             {isEditing && <button onClick={() => setIsEditing(false)} className="sidebar-btn-cancel inline-flex-row"><X className="h-4 w-4" /><span className="btn-text">Cancel</span></button>}
             <button onClick={onClose} className="sidebar-btn-close"><X className="h-6 w-6" /></button>
           </div>
@@ -1497,8 +1764,64 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 <div className="sb-credential-label"><StatusDot ok={hasEmail} /><p className="sb-credential-name">{displayUser.email}</p></div>
               </div>
               <div className="sb-credential-row">
-                <div className="sb-credential-label"><StatusDot ok={hasSubscription} /><p className="sb-credential-name">Live Subscription</p></div>
+                <div className="sb-credential-label">
+                  {hasSubscription
+                    ? <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    : <StatusDot ok={false} />
+                  }
+                  <p className="sb-credential-name">
+                    {hasSubscription
+                      ? `Subscription Active${subscriptionData?.plan ? ` (${subscriptionData.plan.charAt(0).toUpperCase() + subscriptionData.plan.slice(1)})` : ''}`
+                      : 'No active subscription'
+                    }
+                  </p>
+                </div>
+                {hasSubscription && (
+                  <button
+                    onClick={handleManageBilling}
+                    style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                  >Edit</button>
+                )}
               </div>
+
+              {/* PUBLISH SITE button — primary CTA for active subscribers */}
+              {hasSubscription && (
+                <div style={{ marginTop: 16 }}>
+                  {!allCredentialsMet && (
+                    <p style={{ fontSize: '0.7rem', color: '#92400e', background: '#fef3c7', borderRadius: 6, padding: '6px 10px', marginBottom: 8, textAlign: 'center' }}>
+                      Complete all 4 credentials above to publish your site
+                    </p>
+                  )}
+                  <button
+                    onClick={handlePublishFromSidebar}
+                    disabled={!allCredentialsMet || publishLoading}
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      background: allCredentialsMet ? '#22c55e' : '#9ca3af',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 10,
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                      cursor: allCredentialsMet && !publishLoading ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      opacity: publishLoading ? 0.7 : 1,
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    {publishLoading
+                      ? <><Loader />Publishing...</>
+                      : <><Rocket className="h-5 w-5" />Publish Site</>}
+                  </button>
+                  {publishError && (
+                    <p style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 6, textAlign: 'center' }}>{publishError}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1517,8 +1840,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 </button>
                 {openSection === key && (
                   <div className="sb-section-body">
-                    {key === 'property' && <PropertySection property={property} images={propertyImages} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={sessionStorage.getItem('popup_website_name') || undefined} propertyId={property?.id} />}
+                    {key === 'property' && <PropertySection property={property} images={propertyImages} isEditing={isEditing} fields={propFields} onChange={setPropFields} obData={obData} />}
+                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={slug || sessionStorage.getItem('popup_website_name') || undefined} propertyId={property?.id} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}
