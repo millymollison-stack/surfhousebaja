@@ -350,14 +350,13 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
    }
    console.log('[openStripeGateway] validated — userId:', userIdValue, 'slug:', slugValue);
 
-   // BLOCKING SAVE: property must be in DB before we redirect to Stripe.
-   // This ensures returning users ALWAYS have their data, even if they close the
-   // browser mid-Stripe or the redirect fails.
-   console.log('[openStripeGateway] Saving scraped data to DB before Stripe redirect...');
-   await saveToSupabase();
-   console.log('[openStripeGateway] ✅ DB save complete, redirecting to Stripe...');
-
-   console.log('[openStripeGateway] DEBUG 1: about to create fetchWithTimeout');
+   // NON-BLOCKING SAVE: fire-and-forget with 5s timeout — Stripe redirect must always proceed.
+   // Data is re-saved on RETURN from Stripe in the ?paid=true handler, so missing
+   // the pre-redirect save is non-fatal.
+   console.log('[openStripeGateway] Saving scraped data to DB before Stripe redirect (non-blocking)...');
+   const saveTimeout = setTimeout(() => console.warn('[openStripeGateway] saveToSupabase timed out — proceeding anyway'), 5000);
+   saveToSupabase().finally(() => clearTimeout(saveTimeout));
+   console.log('[openStripeGateway] DB save fired — proceeding to Stripe redirect');
    // Timeout wrapper — if fetch takes >15s, treat as network error
    const fetchWithTimeout = (url: string, opts: RequestInit, timeoutMs = 20000) =>
      Promise.race([
