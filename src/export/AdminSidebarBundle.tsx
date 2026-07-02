@@ -1156,6 +1156,16 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       if (selected) {
         const { data: selectedImgs } = await supabase.from('property_images').select('id, url, position').eq('property_id', selected.id).order('position');
         setPropertyImages(selectedImgs ?? []);
+        // Update contact fields from profile for users WITH a published property
+        // (the `else` branch below handles this for users without one yet)
+        if (profileRes.data) {
+          console.log('[loadData] Setting contact fields from profileRes.data (has property):', { full_name: profileRes.data.full_name, phone_number: profileRes.data.phone_number });
+          setContactFields(prev => ({
+            full_name: profileRes.data.full_name || prev.full_name || '',
+            email: user?.email || prev.email || '',
+            phone_number: profileRes.data.phone_number || prev.phone_number || '',
+          }));
+        }
       } else {
         // No published property yet — check onboarding_data for scraped data
         const { data: obData } = await supabase
