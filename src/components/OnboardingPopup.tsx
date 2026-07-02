@@ -638,6 +638,14 @@ const stripeRedirectRef = useRef(0);
  // after Stripe returns, ensuring migration property data is loaded even when
  // scrapedProperty/scrapedImages deps haven't changed.
  async function loadSavedData() {
+ // GUARD: Never open popup for active subscribers — they use the sidebar to edit/publish
+ const { data: profileForGuard } = await supabase
+   .from('profiles')
+   .select('stripe_subscription_status')
+   .eq('id', user?.id)
+   .maybeSingle();
+ const isActiveGuard = profileForGuard?.stripe_subscription_status === 'active' || profileForGuard?.stripe_subscription_status === 'trialing';
+
  // If parent has fresh scraped data, use it instead of stale saved data
  if (scrapedProperty) {
  const imgs = scrapedImages?.map((img: any) => img.url) || [];
@@ -656,8 +664,8 @@ const stripeRedirectRef = useRef(0);
  reviews: null,
  host_name: null,
  });
- // Auto-open popup when scraped data arrives - but NOT if user explicitly closed it
- if (!isOpen && !ssGet('closed')) {
+ // Auto-open popup when scraped data arrives - but NOT for active subscribers and NOT if user explicitly closed it
+ if (!isActiveGuard && !isOpen && !ssGet('closed')) {
  setIsOpen(true);
  }
  return;
@@ -680,7 +688,8 @@ const stripeRedirectRef = useRef(0);
         // ── After restoring all form fields, handle post-Stripe success ──────────
         if (sessionStorage.getItem('stripe_payment_done')) {
           sessionStorage.removeItem('stripe_payment_done');
-          if (!isOpen) setIsOpen(true);
+          // Don't open popup for active subscribers — they use the sidebar
+          if (!isActiveGuard && !isOpen) setIsOpen(true);
           setShowCongrats(true);
           const restoredName = ssGet('website_name') || 'surfhousebaja';
           if (onImported) {
@@ -1025,7 +1034,7 @@ const stripeRedirectRef = useRef(0);
                     // setStripeProcessing(true);
                     // setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
                     setStripeProcessing(false);
-                    setIsOpen(true); // Re-open popup so sidebar/publish button can be tested
+                    setIsOpen(false); // Active subscriber — use sidebar, not popup
                     return;
                   }
                 }
@@ -1056,7 +1065,7 @@ const stripeRedirectRef = useRef(0);
                   }
                 }
                 setStripeError('Payment could not be verified. Please contact support with your email.');
-                if (!isOpen) setIsOpen(true);
+                setIsOpen(false);
               }
             }
           }, 1000);
@@ -1067,25 +1076,16 @@ const stripeRedirectRef = useRef(0);
         const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
 
         if (subStatus === 'active' || subStatus === 'trialing') {
-          // Webhook fired successfully — redirect to the new property site
-          console.log('[DEBUG ?paid handler] Subscription active (webhook fired) — redirecting to property site');
+          // Active subscriber — never open the onboarding popup. Redirect silently.
+          console.log('[DEBUG ?paid handler] Active subscriber — closing popup and redirecting to property site');
+          setIsOpen(false);
+          setStripeProcessing(false);
           const slug = ssGet('website_name')
             ? ssGet('website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
             : null;
           if (slug) {
-            // TEMPORARILY DISABLED — redirecting before site is built breaks the flow
-            // setStripeProcessing(true);
-            // setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
-            setStripeProcessing(false);
-            setIsOpen(true); // Re-open popup so sidebar/publish button can be tested
-            return;
+            setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 100);
           }
-          // No slug — open popup and try to publish
-          console.log('[DEBUG ?paid handler] No slug found — falling back to congrats modal');
-          const websiteName = ssGet('website_name') || '';
-          if (!isOpen) setIsOpen(true);
-          setShowCongrats(true);
-          if (websiteName) setWebsiteName(websiteName);
           return;
         } else {
           console.log('[DEBUG ?paid handler] subStatus is null/unknown — proceeding to recovery. profileData:', JSON.stringify(profileData));
@@ -1139,7 +1139,7 @@ const stripeRedirectRef = useRef(0);
                 window.location.href = createdSiteUrl;
               } else {
                 setStripeError('Payment confirmed! But site URL was not returned. Please refresh and check your sidebar.');
-                if (!isOpen) setIsOpen(true);
+                setIsOpen(false);
                 setShowCongrats(true);
               }
             } catch (siteErr) {
