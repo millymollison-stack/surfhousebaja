@@ -53,11 +53,15 @@ Deno.serve(async (req: Request) => {
       .single();
     const ref = refProp || {};
 
-    console.log("[save-site-records] Inserting property:", title, slug);
+    console.log("[save-site-records] Upserting property:", title, slug);
+
+    // ── Idempotent upsert: re-use existing property record if slug already exists ──
+    // This makes PUBLISH safe to run multiple times (updates existing instead of failing)
+    const siteUrl = `https://www.propbook.pro/props/${slug}`;
 
     const { data: propertyRecord, error: propertyError } = await supabase
       .from("properties")
-      .insert({
+      .upsert({
         // Use scraped title from request body (set by createNewSiteRecords from scrapedData)
         // Do NOT fall back to reference property title — that caused wrong property names
         title: title || "Untitled Property",
@@ -75,6 +79,8 @@ Deno.serve(async (req: Request) => {
         reviews: reviews ?? null,
         hero_image: heroImage || "",
         images: images || [],
+        site_url: siteUrl,
+        status: 'active',
         stripe_account_id: stripeAccountId || null,
         stripe_account_status: stripeAccountStatus || null,
         // Rich content: prefer scrapedData fields; fall back to reference property only if absent.
@@ -86,28 +92,26 @@ Deno.serve(async (req: Request) => {
         getting_there: scrapedData?.getting_there || ref.getting_there || null,
         brand_color: ref.brand_color || null,
         font_accent: ref.font_accent || null,
+      }, {
+        onConflict: 'slug',
       })
       .select("id, slug")
       .single();
 
     if (propertyError) {
       console.error("[save-site-records] propertyError:", propertyError);
-      throw new Error(`Property insert failed: ${propertyError.message}`);
+      throw new Error(`Property upsert failed: ${propertyError.message}`);
     }
 
-    console.log("[save-site-records] Property created:", propertyRecord.id);
+    console.log("[save-site-records] Property upserted:", propertyRecord.id, '(existing slug was', slug, ')');
 
-    // Set site_url on the property record so redirect polling works
-    const siteUrl = `https://www.propbook.pro/props/${propertyRecord.slug}`;
-    await supabase
-      .from("properties")
-      .update({ site_url: siteUrl })
-      .eq("id", propertyRecord.id);
-
-    // ── STEP 2: Insert property images with background flags ──────────
-    // First 2 photos get is_background=true so users discover that feature
+    // ── STEP 2: Replace property images (delete old + re-insert) ─────────────
+    // Always replace images on re-publish so updated image list takes effect
     if (images && images.length > 0) {
-      console.log('[save-site-records] images received:', images?.length, 'first 3:', images?.slice(0, 3));
+      console.log('[save-site-records] Replacing property images:', images?.length);
+      // Delete existing images for this property
+      await supabase.from('property_images').delete().eq('property_id', propertyRecord.id);
+      // Re-insert updated image list
       const imageRecords = images.map((url: string, idx: number) => ({
         property_id: propertyRecord.id,
         url,
@@ -118,9 +122,9 @@ Deno.serve(async (req: Request) => {
       }));
       const { error: imagesError } = await supabase.from("property_images").insert(imageRecords);
       if (imagesError) {
-        console.warn("[save-site-records] images insert warning:", imagesError.message);
+        console.warn("[save-site-records] images replace warning:", imagesError.message);
       } else {
-        console.log("[save-site-records] Images inserted:", images.length);
+        console.log("[save-site-records] Images replaced:", images.length);
       }
     }
 

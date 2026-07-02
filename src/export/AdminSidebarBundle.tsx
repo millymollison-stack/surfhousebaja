@@ -1642,7 +1642,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       loadSubscriptionData();
 
       setPublishError(null);
-      alert(`Site published!\n${result.siteUrl}`);
+      // Redirect to the newly published site — opens the property's own off-Airbnb website
+      window.location.href = result.siteUrl;
     } catch (err) {
       console.error('[sidebar publish] Error:', err);
       setPublishError(err instanceof Error ? err.message : 'Publish failed. Please try again.');
