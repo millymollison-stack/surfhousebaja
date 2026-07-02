@@ -725,7 +725,7 @@ function ContactSection({ user, isEditing, fields, onChange }: {
       <div className="sb-field-row">
         <h4 className="sb-h4-grey">Name</h4>
         {isEditing
-          ? <input type="text" value={fields.full_name} onChange={e => onChange(p => ({ ...p, full_name: e.target.value }))} className="sb-input" />
+          ? <input type="text" value={fields.full_name} onChange={e => { console.log("[ContactSection] full_name changed to:", e.target.value); onChange(p => ({ ...p, full_name: e.target.value })); }} className="sb-input" />
           : <p className="sb-field-value">{fields.full_name || '—'}</p>}
       </div>
       <div className="sb-field-row">
@@ -738,7 +738,7 @@ function ContactSection({ user, isEditing, fields, onChange }: {
       <div className="sb-field-row">
         <h4 className="sb-h4-grey">Tel</h4>
         {isEditing
-          ? <input type="tel" value={fields.phone_number} onChange={e => onChange(p => ({ ...p, phone_number: e.target.value }))} className="sb-input" />
+          ? <input type="tel" value={fields.phone_number} onChange={e => { console.log("[ContactSection] phone_number changed to:", e.target.value); onChange(p => ({ ...p, phone_number: e.target.value })); }} className="sb-input" />
           : <p className="sb-field-value">{fields.phone_number || '—'}</p>}
       </div>
       <div className="py-3 last:border-0">
@@ -1813,21 +1813,22 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                     onClick={handlePublishFromSidebar}
                     disabled={!allCredentialsMet || publishLoading}
                     style={{
-                      width: '100%',
-                      padding: '14px 16px',
-                      background: allCredentialsMet ? '#22c55e' : '#9ca3af',
-                      color: '#fff',
-                      border: 'none',
+                      width: '60%',
+                      padding: '12px 16px',
+                      background: 'transparent',
+                      color: allCredentialsMet ? '#22c55e' : '#9ca3af',
+                      border: `2px solid ${allCredentialsMet ? '#22c55e' : '#9ca3af'}`,
                       borderRadius: 10,
-                      fontSize: '1rem',
+                      fontSize: '0.95rem',
                       fontWeight: 700,
                       cursor: allCredentialsMet && !publishLoading ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 8,
+                      margin: '16px auto 0',
                       opacity: publishLoading ? 0.7 : 1,
-                      transition: 'background 0.2s',
+                      transition: 'background 0.2s, color 0.2s',
                     }}
                   >
                     {publishLoading

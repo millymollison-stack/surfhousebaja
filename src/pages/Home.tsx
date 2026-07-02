@@ -23,9 +23,10 @@ interface HomeProps {
   onOpenSidebar?: () => void;
   onCanEditChange?: (canEdit: boolean) => void;
   onOnboardingComplete?: () => void;
+  onCloseSidebar?: () => void;
 }
 
-export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange, onOpenSidebar, onCanEditChange, onOnboardingComplete }: HomeProps) {
+export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveAll, onSiteNameChange, onOpenSidebar, onCanEditChange, onOnboardingComplete, onCloseSidebar }: HomeProps) {
   const [property, setProperty] = useState<Property | null>(null);
   const [images, setImages] = useState<PropertyImage[]>([]);
   const [backgroundImages, setBackgroundImages] = useState<PropertyImage[]>([]);
@@ -481,6 +482,10 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     onOnboardingComplete?.();
   };
 
+  const handleCloseSidebar = () => {
+    onCloseSidebar?.();
+  };
+
   const handleBookingSubmit = async (bookingData: {
     start_date: string;
     end_date: string;
@@ -633,6 +638,7 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         onSiteNameChange={onSiteNameChange}
         onComplete={handleOnboardingComplete}
         onOpenSidebar={onOpenSidebar}
+        onCloseSidebar={handleCloseSidebar}
       />
     </div>
   );

@@ -31,6 +31,8 @@ export interface OnboardingPopupProps {
  onSiteNameChange?: (name: string) => void;
  scrapedImages?: any[];
  onOpenSidebar?: () => void;
+ onOnboardingComplete?: () => void;
+ onCloseSidebar?: () => void;
 }
 
 // Persisted flag: survives across remounts (key changes) so user-closed state is not lost
@@ -146,7 +148,7 @@ function CheckoutForm({ clientSecret, onSuccess, onError, monthlyTotal }: {
   );
 }
 
-export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange, onOpenSidebar }: OnboardingPopupProps) {
+export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProperty, scrapedImages, onSiteNameChange, onOpenSidebar, onOnboardingComplete, onCloseSidebar }: OnboardingPopupProps) {
  const { user, refreshUser } = useAuth();
  const [isOpen, setIsOpen] = useState(false);
  // Tracks whether this popup instance is still mounted (used to cancel auto-open timer on unmount)
@@ -663,6 +665,8 @@ const stripeRedirectRef = useRef(0);
  reviews: null,
  host_name: null,
  });
+ // Populate description field so user can edit it immediately after scrape
+ setWebsiteDesc(scrapedProperty.property_intro || scrapedProperty.description || '');
  // Auto-open popup when scraped data arrives - but NOT for active subscribers and NOT if user explicitly closed it
  if (!isActiveGuard && !isOpen && !ssGet('closed')) {
  setIsOpen(true);
@@ -1058,6 +1062,10 @@ const stripeRedirectRef = useRef(0);
                     // setBuildingCountdown(40);
                     try {
                       const siteResult = await handleSaveSiteInPopup();
+                      // Signal App to enable Edit button BEFORE redirect so transition is seamless
+                      onOnboardingComplete?.();
+                      // Close sidebar before redirect so user sees the published site first
+                      onCloseSidebar?.();
                       if (siteResult?.siteUrl) window.location.href = siteResult.siteUrl;
                     } catch (siteErr) { console.error('[DEBUG ?paid handler] Site creation failed:', siteErr); }
                     return;
