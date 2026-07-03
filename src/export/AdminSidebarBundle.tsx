@@ -1519,47 +1519,76 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   };
 
   // ── Save property fields — admins only ──
+  // ── Save property fields — admins only ──
   const handleSaveProperty = async () => {
-    if (!isAdmin || !selectedPropertyId) return;
-    console.log('[handleSaveProperty] Saving property:', { selectedPropertyId, ...propFields });
-    const { data, error } = await supabase.from('properties').update({
-      title: propFields.title || null,
-      address: propFields.address || null,
-      latitude: propFields.latitude ? parseFloat(propFields.latitude) : null,
-      longitude: propFields.longitude ? parseFloat(propFields.longitude) : null,
-      location_type: propFields.location_type,
-      bedrooms: propFields.bedrooms ? parseInt(propFields.bedrooms) : null,
-      beds: propFields.beds ? parseInt(propFields.beds) : null,
-      baths: propFields.baths ? parseInt(propFields.baths) : null,
-      max_guests: propFields.max_guests ? parseInt(propFields.max_guests) : null,
-      rating: propFields.rating ? parseFloat(propFields.rating) : null,
-      reviews: propFields.reviews ? parseInt(propFields.reviews) : null,
-      description: propFields.description || null,
-      slug: slug || sessionStorage.getItem('popup_website_name') || null,
-    }).eq('id', selectedPropertyId);
-    if (error) console.error('[handleSaveProperty] Property update failed:', error.message);
-    else console.log('[handleSaveProperty] Property saved successfully');
-    return { data, error };
+    if (!isAdmin) return;
+
+    const websiteName = sessionStorage.getItem('popup_website_name') || propFields.title || 'My Property';
+    const slugValue = slug || sessionStorage.getItem('popup_website_name') || '';
+
+    if (selectedPropertyId) {
+      // User has a published property — update it
+      console.log('[handleSaveProperty] Saving to properties table:', { selectedPropertyId, ...propFields });
+      const { data, error } = await supabase.from('properties').update({
+        title: propFields.title || null,
+        address: propFields.address || null,
+        latitude: propFields.latitude ? parseFloat(propFields.latitude) : null,
+        longitude: propFields.longitude ? parseFloat(propFields.longitude) : null,
+        location_type: propFields.location_type,
+        bedrooms: propFields.bedrooms ? parseInt(propFields.bedrooms) : null,
+        beds: propFields.beds ? parseInt(propFields.beds) : null,
+        baths: propFields.baths ? parseInt(propFields.baths) : null,
+        max_guests: propFields.max_guests ? parseInt(propFields.max_guests) : null,
+        rating: propFields.rating ? parseFloat(propFields.rating) : null,
+        reviews: propFields.reviews ? parseInt(propFields.reviews) : null,
+        description: propFields.description || null,
+        slug: slugValue || null,
+      }).eq('id', selectedPropertyId);
+      if (error) console.error('[handleSaveProperty] Property update failed:', error.message);
+      else console.log('[handleSaveProperty] Property saved successfully');
+      return { data, error };
+    } else {
+      // No published property yet — save to onboarding_data so it survives until PUBLISH
+      console.log('[handleSaveProperty] No property ID yet — saving to onboarding_data for user:', user?.id);
+      const { data, error } = await supabase.from('onboarding_data').upsert({
+        user_id: user?.id,
+        property_name: propFields.title || websiteName,
+        scraped_title: propFields.title || null,
+        scraped_location: propFields.address || null,
+        scraped_description: propFields.description || null,
+        bedrooms: propFields.bedrooms || null,
+        beds: propFields.beds || null,
+        baths: propFields.baths || null,
+        slug: slugValue || null,
+      }).eq('user_id', user?.id);
+      if (error) console.error('[handleSaveProperty] onboarding_data save failed:', error.message);
+      else console.log('[handleSaveProperty] onboarding_data saved successfully');
+      return { data, error };
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
+    let contactOk = false;
     try {
-      // Contact save is ALWAYS first and independent — it must never fail due to property issues
+      // Contact save is ALWAYS first and independent
       await handleSaveContact();
+      contactOk = true;
       // Property save is secondary — admins only, may fail gracefully
       await handleSaveProperty();
-      // Show success regardless — contact save is the critical path
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
       if (isAdmin && propFields.title) setPropertyTitle(propFields.title);
     } catch (err) {
-      // Unexpected synchronous error — try at least to save contact
-      console.error('[handleSave] Unexpected error, attempting contact save:', err);
-      await handleSaveContact().catch(console.error);
+      console.error('[handleSave] Unexpected error:', err);
+      if (!contactOk) await handleSaveContact().catch(console.error);
     } finally {
-      setIsEditing(false);
       setSaving(false);
+      // Show Saved ✓ briefly before exiting edit mode
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        setIsEditing(false);
+      }, 1500);
+      // Reload data in background — don't wait for it before exiting edit mode
       loadData().catch(err => console.error('[handleSave] loadData failed:', err));
     }
   };
