@@ -1708,7 +1708,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const isPending = displayBooking?.status === 'pending';
   const hasStripeAccount = !!(connectData?.account_id);
-  const hasWebsite = !!(property?.site_url);
+  const hasWebsite = !!(
+    property?.site_url ||
+    property?.slug ||
+    obData?.slug ||
+    sessionStorage.getItem('popup_website_name')
+  );
   const hasEmail = !!displayUser.email;
   const hasSubscription = !!(subscriptionData?.status === 'active');
   const allCredentialsMet = hasStripeAccount && hasWebsite && hasEmail && hasSubscription;
@@ -1780,7 +1785,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {hasStripeAccount && connectData && !connectData.details_submitted && <p className="sb-credential-name" style={{ color: '#f59e0b', fontSize: '0.75rem' }}>Onboarding pending</p>}
               </div>
               <div className="sb-credential-row">
-                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">{property?.site_url ? (() => { try { return new URL(property.site_url).pathname.replace(/^\//, '') || 'Published site'; } catch { return 'Published site'; } })() : 'No site published yet'}</p></div>
+                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">{(property?.site_url ? (() => { try { return new URL(property.site_url).pathname.replace(/^\//, '') || 'Published site'; } catch { return 'Published site'; } })() : (slug || sessionStorage.getItem('popup_website_name') ? `propbook.pro/props/${slug || sessionStorage.getItem('popup_website_name')}` : 'No site published yet'))}</p></div>
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasEmail} /><p className="sb-credential-name">{displayUser.email}</p></div>
