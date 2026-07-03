@@ -69,7 +69,7 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
           </Link>
           
           <div className="flex items-center space-x-3">
-            {isAdmin && canEdit && (
+            {canEdit && (
               <>
                 {hasChanges ? (
                   <button
