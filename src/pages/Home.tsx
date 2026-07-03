@@ -45,15 +45,15 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   const imageGallerySaveRef = useRef<(() => Promise<void>) | null>(null);
   const { user } = useAuth();
 
-  // Computed after property loads: true only for saas_admins OR the actual property owner
-  const canEdit = !!(user && property && (user.role === 'saas_admin' || property.owner_id === user.id));
+  // canEdit: user is logged in and is an admin/saas_admin — gates Edit button visibility
+  const canEdit = !!(user && (user.role === 'admin' || user.role === 'saas_admin'));
 
-  // Notify App/Layout when canEdit changes (after property loads)
+  // Notify App/Layout when canEdit changes (user login/logout)
   useEffect(() => {
-    if (property && user) {
+    if (user) {
       onCanEditChange?.(canEdit);
     }
-  }, [property, user, canEdit]);
+  }, [user, canEdit]);
   const navigate = useNavigate();
   const calendarRef = useRef<HTMLDivElement>(null);
 
