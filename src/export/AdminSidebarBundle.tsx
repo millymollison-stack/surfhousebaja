@@ -1507,12 +1507,14 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (!user) return;
     const profileUpdate = { full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null };
     console.log('[handleSaveContact] Saving profile:', { userId: user.id, ...profileUpdate });
-    const { data, error } = await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
+    const { data, error } = await supabase.from('profiles').update({ ...profileUpdate, updated_at: new Date().toISOString() }).eq('id', user.id);
     if (error) {
       console.error('[handleSaveContact] Profile update failed:', error.message);
-    } else {
-      console.log('[handleSaveContact] Profile saved successfully');
+      return { data, error };
     }
+    // ✅ Update auth store user state immediately so UI reflects the change without waiting for reload
+    useAuth.getState().set({ user: { ...user, ...profileUpdate }, error: null });
+    console.log('[handleSaveContact] Profile saved successfully — auth store updated');
     return { data, error };
   };
 
