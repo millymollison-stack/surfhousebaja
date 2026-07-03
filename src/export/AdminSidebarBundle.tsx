@@ -1588,8 +1588,19 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         setSaved(false);
         setIsEditing(false);
       }, 1500);
-      // Reload data in background — don't wait for it before exiting edit mode
-      loadData().catch(err => console.error('[handleSave] loadData failed:', err));
+      // Sync contactFields with what was just saved (auth store was updated by handleSaveContact)
+      // so the form reflects the saved values without needing to close/reopen the sidebar
+      const currentUser = useAuth.getState().user;
+      if (currentUser) {
+        setContactFields(prev => ({
+          full_name: currentUser.full_name || prev.full_name || '',
+          email: currentUser.email || prev.email || '',
+          phone_number: currentUser.phone_number || prev.phone_number || '',
+        }));
+      }
+      // propFields is already correct — it's what the user just typed and what was saved.
+      // Do NOT call loadData() here — it would wipe propFields/contactFields if it reads
+      // the wrong property (demo property) for a new user who hasn't published yet.
     }
   };
 
