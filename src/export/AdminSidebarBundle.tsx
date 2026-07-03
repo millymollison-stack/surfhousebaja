@@ -1037,6 +1037,18 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     console.log('[syncPropertyFields] propFields now set to:', { title: prop.title || '', address: prop.address || '', bedrooms: prop.bedrooms, slug: prop.slug });
   };
   const [contactFields, setContactFields] = useState({ full_name: '', email: user?.email || '', phone_number: '' });
+
+  // ── Keep contactFields in sync with auth store user whenever user changes ──
+  // This fixes the "lost on refresh" bug: user object has full_name/phone_number but
+  // contactFields useState was only initialized once and never updated on user load
+  useEffect(() => {
+    if (!user) return;
+    setContactFields(prev => ({
+      full_name: user.full_name || prev.full_name || '',
+      email: user.email || prev.email || '',
+      phone_number: user.phone_number || prev.phone_number || '',
+    }));
+  }, [user?.id]); // Only re-run when user ID changes (i.e. on login/logout)
   const [devUpdates, setDevUpdates] = useState(true);
   const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: false, marketing: false, advertising: false, analytics: false, influencers: false, social: false });
 
@@ -1507,14 +1519,15 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (!user) return;
     const profileUpdate = { full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null };
     console.log('[handleSaveContact] Saving profile:', { userId: user.id, ...profileUpdate });
-    const { data, error } = await supabase.from('profiles').update({ ...profileUpdate, updated_at: new Date().toISOString() }).eq('id', user.id);
-    if (error) {
-      console.error('[handleSaveContact] Profile update failed:', error.message);
-      return { data, error };
+    try {
+      // Use the auth store's updateProfile method — it updates DB + syncs auth state
+      await useAuth.getState().updateProfile(profileUpdate);
+      console.log('[handleSaveContact] Profile saved successfully');
+      return { data: true, error: null };
+    } catch (err: any) {
+      console.error('[handleSaveContact] Profile update failed:', err.message);
+      return { data: null, error: err.message };
     }
-    // ✅ Update auth store user state immediately so UI reflects the change without waiting for reload
-    useAuth.getState().set({ user: { ...user, ...profileUpdate }, error: null });
-    console.log('[handleSaveContact] Profile saved successfully — auth store updated');
     return { data, error };
   };
 
