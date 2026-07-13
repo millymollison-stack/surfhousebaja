@@ -5,7 +5,7 @@
 
 import '../components/sidebar.css';
 
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, fromUnixTime, addDays } from 'date-fns';
 import { ChevronRight, ChevronDown, X, LogOut, ExternalLink, Check, CreditCard as Edit2, Clock, CreditCard, AlertCircle, XCircle, CheckCircle, MapPin, Eye, EyeOff, Mail, Phone, User, MessageSquare, Home } from 'lucide-react';
@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/auth';
 import { useProperty } from '../store/property';
 import type { Profile, Booking, Property } from '../types';
+import { deployViaUploadPhp } from '../services/p';
 
 // ─────────────────────────────────────────────
 // SECTION 1 — Extended Profile (app type + services fields)
@@ -289,8 +290,8 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
   property: Property | null;
   imageCount: number;
   isEditing: boolean;
-  fields: { title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates' };
-  onChange: React.Dispatch<React.SetStateAction<{ title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates' }>>;
+  fields: { title: string; property_intro: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string };
+  onChange: React.Dispatch<React.SetStateAction<{ title: string; property_intro: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string }>>;
 }) {
   const mapsUrl = googleMapsUrl(fields.address, fields.latitude, fields.longitude);
   return (
@@ -300,6 +301,12 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
         {isEditing
           ? <input type="text" value={fields.title} onChange={e => onChange(p => ({ ...p, title: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.title || '—'}</p>}
+      </div>
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Hero teaser</h4>
+        {isEditing
+          ? <textarea value={fields.property_intro} onChange={e => onChange(p => ({ ...p, property_intro: e.target.value }))} className="sb-input" rows={3} placeholder="Short intro text shown under the hero image..." />
+          : <p className="sb-field-value" style={{ whiteSpace: 'pre-wrap' }}>{fields.property_intro || '—'}</p>}
       </div>
       <div className="sb-field-row">
         <h4 className="sb-h4-grey">Address</h4>
@@ -362,16 +369,41 @@ function PropertySection({ property, imageCount, isEditing, fields, onChange }: 
         <h4 className="sb-h4-grey">Uploaded photos</h4>
         <p className="sb-field-value">{imageCount}</p>
       </div>
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Bedrooms</h4>
+        {isEditing
+          ? <input type="number" min="0" value={fields.bedrooms} onChange={e => onChange(p => ({ ...p, bedrooms: e.target.value }))} className="sb-input" style={{ width: 80 }} />
+          : <p className="sb-field-value">{fields.bedrooms || '—'}</p>}
+      </div>
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Beds</h4>
+        {isEditing
+          ? <input type="number" min="0" value={fields.beds} onChange={e => onChange(p => ({ ...p, beds: e.target.value }))} className="sb-input" style={{ width: 80 }} />
+          : <p className="sb-field-value">{fields.beds || '—'}</p>}
+      </div>
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Baths</h4>
+        {isEditing
+          ? <input type="number" min="0" step="0.5" value={fields.baths} onChange={e => onChange(p => ({ ...p, baths: e.target.value }))} className="sb-input" style={{ width: 80 }} />
+          : <p className="sb-field-value">{fields.baths || '—'}</p>}
+      </div>
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Max guests</h4>
+        {isEditing
+          ? <input type="number" min="1" value={fields.max_guests} onChange={e => onChange(p => ({ ...p, max_guests: e.target.value }))} className="sb-input" style={{ width: 80 }} />
+          : <p className="sb-field-value">{fields.max_guests || '—'}</p>}
+      </div>
     </div>
   );
 }
 
-function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteName, propertySlug }: {
+function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteName, propertySlug, propertyId }: {
   devUpdates: boolean; setDevUpdates: (v: boolean) => void;
   serverIp?: string | null;
   siteUrl?: string | null;
   websiteName?: string;
   propertySlug?: string;
+  propertyId?: string;
 }) {
   // Resolve property slug: prop > sessionStorage
   const slug = propertySlug || sessionStorage.getItem('popup_website_name') || '';
@@ -394,9 +426,19 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
 
   return (
     <div style={{ paddingTop: 4 }}>
+      {/* 0. Property Database ID */}
+      <div style={{ marginBottom: 16 }}>
+        <h4 className="sb-h4-grey">Property Database ID</h4>
+        {propertyId ? (
+          <code style={{ fontSize: '0.75rem', color: '#111827', background: '#f3f4f6', padding: '2px 6px', borderRadius: 4, fontFamily: 'ui-monospace, monospace' }}>{propertyId}</code>
+        ) : (
+          <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>No property created yet</p>
+        )}
+      </div>
+
       {/* 1. Current website location */}
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Current website location</p>
+        <h4 className="sb-h4-grey">Current website location</h4>
         {currentUrl ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <a href={currentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#111827', textDecoration: 'none', wordBreak: 'break-all', flex: 1 }}>{currentUrl}</a>
@@ -409,7 +451,7 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
 
       {/* 2. Website hosting */}
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Website hosting</p>
+        <h4 className="sb-h4-grey">Website hosting</h4>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '0.85rem', color: '#111827' }}>propbook.pro/props/{slug || 'yoursitename'}</span>
           <span style={{
@@ -427,7 +469,7 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
 
       {/* 3. File Path On Server */}
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>File Path On Server</p>
+        <h4 className="sb-h4-grey">File Path On Server</h4>
         {filePath ? (
           <p style={{ fontSize: '0.8rem', color: '#374151', wordBreak: 'break-all' }}>{filePath}</p>
         ) : (
@@ -437,13 +479,13 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
 
       {/* 4. Get a custom domain */}
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Get a custom domain</p>
+        <h4 className="sb-h4-grey">Get a custom domain</h4>
         <a href={domainSearchUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', color: '#2563eb', textDecoration: 'underline' }}>Hostinger</a>
       </div>
 
       {/* 5. Point your custom domain DNS here */}
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Point your custom domain DNS here</p>
+        <h4 className="sb-h4-grey">Point your custom domain DNS here</h4>
         <p style={{ fontSize: '0.8rem', color: '#374151', lineHeight: 1.5 }}>
           Deploy to Hostinger first to get your server IP. Use cname.propbook.pro as a temporary CNAME target.
         </p>
@@ -459,7 +501,7 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
 
       {/* 7. Dev Notifications */}
       <div style={{ marginBottom: 0 }}>
-        <p style={{ fontSize: '0.7rem', color: '#9ca3af', textTransform: 'lowercase', marginBottom: 3 }}>Dev Notifications</p>
+        <h4 className="sb-h4-grey">Dev Notifications</h4>
         <p style={{ fontSize: '0.85rem', color: '#111827' }}>0</p>
       </div>
     </div>
@@ -750,6 +792,7 @@ interface AdminSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   mockMode?: boolean;
+  onPropertyLoaded?: (name: string) => void;
 }
 
 type Section = 'bookings' | 'property' | 'edit' | 'website' | 'contact' | 'banking' | 'services' | 'subscription';
@@ -759,7 +802,7 @@ interface NextBooking {
   startDay: number; endDay: number; month: string; status: string;
 }
 
-export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebarProps) {
+export function AdminSidebar({ isOpen, onClose, mockMode = false, onPropertyLoaded }: AdminSidebarProps) {
   const { user, signOut, refreshUser } = useAuth();
   const navigate = useNavigate();
   const setPropertyTitle = useProperty(s => s.setTitle);
@@ -777,6 +820,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [nextBooking, setNextBooking] = useState<NextBooking | null>(null);
   const [imageCount, setImageCount] = useState(0);
   const [property, setProperty] = useState<Property | null>(null);
+  // Direct property data — set immediately in loadData query, bypasses broken setProperty chain
+  const sidebarPropertyDataRef = useRef<any | null>(null);
 
   const [connectData, setConnectData] = useState<StripeConnectData | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
@@ -788,81 +833,141 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   const [subLoading, setSubLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const [propFields, setPropFields] = useState({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates' });
+  const [propFields, setPropFields] = useState({ title: '', property_intro: '', address: '', latitude: '', longitude: '', location_type: 'coordinates' as 'address' | 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '' });
+  const [publishLoading, setPublishLoading] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [contactFields, setContactFields] = useState({ full_name: '', email: '', phone_number: '' });
   const [devUpdates, setDevUpdates] = useState(true);
   const [services, setServicesState] = useState<Record<ServiceKey, boolean>>({ aiSeo: false, marketing: false, advertising: false, analytics: false, influencers: false, social: false });
 
-  // Reset data each time sidebar opens to prevent stale-loader bug
-  const [dataKey, setDataKey] = useState(0);
-  useEffect(() => {
+  // Fresh refs — always read current user without closure staleness
+  const userRef = useRef(user);
+  userRef.current = user;
+  const isAdminRef = useRef(isAdmin);
+  isAdminRef.current = isAdmin;
+  // Guard against concurrent loadData calls (e.g., both [isOpen] and [user] effects firing)
+  const isLoadingRef = useRef(false);
+
+    useEffect(() => {
     if (!isOpen) return;
-    setDataKey(k => k + 1);
-    if (user) {
-      loadData();
-      loadConnectData(); // Always refresh Stripe Connect data so credentials panel is up to date
-      loadSubscriptionData(); // Always refresh subscription status for credentials panel
-    }
+    loadData();
+    loadConnectData();
+    loadSubscriptionData();
   }, [isOpen]);
-  // Refresh profile once on mount so role changes (e.g. admin upgrade) take effect without re-login
-  useEffect(() => {
-    if (!user) return;
-    refreshUser();
-  }, []);
+
+  // User data is already set by App.tsx initialize() + onAuthStateChange listener.
+  // No need to re-fetch on every user change — sidebar loads fresh data on [isOpen] anyway.
 
   const loadData = async () => {
-    if (!user) return;
-    const key = dataKey; // capture current dataKey to detect stale calls
-    // Reset booking/nextbooking state so loader shows while re-fetching
-    setBookings([]);
+    // Skip if a loadData call is already in progress — prevents double-fire flicker
+    if (isLoadingRef.current) {
+      console.log('[AdminSidebar loadData] SKIPPED — another call already in progress');
+      return;
+    }
+    isLoadingRef.current = true;
+    const currentUser = userRef.current;
+    const currentIsAdmin = isAdminRef.current;
+    if (!currentUser) {
+      isLoadingRef.current = false;
+      return;
+    }
+    console.log('[AdminSidebar loadData] START user:', currentUser.id, 'isAdmin:', currentIsAdmin, 'role:', currentUser.role);
+    // Don't pre-clear bookings — the async query will populate them when ready.
     setNextBooking(null);
     setBookingError(null);
     setBookingsLoading(true);
     try {
-      // Non-admin: only load bookings (filtered to this user) + profile
-      // Admin: load everything including property + images
-      const [bookingsRes, profileRes, imagesRes, propRes] = isAdmin
-        ? await Promise.all([
-            supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').order('created_at', { ascending: false }),
-            supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', user.id).maybeSingle(),
-            supabase.from('property_images').select('id'),
-            supabase.from('properties').select('*').eq('owner_id', user.id).limit(1).maybeSingle(),
-          ])
-        : await Promise.all([
-            supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
-            supabase.from('profiles').select('full_name, phone_number').eq('id', user.id).maybeSingle(),
-          ]).then(([br, pr]) => [br, pr, { data: null }, { data: null }] as const);
+      console.log('[AdminSidebar loadData] TRY BLOCK ENTRY');
 
-      if (key !== dataKey) return; // stale response, discard
-      if (bookingsRes.data) {
-        const valid = bookingsRes.data.filter(b => b && b.property);
-        setBookings(valid);
-        const totalRevenue = valid.filter(b => b.status === 'approved' || b.payment_status === 'paid').reduce((sum, b) => sum + (b.total_price || 0), 0);
-        setBalance(totalRevenue);
-        const now = new Date();
-        const pending = valid.filter(b => b.status === 'pending').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-        const upcoming = valid.filter(b => b.status === 'approved' && new Date(b.start_date) >= now).sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())[0];
-        const featured = pending || upcoming;
-        if (featured) {
-          const [sy, sm, sd] = featured.start_date.slice(0, 10).split('-').map(Number);
-          const [, , ed] = featured.end_date.slice(0, 10).split('-').map(Number);
-          const start = new Date(sy, sm - 1, sd);
-          const endDate = new Date(featured.end_date.slice(0, 10).split('-').map(Number) as [number, number, number]);
-          const nights = Math.ceil(Math.abs(endDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-          setNextBooking({ guestName: featured.user?.full_name || 'Guest', location: featured.property?.address || featured.property?.title || '', guestCount: featured.guest_count, nights, startDay: sd, endDay: ed, month: format(start, 'MMM').toUpperCase(), status: featured.status });
-        } else setNextBooking(null);
+      // Step 1: Get property_id from onboarding_data (fast, reliable — avoids owner_id match issues)
+      let propertyRecord: any = null;
+      const { data: od } = await supabase
+        .from('onboarding_data')
+        .select('property_id')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if (od?.property_id) {
+        console.log('[AdminSidebar loadData] Found property_id in onboarding_data:', od.property_id);
+        const { data: propData } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', od.property_id)
+          .single();
+        propertyRecord = propData;
+      } else {
+        console.log('[AdminSidebar loadData] No onboarding_data property_id, falling back to owner_id lookup');
+        const { data: propData } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('owner_id', currentUser.id)
+          .limit(1)
+          .maybeSingle();
+        propertyRecord = propData;
       }
-      if (imagesRes.data) setImageCount(imagesRes.data.length);
-      if (propRes.data) {
-        setProperty(propRes.data);
-        setPropFields({ title: propRes.data.title || '', address: propRes.data.address || '', latitude: propRes.data.latitude?.toString() || '', longitude: propRes.data.longitude?.toString() || '', location_type: (propRes.data.location_type as 'address' | 'coordinates') || 'coordinates' });
+      // ✅ Set property state IMMEDIATELY — don't wait for bookings/profile queries
+      const pd = propertyRecord;
+      if (pd?.images) setImageCount(pd.images.length);
+      if (pd) {
+        console.log('[AdminSidebar loadData] ✅ PROPERTY FOUND — setting fields + ref. pd.title:', pd.title);
+        sidebarPropertyDataRef.current = pd;
+        setProperty(pd);
+        // Notify parent (App.tsx) of the property name so it can update the page title
+        const propName = pd.name || pd.title;
+        if (propName && onPropertyLoaded) {
+          onPropertyLoaded(propName);
+        }
+        setPropFields({ title: pd.title || '', property_intro: pd.property_intro || '', address: pd.address || '', latitude: pd.latitude?.toString() || '', longitude: pd.longitude?.toString() || '', location_type: (pd.location_type as 'address' | 'coordinates') || 'coordinates', bedrooms: pd.bedrooms?.toString() || '', beds: pd.beds?.toString() || '', baths: pd.bathrooms?.toString() || '', max_guests: pd.max_guests?.toString() || '' });
+      } else {
+        console.warn('[AdminSidebar loadData] ⚠️ pd falsy — NOT calling setProperty');
+        sidebarPropertyDataRef.current = null;
       }
-      if (profileRes.data) {
-        setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
+
+      // Fire-and-forget: load bookings + profile WITHOUT blocking property display
+      // Using .then() instead of await so these slow queries can't block state updates
+      if (currentIsAdmin) {
+        supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('property_id', propertyRecord.id).order('created_at', { ascending: false }).then((bookingsRes) => {
+          if (bookingsRes.data) {
+            const valid = bookingsRes.data.filter((b: any) => b && b.property);
+            setBookings(valid);
+            const totalRevenue = valid.filter((b: any) => b.status === 'approved' || b.payment_status === 'paid').reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
+            setBalance(totalRevenue);
+            const now = new Date();
+            const pending = valid.filter((b: any) => b.status === 'pending').sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+            const upcoming = valid.filter((b: any) => b.status === 'approved' && new Date(b.start_date) >= now).sort((a: any, b: any) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())[0];
+            const featured = pending || upcoming;
+            if (featured) {
+              const [sy, sm, sd] = featured.start_date.slice(0, 10).split('-').map(Number);
+              const [, , ed] = featured.end_date.slice(0, 10).split('-').map(Number);
+              const start = new Date(sy, sm - 1, sd);
+              const endDate = new Date(featured.end_date.slice(0, 10).split('-').map(Number) as [number, number, number]);
+              const nights = Math.ceil(Math.abs(endDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+              setNextBooking({ guestName: featured.user?.full_name || 'Guest', location: featured.property?.address || featured.property?.title || '', guestCount: featured.guest_count, nights, startDay: sd, endDay: ed, month: format(start, 'MMM').toUpperCase(), status: featured.status });
+            } else setNextBooking(null);
+          }
+        });
+        supabase.from('profiles').select('services_ai_seo, services_marketing, services_advertising, services_analytics, services_influencers, services_social, stripe_account_id, stripe_account_status').eq('id', currentUser.id).maybeSingle().then((profileRes) => {
+          if (profileRes.data) {
+            setServicesState({ aiSeo: profileRes.data.services_ai_seo ?? false, marketing: profileRes.data.services_marketing ?? false, advertising: profileRes.data.services_advertising ?? false, analytics: profileRes.data.services_analytics ?? false, influencers: profileRes.data.services_influencers ?? false, social: profileRes.data.services_social ?? false });
+          }
+        });
+      } else {
+        supabase.from('bookings').select('*, property:properties(*), user:profiles(*)').eq('user_id', currentUser.id).order('created_at', { ascending: false }).then((bookingsRes) => {
+          if (bookingsRes.data) {
+            const valid = bookingsRes.data.filter((b: any) => b && b.property);
+            setBookings(valid);
+            const totalRevenue = valid.filter((b: any) => b.status === 'approved' || b.payment_status === 'paid').reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
+            setBalance(totalRevenue);
+          }
+        });
+        supabase.from('profiles').select('full_name, phone_number').eq('id', currentUser.id).maybeSingle();
       }
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally { setBookingsLoading(false); }
+    } finally {
+      setBookingsLoading(false);
+      isLoadingRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -1037,12 +1142,107 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     try {
       const saves: Promise<unknown>[] = [];
       // Admins save property fields too; non-admins only save contact info
-      if (isAdmin && property) saves.push(supabase.from('properties').update({ title: propFields.title, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type }).eq('id', property.id));
+      if (isAdmin && property) saves.push(supabase.from('properties').update({ title: propFields.title, property_intro: propFields.property_intro || null, address: propFields.address || null, latitude: propFields.latitude ? parseFloat(propFields.latitude) : null, longitude: propFields.longitude ? parseFloat(propFields.longitude) : null, location_type: propFields.location_type, bedrooms: propFields.bedrooms ? parseInt(propFields.bedrooms) : null, beds: propFields.beds ? parseInt(propFields.beds) : null, bathrooms: propFields.baths ? parseInt(propFields.baths) : null, max_guests: propFields.max_guests ? parseInt(propFields.max_guests) : null }).eq('id', property.id));
       if (user) saves.push(supabase.from('profiles').update({ full_name: contactFields.full_name || null, phone_number: contactFields.phone_number || null }).eq('id', user.id));
       await Promise.all(saves);
       if (isAdmin && propFields.title) setPropertyTitle(propFields.title);
       await loadData();
     } catch (err) { console.error('Save failed', err); } finally { setIsEditing(false); setSaving(false); }
+  };
+
+  const handlePublishFromSidebar = async () => {
+    if (!user) { setPublishError('Not signed in.'); return; }
+    if (!property?.id) { setPublishError('No property found. Please reload.'); return; }
+    setPublishLoading(true);
+    setPublishError(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // Reload fresh property data from DB
+      const { data: freshProp } = await supabase
+        .from('properties')
+        .select('title, address, description, hero_image, images, bedrooms, beds, bathrooms, max_guests, slug')
+        .eq('id', property.id)
+        .single();
+
+      const websiteName = sessionStorage.getItem('popup_website_name') || freshProp?.title || property?.title || 'My Property';
+      const slug = sessionStorage.getItem('popup_website_name')
+        ? sessionStorage.getItem('popup_website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
+        : (property?.slug || websiteName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-'));
+
+      // Build scrapedData from fresh property
+      const scrapedData = freshProp ? {
+        title: freshProp.title || '',
+        location: freshProp.address || '',
+        description: freshProp.description || '',
+        hero_image: freshProp.hero_image || '',
+        images: freshProp.images || [],
+        guests: freshProp.max_guests || null,
+        bedrooms: freshProp.bedrooms || null,
+        beds: freshProp.beds || null,
+        baths: freshProp.bathrooms ?? 1,
+        rating: null,
+        reviews: null,
+        host_name: null,
+        price: '',
+      } : null;
+
+      const siteData = {
+        email: user.email,
+        userId: user.id,
+        userStripeAccountId: connectData?.account_id || null,
+        bookingsEmail: user.email,
+        websiteName,
+        websiteDesc: freshProp?.description || '',
+        slug,
+        planChoice: subscriptionData?.plan as 'starter' | 'pro' | 'agency' || 'starter',
+        hostingChoice: 'our' as const,
+        designChoice: '',
+        extras: { seo: false, ads: false, analytics: false, social: false },
+        scrapedData,
+        bankChoice: '',
+      };
+
+      // Use the existing property — don't create a new DB record every publish
+      const existingPropertyId = property.id;
+      const existingSlug = property.slug || slug;
+      const siteUrl = `https://www.propbook.pro/props/${existingSlug}`;
+      sessionStorage.setItem('popup_site_url', siteUrl);
+
+      // Deploy via upload.php (browser-based, no SSH)
+      // Uploads fresh index.html + current JS/CSS bundle from CDN to /props/{slug}/
+      try {
+        const deployUrl = await deployViaUploadPhp(
+          existingSlug,
+          existingPropertyId,
+          supabaseUrl,
+          supabaseAnonKey,
+          siteData,
+          (msg: string) => console.log('[sidebar publish]', msg)
+        );
+        if (deployUrl) sessionStorage.setItem('popup_site_url', deployUrl);
+      } catch (deployErr) {
+        console.warn('[sidebar publish] Deploy failed (non-fatal):', deployErr);
+      }
+
+      // Update site_url + status in DB for the existing property
+      await supabase.from('properties').update({ site_url: siteUrl, status: 'active' }).eq('id', existingPropertyId);
+
+      // Reload sidebar data
+      loadData();
+      loadConnectData();
+      loadSubscriptionData();
+
+      setPublishError(null);
+      // Redirect to the newly published site
+      window.location.href = siteUrl;
+    } catch (err) {
+      console.error('[sidebar publish] Error:', err);
+      setPublishError(err instanceof Error ? err.message : 'Publish failed. Please try again.');
+    } finally {
+      setPublishLoading(false);
+    }
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: 'approved' | 'denied', reason?: string) => {
@@ -1096,9 +1296,9 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
 
   const isPending = displayBooking?.status === 'pending';
   const hasStripeAccount = !!(connectData?.account_id);
-  const hasWebsite = !!(property?.site_url);
+  const hasWebsite = !!(property?.site_url || sidebarPropertyDataRef.current?.site_url);
   const hasEmail = !!displayUser.email;
-  const hasSubscription = !!(subscriptionData?.status === 'active');
+  const hasSubscription = subscriptionData?.status === 'active';
 
   return (
     <>
@@ -1167,7 +1367,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 {hasStripeAccount && connectData && !connectData.details_submitted && <p className="sb-credential-name" style={{ color: '#f59e0b', fontSize: '0.75rem' }}>Onboarding pending</p>}
               </div>
               <div className="sb-credential-row">
-                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">{property?.site_url ? new URL(property.site_url).pathName.slice(1) : 'No site published yet'}</p></div>
+                <div className="sb-credential-label"><StatusDot ok={hasWebsite} /><p className="sb-credential-name">{(property?.site_url || sidebarPropertyDataRef.current?.site_url) ? new URL(property?.site_url || sidebarPropertyDataRef.current?.site_url).pathname.slice(1) : 'No site published yet'}</p></div>
               </div>
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasEmail} /><p className="sb-credential-name">{displayUser.email}</p></div>
@@ -1175,6 +1375,37 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
               <div className="sb-credential-row">
                 <div className="sb-credential-label"><StatusDot ok={hasSubscription} /><p className="sb-credential-name">Live Subscription</p></div>
               </div>
+
+              {/* PUBLISH SITE button — gated behind all 4 credentials */}
+              {isAdmin && (
+                <div style={{ marginTop: 16 }}>
+                  <button
+                    onClick={handlePublishFromSidebar}
+                    disabled={publishLoading || !property?.id}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      backgroundColor: publishLoading ? '#9ca3af' : (!hasWebsite ? '#d97706' : '#16a34a'),
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      cursor: publishLoading || !property?.id ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      opacity: publishLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {publishLoading ? 'Publishing...' : (!hasWebsite ? 'Publish Site' : 'Republish Site')}
+                  </button>
+                  {publishError && (
+                    <p style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 6 }}>{publishError}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1193,8 +1424,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 </button>
                 {openSection === key && (
                   <div className="sb-section-body">
-                    {key === 'property' && <PropertySection property={property} imageCount={imageCount} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
-                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={sessionStorage.getItem('popup_website_name') || undefined} />}
+                    {key === 'property' && <PropertySection property={property ?? sidebarPropertyDataRef.current} imageCount={(property ?? sidebarPropertyDataRef.current)?.images?.length ?? propFields.bedrooms ? imageCount : 0} isEditing={isEditing} fields={propFields} onChange={setPropFields} />}
+                    {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip ?? sidebarPropertyDataRef.current?.server_ip} siteUrl={property?.site_url ?? sidebarPropertyDataRef.current?.site_url} websiteName={property?.name ?? sidebarPropertyDataRef.current?.name ?? property?.title ?? sidebarPropertyDataRef.current?.title} propertySlug={property?.slug ?? sidebarPropertyDataRef.current?.slug} propertyId={property?.id ?? sidebarPropertyDataRef.current?.id} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}
                     {key === 'services' && <ServicesSection services={services} onToggle={handleServiceToggle} />}

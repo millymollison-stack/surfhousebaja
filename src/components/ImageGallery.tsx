@@ -52,7 +52,7 @@ export function ImageGallery({
   // Sync title/intro from scraped property data arriving from Home (without DB write)
   // Also re-sync when property ID changes (after save completes)
   useEffect(() => {
-    console.log('[DEBUG ImageGallery] useEffect syncing, property:', property?.id, 'title:', property?.property_title?.slice(0,20), 'intro:', property?.property_intro?.slice(0,20));
+    // (no-op — just syncing state from prop)
     if (property?.property_title) setPropertyTitle(property.property_title);
     if (property?.property_intro) setPropertyIntro(property.property_intro);
     if (property?.price_per_night) setEditPrice(property.price_per_night);
@@ -60,9 +60,7 @@ export function ImageGallery({
 
   useEffect(() => {
     if (registerSaveHandler) {
-      console.log('[DEBUG ImageGallery] registerSaveHandler called with handlePropertyTextSave, type:', typeof handlePropertyTextSave);
-      const registered = registerSaveHandler(handlePropertyTextSave);
-      console.log('[DEBUG ImageGallery] registerSaveHandler returned:', registered);
+      registerSaveHandler(handlePropertyTextSave);
     }
   }, [registerSaveHandler]);
 
@@ -94,30 +92,29 @@ export function ImageGallery({
     if (!onPropertyUpdate) return;
     // Debounce: prevent accidental double-saves
     if (saveInProgressRef.current) {
-      console.log('[DEBUG ImageGallery] save in progress, skipping duplicate');
+      // debounce guard
       return;
     }
     saveInProgressRef.current = true;
     const titleToSave = propertyTitle;
     const introToSave = propertyIntro;
-    console.log('[DEBUG ImageGallery] handlePropertyTextSave capturing title=', titleToSave?.slice(0,20), 'intro=', introToSave?.slice(0,20));
+
     // Guard: only write to DB if value actually changed
     const currentTitle = property?.property_title ?? '';
     const currentIntro = property?.property_intro ?? '';
     if (titleToSave === currentTitle && introToSave === currentIntro) {
-      console.log('[DEBUG ImageGallery] no changes detected, skipping DB write');
       saveInProgressRef.current = false;
       return;
     }
     setPropertyTitle(titleToSave);
     setPropertyIntro(introToSave);
     try {
-      console.log('[DEBUG ImageGallery] calling onPropertyUpdate with', JSON.stringify({ property_title: titleToSave, property_intro: introToSave }));
+
       await onPropertyUpdate({
         property_title: titleToSave,
         property_intro: introToSave
       });
-      console.log('[DEBUG ImageGallery] onPropertyUpdate completed successfully');
+
     } catch (error) {
       console.error('Failed to update property text:', error);
     } finally {

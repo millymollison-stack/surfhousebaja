@@ -51,6 +51,7 @@ function AppContent() {
   const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  // Default to @surfhousebaja; will be updated via onPropertyLoaded once AdminSidebar loads from DB
   const [siteName, setSiteName] = useState('@surfhousebaja');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const saveAllRef = useRef<(() => Promise<void>) | null>(null);
@@ -60,10 +61,20 @@ function AppContent() {
     loadBrandColor();
     loadFontAccent();
     // Clear stale onboarding session data so it doesn't override nav title
-    sessionStorage.removeItem('popup_website_name');
+    // (but read popup_website_name first — we use it for the page title above)
     sessionStorage.removeItem('popup_website_desc');
     sessionStorage.removeItem('popup_scraped_data');
   }, [initialize]);
+
+  // Update page title when user logs in and we know their website name
+  useEffect(() => {
+    if (user) {
+      const savedWebsiteName = sessionStorage.getItem('popup_website_name');
+      if (savedWebsiteName && savedWebsiteName !== siteName) {
+        setSiteName(savedWebsiteName);
+      }
+    }
+  }, [user]);
 
   const handleSaveAll = async () => {
     if (saveAllRef.current) await saveAllRef.current();
@@ -100,7 +111,7 @@ function AppContent() {
       </Layout>
       {showLogin && <Login />}
       {showSignup && <Signup />}
-      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onPropertyLoaded={setSiteName} />
     </>
   );
 }

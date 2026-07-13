@@ -48,45 +48,83 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
   useEffect(() => {
     async function loadProperty() {
       try {
-        // Always load from surfhousebaja database on first load
+        // Determine which property to load:
+        // 1. Direct propertyId saved after Stripe payment (highest priority)
+        // 2. User's own property by owner_id lookup (logged-in user)
+        // 3. Template property (fallback for public/anonymous)
+        let targetPropertyId: string;
+
+        const savedPropertyId = sessionStorage.getItem('home_loaded_property_id');
+        if (savedPropertyId) {
+          sessionStorage.removeItem('home_loaded_property_id');
+          targetPropertyId = savedPropertyId;
+          console.log('[Home loadProperty] Using saved propertyId from sessionStorage:', targetPropertyId);
+        } else if (user) {
+          const { data: userProp } = await supabase
+            .from('properties')
+            .select('id')
+            .eq('owner_id', user.id)
+            .limit(1)
+            .maybeSingle();
+          if (userProp) {
+            targetPropertyId = userProp.id;
+            console.log('[Home loadProperty] Logged-in user has property:', targetPropertyId);
+          } else {
+            targetPropertyId = SURF_HOUSE_BAJA_ID;
+            console.log('[Home loadProperty] No property for user, using template');
+          }
+        } else {
+          targetPropertyId = SURF_HOUSE_BAJA_ID;
+          console.log('[Home loadProperty] No user, using template');
+        }
+
         const { data: propData, error: propError } = await supabase
           .from('properties')
           .select('*')
-          .eq('id', SURF_HOUSE_BAJA_ID)
+          .eq('id', targetPropertyId)
           .single();
 
         if (propError) throw propError;
         setProperty(propData);
         setDefaultProperty(propData);
 
-        const { data: imgData, error: imgError } = await supabase
-          .from('property_images')
-          .select('*')
-          .eq('property_id', SURF_HOUSE_BAJA_ID)
-          .order('position');
+        // Load images: prefer properties.images array (Airbnb URLs stored directly),
+        // fall back to property_images table for manually uploaded images
+        let imgList: PropertyImage[] = [];
+        if (propData.images && propData.images.length > 0) {
+          imgList = propData.images.map((url: string, i: number) => ({ id: `img-${i}`, url, position: i }));
+          console.log('[Home loadProperty] Using images from properties.images:', imgList.length);
+        } else {
+          const { data: imgData, error: imgError } = await supabase
+            .from('property_images')
+            .select('*')
+            .eq('property_id', targetPropertyId)
+            .order('position');
+          if (imgError) throw imgError;
+          imgList = imgData || [];
+        }
 
-        if (imgError) throw imgError;
-        setImages(imgData || []);
-        setDefaultImages(imgData || []);
+        setImages(imgList);
+        setDefaultImages(imgList);
 
         // Background images (first 2 with is_background flag)
         let bgImages: PropertyImage[] = [];
         try {
-          bgImages = (imgData || []).filter((img: PropertyImage) => (img as any).is_background).slice(0, 2);
+          bgImages = imgList.filter((img: PropertyImage) => (img as any).is_background).slice(0, 2);
         } catch (e) { bgImages = []; }
         setBackgroundImages(bgImages);
 
         const { data: bkgData, error: bkgError } = await supabase
           .from('bookings')
           .select('*')
-          .eq('property_id', SURF_HOUSE_BAJA_ID)
+          .eq('property_id', targetPropertyId)
           .in('status', ['approved', 'pending']);
         if (bkgError) throw bkgError;
 
         const { data: blkData, error: blkError } = await supabase
           .from('blocked_dates')
           .select('*')
-          .eq('property_id', SURF_HOUSE_BAJA_ID);
+          .eq('property_id', targetPropertyId);
         if (blkError) throw blkError;
 
         setBookings(bkgData || []);
@@ -102,13 +140,35 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
     }
 
     loadProperty();
-  }, []);
+  }, [user, resetKey]);
+
+  // ── Reload property when ?paid handler saves a new property ─────────────────
+  // After Stripe verifies and saves, OnboardingPopup stores the new propertyId
+  // in sessionStorage. Check for it here and reload if needed.
+  useEffect(() => {
+    const savedPropertyId = sessionStorage.getItem('home_loaded_property_id');
+    if (savedPropertyId && property?.id !== savedPropertyId) {
+      console.log('[Home] New property saved after payment, reloading:', savedPropertyId);
+      sessionStorage.removeItem('home_loaded_property_id');
+      // Force reload by briefly toggling a key
+      setResetKey(k => k + 1);
+    }
+  }, [property?.id]);
 
   // ── Restore scraped data from sessionStorage after Stripe redirect ─────────
   // This survives the Home component remount that happens when Stripe redirects
   // back to the app with ?paid=true&session_id=...
+  // Only restore if we DON'T have a fresh property loaded from DB (indicated by
+  // home_loaded_property_id sessionStorage flag set by the ?paid handler).
   useEffect(() => {
     if (!user) return;
+    // If loadProperty just loaded a fresh property after payment, skip sessionStorage restore
+    const justLoadedProperty = sessionStorage.getItem('home_loaded_property_id');
+    if (justLoadedProperty) {
+      sessionStorage.removeItem('home_loaded_property_id');
+      console.log('[Home] Fresh property loaded from DB, skipping sessionStorage restore');
+      return;
+    }
     try {
       const savedProp = sessionStorage.getItem('home_scraped_property');
       const savedImgs = sessionStorage.getItem('home_scraped_images');
@@ -548,6 +608,10 @@ export function Home({ isEditing: externalIsEditing, onHasChanges, registerSaveA
         onSiteNameChange={onSiteNameChange}
         onComplete={undefined}
         onOpenSidebar={onOpenSidebar}
+        onSiteCreated={(propertyId, siteUrl) => {
+          // After migration/payment, tell the parent to open sidebar + redirect to ?paid
+          if (onOpenSidebar) onOpenSidebar();
+        }}
       />
     </div>
   );

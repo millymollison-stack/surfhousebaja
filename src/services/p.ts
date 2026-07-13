@@ -63,7 +63,7 @@ export async function loadTemplateHtml(): Promise<string> {
 // ─────────────────────────────────────────────
 // STEP 2 — Generate HTML by replacing placeholders
 // ─────────────────────────────────────────────
-export function generateSiteHtml(template: string, data: NewSiteData): string {
+export function generateSiteHtml(template: string, data: NewSiteData, jsBundle?: string, cssBundle?: string): string {
   const s = data.scrapedData;
   const price = s?.price ? s.price.replace(/[^0-9.]/g, '') : '150';
   const heroImage = s?.hero_image || '/template/surfhousebaja-main.jpg';
@@ -93,7 +93,7 @@ export function generateSiteHtml(template: string, data: NewSiteData): string {
 // This is the SEO-friendly static landing page with property data baked in.
 // The React app for booking/editing is deployed alongside at /app/.
 // ─────────────────────────────────────────────
-export function generateTemplateHtml(template: string, data: NewSiteData, supabaseUrl?: string, supabaseAnonKey?: string): string {
+export function generateTemplateHtml(template: string, data: NewSiteData, supabaseUrl?: string, supabaseAnonKey?: string, jsBundle?: string): string {
   const s = data.scrapedData;
 
   // Primary images
@@ -182,7 +182,7 @@ export function generateTemplateHtml(template: string, data: NewSiteData, supaba
   }
 })();
 </script>
-<script type="module" crossorigin src="https://www.propbook.pro/scripts/react-assets/assets/${REACT_BUNDLE}?v=10"></script>`);
+<script type="module" crossorigin src="https://www.propbook.pro/scripts/react-assets/assets/${jsBundle || 'index-DmF6Iksu.js'}?v=10"></script>`);
 }
 
 // ─────────────────────────────────────────────
@@ -306,16 +306,25 @@ export async function goLiveSite(propertyId: string, slug: string, html: string)
 const DEPLOY_SECRET = 'propbook-deploy-2026';
 const UPLOAD_PHP_URL = 'https://www.propbook.pro/upload.php';
 
-// Asset filenames — must match the current Vite build output
-// Vite generates deterministic hashes, but we hardcode known names after build.
-// After `npm run build`, update these to match dist/assets/ filenames.
-const REACT_BUNDLE = 'index-CTzHXcen.js';
-const REACT_CSS = 'index-BwoOEFWc.css';
+// Asset filenames are read from the manifest uploaded with each build.
+// The manifest is written to dist/assets-manifest.json by vite.config.ts post-build hook,
+// and uploaded to the CDN alongside the JS/CSS assets.
+interface AssetManifest {
+  js: string;
+  css: string;
+  builtAt: number;
+}
+
+async function getAssetManifest(cdnBase: string): Promise<AssetManifest> {
+  const res = await fetch(`${cdnBase}/assets-manifest.json?v=${Date.now()}`);
+  if (!res.ok) throw new Error(`Manifest not found at ${cdnBase}/assets-manifest.json — run \`npm run build\` and upload assets to CDN first.`);
+  return res.json();
+}
 
 // Generate index.html for a property-specific React deployment.
 // Uses RELATIVE asset paths so it works at /props/{slug}/.
 // Includes Stripe pre-mount capture so ?paid=true survives SPA routing.
-function buildPropertyIndexHtml(slug: string): string {
+function buildPropertyIndexHtml(slug: string, jsFile: string, cssFile: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -355,11 +364,11 @@ function buildPropertyIndexHtml(slug: string): string {
     }
   })();
   </script>
-  <link rel="stylesheet" href="./assets/${REACT_CSS}">
+  <link rel="stylesheet" href="./assets/${CSS_FILE}">
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" crossorigin src="./assets/${REACT_BUNDLE}"></script>
+  <script type="module" crossorigin src="./assets/${JS_FILE}"></script>
 </body>
 </html>`;
 }
@@ -374,39 +383,48 @@ export async function deployViaUploadPhp(
 ): Promise<string> {
   const siteUrl = `https://www.propbook.pro/props/${slug}`;
 
-  onProgress?.('Generating static HTML with property data...');
+  onProgress?.('Fetching React bundle manifest from CDN...');
 
-  // ── Fetch the raw template from GitHub ─────────────────────────────────
+  // ── Step 1: Read asset manifest to get current bundle filenames ─────────────
+  // Must upload dist/assets-manifest.json to CDN after each `npm run build`
+  const cdnBase = 'https://www.propbook.pro/scripts/react-assets/assets';
+  const manifestRes = await getAssetManifest('https://www.propbook.pro/scripts/react-assets');
+  const jsFile = manifestRes.js;
+  const cssFile = manifestRes.css;
+  if (!jsFile || !cssFile) throw new Error(`Invalid manifest: ${JSON.stringify(manifestRes)}`);
+  console.log(`[deployViaUploadPhp] Bundle: ${jsFile}, CSS: ${cssFile} (built ${new Date(manifestRes.builtAt).toISOString()})`);
+
+  // ── Step 2: Fetch React bundle + CSS from CDN ─────────────────────────────
+  onProgress?.('Fetching React bundle from CDN...');
+  let reactJs: string;
+  let reactCss: string;
+  try {
+    const r = await fetch(`${cdnBase}/${jsFile}?v=${manifestRes.builtAt}`);
+    if (!r.ok) throw new Error(`React bundle not found at ${cdnBase}/${jsFile} — run \`npm run build\` and upload assets to CDN first.`);
+    reactJs = await r.text();
+    reactCss = await (await fetch(`${cdnBase}/${cssFile}?v=${manifestRes.builtAt}`)).text();
+    console.log(`[deployViaUploadPhp] React bundle: ${(reactJs.length/1024).toFixed(0)}KB, CSS: ${(reactCss.length/1024).toFixed(0)}KB`);
+  } catch (e) {
+    throw new Error(`Failed to fetch React bundle from CDN: ${e.message}`);
+  }
+
+  // ── Step 3: Fetch template from GitHub ────────────────────────────────────
+  onProgress?.('Fetching template from GitHub...');
   const GITHUB_RAW = 'https://raw.githubusercontent.com/millymollison-stack/surfhousebaja/main/src/public/template';
   let templateHtml: string;
   try {
     const res = await fetch(`${GITHUB_RAW}/template.html`);
     if (!res.ok) throw new Error(`Template not found (${res.status})`);
     templateHtml = await res.text();
-    console.log(`[deployViaUploadPhp] Template loaded: ${templateHtml.length} chars`);
+    console.log(`[deployViaUploadPhp] Template: ${templateHtml.length} chars`);
   } catch (e) {
     throw new Error(`Failed to fetch template from GitHub: ${e.message}`);
   }
 
-  // ── Fill template tokens with property data → static HTML ───────────────
-  // supabaseUrl/anonKey passed explicitly — can't use import.meta.env at browser runtime
-  const indexHtml = generateTemplateHtml(templateHtml, { ...data, slug }, supabaseUrl, supabaseAnonKey);
-
-  // ── Fetch React bundle from CDN for interactive booking/editing ────────
-  // The static HTML (index.html) loads app.js for user interactions.
-  onProgress?.('Fetching React bundle from CDN...');
-
-  const cdnBase = 'https://www.propbook.pro/scripts/react-assets/assets';
-  const cacheBust = '?v=6';
-  let reactJs: string;
-  try {
-    const r = await fetch(`${cdnBase}/${REACT_BUNDLE}${cacheBust}`);
-    if (!r.ok) throw new Error(`React bundle not found at ${cdnBase}/${REACT_BUNDLE}. Run \`npm run build\` and upload assets to Hostinger first.`);
-    reactJs = await r.text();
-    console.log(`[deployViaUploadPhp] React bundle loaded: ${(reactJs.length / 1024).toFixed(0)}KB`);
-  } catch (e) {
-    throw new Error(`Failed to fetch React bundle: ${e.message}`);
-  }
+  // ── Step 4: Fill template tokens with property data ─────────────────────────
+  // jsFile from manifest is passed so CDN URL in template gets correct bundle filename
+  onProgress?.('Generating static HTML with property data...');
+  const indexHtml = generateTemplateHtml(templateHtml, { ...data, slug }, supabaseUrl, supabaseAnonKey, jsFile);
 
   // UTF-8 safe base64 — btoa() only handles Latin1, template files have smart quotes/em-dashes
   const encodeBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
@@ -422,7 +440,8 @@ export async function deployViaUploadPhp(
     propertyId,
     files: {
       'index.html': encodeBase64(indexHtml),
-      'app.js': encodeBase64(reactJs),
+      [jsFile]: encodeBase64(reactJs),
+      [cssFile]: encodeBase64(reactCss),
     },
   };
 

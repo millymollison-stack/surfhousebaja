@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "upload-cdn": "node scripts/upload-cdn.js",
+    "build:prod": "vite build && node scripts/upload-cdn.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },

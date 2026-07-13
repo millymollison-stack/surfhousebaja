@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, apikey",
 };
 
@@ -19,19 +19,35 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let body: any;
+    // Support both POST (body.action) and GET (?action= in URL query string)
+    // The edge function is called with ?action=get via GET from AdminSidebarBundle,
+    // so we must extract action from URL search params for GET requests.
+    let body: any = {};
     try {
-      body = await req.json();
+      const contentType = req.headers.get('content-type') || '';
+      if (contentType.includes('application/json') && req.method !== 'GET') {
+        body = await req.json();
+      }
     } catch {
-      throw new Error("Invalid JSON body");
+      // Body may be empty or not JSON — that's OK for GET requests
     }
 
-    const action = body.action;
+    // Extract action: POST uses body.action, GET uses URL query param
+    const urlAction = new URL(req.url).searchParams.get('action');
+    const action = body.action || urlAction;
+
+    // Decode userId from the Authorization JWT header (works for both GET and POST)
+    const authHeader = req.headers.get('Authorization') || '';
+    let headerUserId: string | null = null;
+    try {
+      const token = authHeader.replace('Bearer ', '').split('.')[1];
+      headerUserId = JSON.parse(atob(token))?.sub || null;
+    } catch { /* ignore malformed token */ }
 
     // ── Handle get action FIRST (no userId/slug required) ───────────────────
     // Called by AdminSidebarBundle to get subscription status from the user's profile.
     if (action === 'get') {
-      const userId = body.userId || (await supabase.auth.getSession()).data.session?.user.id;
+      const userId = body.userId || headerUserId;
       if (!userId) throw new Error("No userId provided and no session found");
 
       const { data: profile } = await supabase
@@ -116,9 +132,12 @@ Deno.serve(async (req: Request) => {
         : plan === 'agency' ? 'price_1TfPi0K5ECFjIqP3vq3VucLv'
         : 'price_1TfPVpK5ECFjIqP3YR6XPpEG'; // starter default
 
-      // Use return_url from browser if provided, otherwise fall back to propbook.pro
-      const returnUrl = body.return_url || 'https://www.propbook.pro';
-      const baseUrl = returnUrl.replace(/\?.*$/, '').replace(/\/$/, '') || 'https://www.propbook.pro';
+      // Use the return_url from the frontend if provided, otherwise fall back to propbook.pro.
+      // Stripe will redirect the browser to this URL after payment.
+      // Also strip trailing slash to avoid double-slash (e.g. http://localhost:5174/ + /?paid=true → //?paid=true)
+      const baseUrl = body.return_url
+        ? body.return_url.replace(/\?.*$/, '').replace(/\/$/, '')
+        : 'https://www.propbook.pro';
       const successUrl = `${baseUrl}/?paid=true&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${baseUrl}/?step=cancelled`;
 
@@ -368,14 +387,13 @@ async function renderPropertyHtml(property: any, propertyImages: any[]) {
   const latitude = p.latitude || '30.861383';
   const longitude = p.longitude || '-116.167874';
   const description = p.description || '';
-  const propertyIntro = p.property_intro || '';
-  const hostName = p.host_name || 'your host';
-  const amenities = p.amenities || '';
-  const activities = p.activities || '';
-  const localArea = p.local_area || '';
-  const gettingThere = p.getting_there || '';
-  const propertyTitle = p.property_title || `@${slug}`;
-  const heroImage = p.hero_image || '';
+  // property_intro = full text; PROPERTY_INTRO template token = short teaser (first 50 chars or first sentence)
+  const fullIntro = p.property_intro || description;
+  const firstPeriod = fullIntro.indexOf('.');
+  const propertyIntro = firstPeriod > 5 && firstPeriod < 100
+    ? fullIntro.slice(0, firstPeriod + 1)        // first sentence if reasonably short
+    : fullIntro.slice(0, 60) + (fullIntro[60] ? '...' : ''); // else first 60 chars
+  const userEmail = body?.email || p.owner_id || '';
   const allImages = dbImageUrls.length > 0
     ? dbImageUrls
     : [heroImage, ...parseImages(p.images)].filter(Boolean);
@@ -404,6 +422,13 @@ async function renderPropertyHtml(property: any, propertyImages: any[]) {
   html = replaceToken(html, 'SLUG', slug);
   html = replaceToken(html, 'BOOKING_URL', `https://www.propbook.pro/book/${slug}`);
   html = replaceToken(html, 'PROPERTY_ID', p.id || '');
+  // Missing tokens — add these
+  html = replaceToken(html, 'BRAND_HANDLE', slug);
+  html = replaceToken(html, 'CONTACT_EMAIL', userEmail);
+  html = replaceToken(html, 'YEAR', new Date().getFullYear().toString());
+  html = replaceToken(html, 'IMAGE_SIDE_A', allImages[1] || allImages[0] || '');
+  html = replaceToken(html, 'IMAGE_SIDE_B', allImages[2] || allImages[0] || '');
+  html = replaceToken(html, 'IMAGE_6', allImages[5] || allImages[0] || '');
 
   for (let i = 1; i <= 20; i++) {
     html = replaceToken(html, `IMAGE_${i}`, allImages[i - 1] || '');

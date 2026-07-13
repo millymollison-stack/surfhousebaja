@@ -62,30 +62,61 @@ export async function loadTemplateHtml(): Promise<string> {
 
 // ─────────────────────────────────────────────
 // STEP 2 — Generate HTML by replacing placeholders
+// Template tokens: {{BRAND_HANDLE}} {{TITLE}} {{ADDRESS}} {{PRICE_PER_NIGHT}}
+//   {{DESCRIPTION}} {{PROPERTY_INTRO}} {{IMAGE_1}}..{{IMAGE_20}} {{IMAGE_SIDE_A}}
+//   {{IMAGE_SIDE_B}} {{IMAGE_6}} {{CONTACT_EMAIL}} {{YEAR}} {{RATING}} {{REVIEW_COUNT}}
+//   {{BEDROOMS}} {{BEDS}} {{BATHROOMS}} {{MAX_GUESTS}} {{LOCAL_AREA}}
+//   {{ACTIVITIES}} {{GETTING_THERE}} {{BRAND_COLOR}} {{PROPERTY_ID}} {{SLUG}}
 // ─────────────────────────────────────────────
 export function generateSiteHtml(template: string, data: NewSiteData): string {
   const s = data.scrapedData;
+  const slug = data.slug || data.websiteName.toLowerCase().replace(/\s+/g, '');
   const price = s?.price ? s.price.replace(/[^0-9.]/g, '') : '150';
-  const heroImage = s?.hero_image || '/template/surfhousebaja-main.jpg';
-  const images = s?.images?.length
-    ? s.images.map((img: string) => `<img src="${img}" alt="${s.title}" loading="lazy" />`).join('\n')
-    : `<img src="${heroImage}" alt="${s?.title || data.websiteName}" loading="lazy" />`;
+  const heroImage = s?.hero_image || '';
+  const images = s?.images || [];
 
-  return template
-    .replace(/\{\{BRAND_NAME\}\}/g, data.websiteName)
-    .replace(/\{\{TITLE\}\}/g, s?.title || data.websiteName)
-    .replace(/\{\{LOCATION\}\}/g, s?.location || '')
-    .replace(/\{\{PRICE\}\}/g, price)
-    .replace(/\{\{DESCRIPTION\}\}/g, s?.description || data.websiteDesc)
-    .replace(/\{\{HERO_IMAGE\}\}/g, heroImage)
-    .replace(/\{\{IMAGES\}\}/g, images)
-    .replace(/\{\{REVIEW_COUNT\}\}/g, String(s?.reviews ?? 0))
-    .replace(/\{\{GUESTS\}\}/g, String(s?.guests ?? 8))
-    .replace(/\{\{BEDROOMS\}\}/g, String(s?.bedrooms ?? 2))
-    .replace(/\{\{BEDS\}\}/g, String(s?.beds ?? 3))
-    .replace(/\{\{BATHS\}\}/g, String(s?.baths ?? 1))
-    .replace(/\{\{RATING\}\}/g, String(s?.rating ?? '4.8'))
-    .replace(/\{\{HOST_NAME\}\}/g, s?.host_name || 'Property Manager');
+  // PROPERTY_INTRO = short teaser (first sentence or first 60 chars of description)
+  const fullDesc = s?.description || data.websiteDesc || '';
+  const firstPeriod = fullDesc.indexOf('.');
+  const propertyIntro = firstPeriod > 5 && firstPeriod < 100
+    ? fullDesc.slice(0, firstPeriod + 1)
+    : (fullDesc.slice(0, 60) + (fullDesc[60] ? '...' : ''));
+
+  let html = template;
+  html = html.replace(/\{\{BRAND_HANDLE\}\}/g, `@${slug}`);
+  html = html.replace(/\{\{BRAND_NAME\}\}/g, data.websiteName);
+  html = html.replace(/\{\{TITLE\}\}/g, s?.title || data.websiteName);
+  html = html.replace(/\{\{ADDRESS\}\}/g, s?.location || '');
+  html = html.replace(/\{\{LOCATION\}\}/g, s?.location || '');
+  html = html.replace(/\{\{PRICE_PER_NIGHT\}\}/g, price);
+  html = html.replace(/\{\{PRICE\}\}/g, price);
+  html = html.replace(/\{\{DESCRIPTION\}\}/g, s?.description || data.websiteDesc || '');
+  html = html.replace(/\{\{PROPERTY_INTRO\}\}/g, propertyIntro);
+  html = html.replace(/\{\{HERO_IMAGE\}\}/g, heroImage);
+  html = html.replace(/\{\{REVIEW_COUNT\}\}/g, String(s?.reviews ?? 0));
+  html = html.replace(/\{\{GUESTS\}\}/g, String(s?.guests ?? 8));
+  html = html.replace(/\{\{BEDROOMS\}\}/g, String(s?.bedrooms ?? 2));
+  html = html.replace(/\{\{BEDS\}\}/g, String(s?.beds ?? 3));
+  html = html.replace(/\{\{BATHS\}\}/g, String(s?.baths ?? 1));
+  html = html.replace(/\{\{RATING\}\}/g, String(s?.rating ?? '4.8'));
+  html = html.replace(/\{\{HOST_NAME\}\}/g, s?.host_name || 'Property Manager');
+  html = html.replace(/\{\{CONTACT_EMAIL\}\}/g, data.email || '');
+  html = html.replace(/\{\{YEAR\}\}/g, new Date().getFullYear().toString());
+  // Individual image slots
+  for (let i = 1; i <= 20; i++) {
+    html = html.replace(new RegExp(`\\{\\{IMAGE_${i}\\}\\}`, 'g'), images[i - 1] || '');
+  }
+  html = html.replace(/\{\{IMAGE_SIDE_A\}\}/g, images[1] || images[0] || '');
+  html = html.replace(/\{\{IMAGE_SIDE_B\}\}/g, images[2] || images[0] || '');
+  html = html.replace(/\{\{IMAGE_6\}\}/g, images[5] || images[0] || '');
+  html = html.replace(/\{\{AMENITIES\}\}/g, '');
+  html = html.replace(/\{\{ACTIVITIES\}\}/g, '');
+  html = html.replace(/\{\{LOCAL_AREA\}\}/g, '');
+  html = html.replace(/\{\{GETTING_THERE\}\}/g, '');
+  html = html.replace(/\{\{BRAND_COLOR\}\}/g, '#C47756');
+  html = html.replace(/\{\{PROPERTY_ID\}\}/g, '');
+  html = html.replace(/\{\{SLUG\}\}/g, slug);
+  return html;
 }
 
 // ─────────────────────────────────────────────
@@ -116,6 +147,8 @@ export async function createNewSiteRecords(data: NewSiteData): Promise<{
       },
       body: JSON.stringify({
         title: data.scrapedData?.title || data.websiteName,
+        propertyTitle: data.scrapedData?.title || data.websiteName,
+        name: data.websiteName ? `@${data.websiteName.toLowerCase().replace(/\s+/g, '')}` : `@${slug}`,
         slug,
         description: data.scrapedData?.description || data.websiteDesc,
         location: data.scrapedData?.location || '',

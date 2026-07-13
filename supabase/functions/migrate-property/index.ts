@@ -42,7 +42,8 @@ Deno.serve(async (req: Request) => {
     const hasRealText = onboardingData?.scraped_title != null ||
                         onboardingData?.scraped_description != null ||
                         onboardingData?.scraped_property_intro != null ||
-                        onboardingData?.property_name != null;
+                        onboardingData?.property_name != null ||
+                        onboardingData?.title != null; // title is what scraped data / sessionStorage uses
     const hasRealImages = scrapedImgList.length >= 3;
     const hasOnboardingData = hasRealText && hasRealImages;
 
@@ -57,7 +58,9 @@ Deno.serve(async (req: Request) => {
       const imgList = scrapedImgList;
       console.log('[migrate-property] Using onboarding_data, heroImg:', heroImg, 'imgList length:', imgList.length);
       scrapedFields = {
-        title: onboardingData.scraped_title || onboardingData.property_name || '',
+        title: onboardingData.scraped_title || onboardingData.title || onboardingData.property_name || '',
+        property_title: onboardingData.scraped_title || onboardingData.title || '',
+        name: onboardingData.name || `@${targetProperty.slug}`,
         description: onboardingData.scraped_description || onboardingData.property_desc || '',
         property_intro: onboardingData.scraped_property_intro || onboardingData.scraped_description || onboardingData.property_desc || '',
         address: onboardingData.scraped_location || onboardingData.location || null,
@@ -82,6 +85,8 @@ Deno.serve(async (req: Request) => {
 
       scrapedFields = {
         title: sourceProperty.property_title || sourceProperty.title,
+        property_title: sourceProperty.property_title || sourceProperty.title || null,
+        name: sourceProperty.name || `@${targetProperty.slug}`,
         description: sourceProperty.property_intro || sourceProperty.description,
         address: sourceProperty.address || null,
         latitude: sourceProperty.latitude,

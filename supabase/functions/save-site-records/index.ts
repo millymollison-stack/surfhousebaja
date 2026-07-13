@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
 
     const { title, slug, description, location, maxGuests, bedrooms, beds, baths,
             pricePerNight, heroImage, images, stripeAccountId, stripeAccountStatus,
-            userId } = body;
+            userId, name, propertyTitle } = body;
 
     // Fetch reference copy from the master Surf House Baja property
     const { data: refProp } = await supabase
@@ -52,44 +52,90 @@ Deno.serve(async (req: Request) => {
       .single();
     const ref = refProp || {};
 
-    console.log("[save-site-records] Inserting property:", title, slug);
-
-    const { data: propertyRecord, error: propertyError } = await supabase
+    // Idempotent: check if this user already has a property
+    const siteUrl = `https://www.propbook.pro/props/${slug}`;
+    const { data: existingProp } = await supabase
       .from("properties")
-      .insert({
-        title: title || "Untitled Property",
-        slug,
-        owner_id: userId,  // Critical: set owner so deploy-site can verify ownership
-        description: description || "",
-        address: location || "",
-        max_guests: maxGuests || 8,
-        bedrooms: bedrooms || 2,
-        bathrooms: baths || 1,
-        beds: beds || 3,
-        baths: baths || 1,
-        price_per_night: pricePerNight || 150,
-        hero_image: heroImage || "",
-        images: images || [],
-        stripe_account_id: stripeAccountId || null,
-        stripe_account_status: stripeAccountStatus || null,
-        // Copy reference copy fields from master property so new sites have rich content
-        property_details: ref.property_details || null,
-        property_intro: ref.property_intro || null,
-        activities: ref.activities || null,
-        local_area: ref.local_area || null,
-        getting_there: ref.getting_there || null,
-        brand_color: ref.brand_color || null,
-        font_accent: ref.font_accent || null,
-      })
-      .select("id, slug")
-      .single();
+      .select("id")
+      .eq("owner_id", userId)
+      .maybeSingle();
 
-    if (propertyError) {
-      console.error("[save-site-records] propertyError:", propertyError);
-      throw new Error(`Property insert failed: ${propertyError.message}`);
+    let propertyRecord: any;
+    if (existingProp) {
+      // Update existing property — idempotent
+      console.log("[save-site-records] Updating existing property:", existingProp.id, slug);
+      const { data: updated, error: updateError } = await supabase
+        .from("properties")
+        .update({
+          title: title || "Untitled Property",
+          property_title: propertyTitle || title || '',
+          name: name || `@${slug}`,
+          description: description || "",
+          address: location || "",
+          max_guests: maxGuests || 8,
+          bedrooms: bedrooms || 2,
+          bathrooms: baths || 1,
+          beds: beds || 3,
+          price_per_night: pricePerNight || 150,
+          hero_image: heroImage || "",
+          images: images || [],
+          stripe_account_id: stripeAccountId || null,
+          stripe_account_status: stripeAccountStatus || null,
+          property_details: ref.property_details || null,
+          property_intro: ref.property_intro || null,
+          activities: ref.activities || null,
+          local_area: ref.local_area || null,
+          getting_there: ref.getting_there || null,
+          brand_color: ref.brand_color || null,
+          font_accent: ref.font_accent || null,
+          site_url: siteUrl,
+        })
+        .eq("id", existingProp.id)
+        .select("id, slug")
+        .single();
+      if (updateError) throw new Error(`Property update failed: ${updateError.message}`);
+      propertyRecord = updated;
+    } else {
+      // Insert new property
+      console.log("[save-site-records] Inserting property:", title, slug);
+      const { data: inserted, error: propertyError } = await supabase
+        .from("properties")
+        .insert({
+          title: title || "Untitled Property",
+          property_title: propertyTitle || title || '',
+          name: name || `@${slug}`,
+          slug,
+          owner_id: userId,
+          description: description || "",
+          address: location || "",
+          max_guests: maxGuests || 8,
+          bedrooms: bedrooms || 2,
+          bathrooms: baths || 1,
+          beds: beds || 3,
+          price_per_night: pricePerNight || 150,
+          hero_image: heroImage || "",
+          images: images || [],
+          stripe_account_id: stripeAccountId || null,
+          stripe_account_status: stripeAccountStatus || null,
+          property_details: ref.property_details || null,
+          property_intro: ref.property_intro || null,
+          activities: ref.activities || null,
+          local_area: ref.local_area || null,
+          getting_there: ref.getting_there || null,
+          brand_color: ref.brand_color || null,
+          font_accent: ref.font_accent || null,
+          site_url: siteUrl,
+        })
+        .select("id, slug")
+        .single();
+      if (propertyError) {
+        console.error("[save-site-records] propertyError:", propertyError);
+        throw new Error(`Property insert failed: ${propertyError.message}`);
+      }
+      propertyRecord = inserted;
     }
 
-    console.log("[save-site-records] Property created:", propertyRecord.id);
+    console.log("[save-site-records] Property saved:", propertyRecord.id);
 
     // Set site_url on the property record so redirect polling works
     const siteUrl = `https://www.propbook.pro/props/${propertyRecord.slug}`;
