@@ -113,7 +113,11 @@ export function Layout({ children, isEditing, onToggleEdit, hasChanges, onSaveCh
               </button>
             ) : (
               <button
-                onClick={() => navigate(location.pathname + '?auth=login', { replace: true })}
+                onClick={() => {
+                  // Store current URL so we return here after login
+                  sessionStorage.setItem('login_return_url', location.pathname + location.search);
+                  navigate(location.pathname + '?auth=login', { replace: true });
+                }}
                 className="px-4 py-2 bg-white/20 backdrop-blur-sm border border-white/15 rounded text-white/90 hover:bg-white/30 hover:text-white text-sm transition-all"
               >
                 Sign In

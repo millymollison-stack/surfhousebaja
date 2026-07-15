@@ -17,7 +17,10 @@ export function Login() {
     setLoading(true);
     try {
       await signIn(email, password);
-      navigate('/');
+      // Return to the property page the user was on before clicking Sign In
+      const returnTo = sessionStorage.getItem('login_return_url') || '/';
+      sessionStorage.removeItem('login_return_url');
+      navigate(returnTo);
     } finally {
       setLoading(false);
     }
