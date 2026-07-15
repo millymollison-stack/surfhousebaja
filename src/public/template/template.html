@@ -1124,15 +1124,14 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             @{{BRAND_HANDLE}}
         </a>
-        <div class="nav-actions">
-            <button class="nav-share-btn" aria-label="Share">
+        <div class="nav-actions"> aria-label="Share">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             </button>
             <button class="nav-lang-btn" aria-label="Language">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             </button>
             <div class="elfsight-app-723b3461-972c-4953-af10-a9662ce4a71b" data-elfsight-app-lazy></div>
-            <a href="{{CURRENT_URL}}?auth=login" class="nav-sign-in-link" id="nav-sign-in-link">Sign In</a>
+            <a href="https://www.propbook.pro/?auth=login" class="nav-sign-in-link">Sign In</a>
         </div>
     </nav>
 
@@ -1158,61 +1157,52 @@
     </aside>
 
     <!-- ============================================
-         SECTION 1: HERO IMAGE GALLERY — 6 images, click arrows/dots to load React
+         SECTION 1: HERO IMAGE GALLERY — CSS-only radio slider
+         Within 1400px content frame
          ============================================ -->
     <div class="gallery-container gallery-shadow content-frame">
-        <!-- Slide track — 6 slides -->
+        <!-- Radio inputs (hidden) for CSS-only slide control -->
+        <input type="radio" name="gallery-slide" id="slide1" class="gallery-radio" checked style="display:none;"/>
+        <input type="radio" name="gallery-slide" id="slide2" class="gallery-radio" style="display:none;"/>
+
+        <!-- Slide track -->
         <div class="gallery-track">
             <div class="gallery-slide active">
-                <img src="{{IMAGE_1}}" alt="{{PROPERTY_TITLE}}" class="slide-img" id="slide-img-1"/>
+                <img src="{{IMAGE_1}}" alt="{{PROPERTY_TITLE}}" class="slide-img"/>
             </div>
             <div class="gallery-slide">
-                <img src="{{IMAGE_2}}" alt="{{PROPERTY_TITLE}}" class="slide-img"/>
-            </div>
-            <div class="gallery-slide">
-                <img src="{{IMAGE_3}}" alt="{{PROPERTY_TITLE}}" class="slide-img"/>
-            </div>
-            <div class="gallery-slide">
-                <img src="{{IMAGE_4}}" alt="{{PROPERTY_TITLE}}" class="slide-img"/>
-            </div>
-            <div class="gallery-slide">
-                <img src="{{IMAGE_5}}" alt="{{PROPERTY_TITLE}}" class="slide-img"/>
-            </div>
-            <div class="gallery-slide">
-                <img src="{{IMAGE_6}}" alt="{{PROPERTY_TITLE}}" class="slide-img"/>
+                <img src="{{IMAGE_6}}" alt="Property view 2" class="slide-img"/>
             </div>
         </div>
 
         <!-- Gradient overlay -->
         <div class="gallery-gradient-overlay-light" style="position: absolute; inset: 0; pointer-events: none;"></div>
 
-        <!-- Bottom content overlay -->
+        <!-- Bottom content overlay — matches propbook.pro exactly -->
         <div class="gallery-content-overlay bg-dark-overlay">
+            <!-- Title + Price on same line, price on right -->
             <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap;">
                 <h1 class="hero-title" id="overview">{{PROPERTY_TITLE}}</h1>
                 <h1 class="hero-title-price">${{PRICE_PER_NIGHT}}</h1>
             </div>
+            <!-- Short description -->
             <p class="hero-subtitle">{{DESCRIPTION}}</p>
         </div>
 
-        <!-- Prev/Next arrows — click loads React gallery -->
+        <!-- CSS-only prev/next arrows -->
         <div class="gallery-nav">
-            <button class="gallery-arrow arrow-prev" id="prevBtn" aria-label="Previous photo" onclick="window.__LOAD_REACT__('gallery')">&#10094;</button>
-            <button class="gallery-arrow arrow-next" id="nextBtn" aria-label="Next photo" onclick="window.__LOAD_REACT__('gallery')">&#10095;</button>
+            <label for="slide2" class="gallery-arrow arrow-prev" id="prevBtn" aria-label="Previous photo">&#10094;</label>
+            <label for="slide1" class="gallery-arrow arrow-next" id="nextBtn" aria-label="Next photo">&#10095;</label>
         </div>
 
-        <!-- Dot indicators — click loads React gallery -->
+        <!-- Dot indicators -->
         <div class="gallery-dots">
-            <button class="dot" id="dot1" onclick="window.__LOAD_REACT__('gallery')"></button>
-            <button class="dot" id="dot2" onclick="window.__LOAD_REACT__('gallery')"></button>
-            <button class="dot" id="dot3" onclick="window.__LOAD_REACT__('gallery')"></button>
-            <button class="dot" id="dot4" onclick="window.__LOAD_REACT__('gallery')"></button>
-            <button class="dot" id="dot5" onclick="window.__LOAD_REACT__('gallery')"></button>
-            <button class="dot" id="dot6" onclick="window.__LOAD_REACT__('gallery')"></button>
+            <label for="slide1" class="dot"></label>
+            <label for="slide2" class="dot"></label>
         </div>
     </div>
 
-    <!-- Two side-by-side images -->
+    <!-- Two side-by-side images — full width breakout -->
     <div class="two-image-grid">
         <img src="{{IMAGE_SIDE_A}}" alt="{{PROPERTY_TITLE}} - view 2" />
         <img src="{{IMAGE_SIDE_B}}" alt="{{PROPERTY_TITLE}} - view 3" />
@@ -1249,7 +1239,7 @@
                 <div class="amenity-icon-grid mt-4">
                     <!-- WiFi -->
                     <div class="amenity-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a1515 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>
                         WiFi
                     </div>
                     <!-- Free Parking -->
@@ -1345,7 +1335,6 @@
                             <p>{{GETTING_THERE}}</p>
                         </div>
                     </details>
-
 
                     <!-- Collapsible: Local area -->
                     <details class="content-dropdown">
@@ -1476,10 +1465,10 @@
                             <p style="font-size: 0.75rem; color: #6b7280;">Base price: 2 nights × ${{PRICE_PER_NIGHT}}</p>
                             <p style="font-size: 0.875rem; font-weight: 600; color: #111;">Total: $400</p>
                         </div>
-                        <a href="?book=true" style="display: block; width: 100%; margin-top: 0.75rem; padding: 0.625rem 1rem; background: var(--brand); color: #fff; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; box-sizing: border-box;">
+                        <button style="width: 100%; margin-top: 0.75rem; padding: 0.625rem 1rem; background: var(--brand); color: #fff; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                             Book Now
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1526,10 +1515,82 @@
                 <h1 class="reviews-section-heading">What our guests say</h1>
             </div>
 
-            <!-- React renders reviews here -->
-            <div id="reviews-root" style="min-height: 200px;">
-                <p style="color: rgba(255,255,255,0.5); text-align: center; padding: 2rem;">Loading reviews…</p>
+            <!-- Reviews slider -->
+            <div class="review-slider px-8" style="position: relative;">
+                <!-- Prev button -->
+                <button class="review-nav-btn prev">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+
+                <!-- Review cards -->
+                <div class="review-card-wrapper">
+                    <div class="review-card">
+                        <p>"Incredible location right on the water. The surf breaks are world-class and the house has everything you need. The outdoor fire pit was our favorite spot for evening drinks. Would definitely return."</p>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-top: 1px solid #f3f4f6; padding-top: 0.75rem; margin-top: auto;">
+                            <div>
+                                <h4 class="review-author">Sarah M.</h4>
+                                <p class="review-date">March 2026</p>
+                            </div>
+                            <div class="review-stars">
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-card-wrapper">
+                    <div class="review-card">
+                        <p>"Perfect surf house getaway. The kitchen was well-equipped, beds comfortable, and the A/C was a lifesaver in the summer heat. The hot tub after a long surf session was incredible."</p>
+                        <div style="display: flex; justify-between; align-items: flex-start; border-top: 1px solid #f3f4f6; padding-top: 0.75rem; margin-top: auto;">
+                            <div>
+                                <h4 class="review-author">Mike R.</h4>
+                                <p class="review-date">February 2026</p>
+                            </div>
+                            <div class="review-stars">
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-card-wrapper">
+                    <div class="review-card">
+                        <p>"Amazing experience from start to finish. The house is even better than the photos. Clean, modern, and the local area is beautiful. Already planning our next trip back."</p>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-top: 1px solid #f3f4f6; padding-top: 0.75rem; margin-top: auto;">
+                            <div>
+                                <h4 class="review-author">Jenny L.</h4>
+                                <p class="review-date">January 2026</p>
+                            </div>
+                            <div class="review-stars">
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next button -->
+                <button class="review-nav-btn next">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
             </div>
+
+            <!-- Leave a review button -->
+            <div class="review-btn-wrap">
+                <button class="review-btn">Leave a review</button>
+            </div>
+        </div>
     </div>
 
 
@@ -1538,7 +1599,7 @@
          ============================================ -->
     <div class="contact-section" id="contact" style="max-width: 1400px; margin-left: auto; margin-right: auto;">
         <h2>Get in touch</h2>
-        <p>Questions about {{PROPERTY_TITLE}}? Ready to book? We'd love to hear from you.</p>
+        <p>Questions about Surf House Baja? Ready to book? We'd love to hear from you.</p>
         <a href="mailto:{{CONTACT_EMAIL}}" class="contact-email">{{CONTACT_EMAIL}}</a>
     </div>
 
@@ -1548,7 +1609,7 @@
          ============================================ -->
     <div class="copyright-footer">
         <p class="copyright-text">
-            &copy; 2026 {{PROPERTY_TITLE}} &middot; {{ADDRESS}}
+            &copy; {{YEAR}} {{PROPERTY_TITLE}} &middot; {{ADDRESS}}
         </p>
     </div>
 
@@ -1559,10 +1620,10 @@
     <div class="book-now-banner">
         <div class="book-now-rating">
             <span>★★★★★</span>
-            <span>{{RATING}}</span>
-            <span>({{REVIEW_COUNT}} reviews)</span>
+            <span>4.97</span>
+            <span>(128 reviews)</span>
         </div>
-        <a href="?book=true" class="book-now-btn">Book Now</a>
+        <button class="book-now-btn">Book Now</button>
     </div>
 
 
