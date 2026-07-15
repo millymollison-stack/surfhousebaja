@@ -169,7 +169,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
  }, [user?.id]);
 
 
- // User-scoped sessionStorage — keys are scoped to user.id so different users on same browser don't share data
+ // User-scoped sessionStorage - keys are scoped to user.id so different users on same browser don't share data
  const uid = user?.id ?? 'anon';
  const ssGet = (k: string) => sessionStorage.getItem(`popup_${uid}_${k}`);
  const ssSet = (k: string, v: string) => sessionStorage.setItem(`popup_${uid}_${k}`, v);
@@ -300,7 +300,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
          displayMode: 'overlay',
          theme: 'light',
          locale: 'en',
-         successUrl: window.location.origin + '?paddle_success=true',
+         successUrl: window.location.origin + '?paddle_success=true&transaction_id={transaction_id}',
        },
        eventCallback: (event: any) => {
          console.log('[Paddle event]', event.name, JSON.stringify(event.data));
@@ -322,7 +322,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
   // Guard: prevent double-fire from rapid clicks
   stripeRedirectRef.current++;
   if (stripeRedirectRef.current > 1) {
-    console.log('[openStripeGateway] already in flight — ignoring duplicate click');
+    console.log('[openStripeGateway] already in flight - ignoring duplicate click');
     stripeRedirectRef.current--;
     return;
   }
@@ -350,16 +350,16 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      setStripeError('User not authenticated. Please sign in again.');
      return;
    }
-   console.log('[openStripeGateway] validated — userId:', userIdValue, 'slug:', slugValue);
+   console.log('[openStripeGateway] validated - userId:', userIdValue, 'slug:', slugValue);
 
-   // NON-BLOCKING SAVE: fire-and-forget with 5s timeout — Stripe redirect must always proceed.
+   // NON-BLOCKING SAVE: fire-and-forget with 5s timeout - Stripe redirect must always proceed.
    // Data is re-saved on RETURN from Stripe in the ?paid=true handler, so missing
    // the pre-redirect save is non-fatal.
    console.log('[openStripeGateway] Saving scraped data to DB before Stripe redirect (non-blocking)...');
-   const saveTimeout = setTimeout(() => console.warn('[openStripeGateway] saveToSupabase timed out — proceeding anyway'), 5000);
+   const saveTimeout = setTimeout(() => console.warn('[openStripeGateway] saveToSupabase timed out - proceeding anyway'), 5000);
    saveToSupabase().finally(() => clearTimeout(saveTimeout));
-   console.log('[openStripeGateway] DB save fired — proceeding to Stripe redirect');
-   // Timeout wrapper — if fetch takes >15s, treat as network error
+   console.log('[openStripeGateway] DB save fired - proceeding to Stripe redirect');
+   // Timeout wrapper - if fetch takes >15s, treat as network error
    const fetchWithTimeout = (url: string, opts: RequestInit, timeoutMs = 20000) =>
      Promise.race([
        fetch(url, opts),
@@ -425,7 +425,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
      sessionStorage.setItem('stripe_session_id', safeSessionId);
      sessionStorage.setItem('stripe_redirect_initiated', myTabId);
      console.log('[DEBUG] stripe_session_id saved=', safeSessionId, ', redirect href=', data.url);
-     window.location.href = data.url; // Redirect to Stripe — return redirect is disabled
+     window.location.href = data.url; // Redirect to Stripe - return redirect is disabled
    } catch(e: any) {
      console.error('[openStripeGateway] error:', e.message || e);
      setStripeError(e.message === 'fetch timeout'
@@ -433,7 +433,7 @@ export function OnboardingPopup({ onComplete, onImported, onClose, scrapedProper
        : 'Could not connect to payment server. (' + (e.message || String(e)) + ')');
    } finally {
      stripeRedirectRef.current--; // decrement so next click can proceed
-     setStripeProcessing(false); // ALWAYS reset — prevents stuck button
+     setStripeProcessing(false); // ALWAYS reset - prevents stuck button
    }
  };
 
@@ -557,7 +557,7 @@ const stripeRedirectRef = useRef(0);
  const scrapeFee = designChoice === 'airbnb' ? pricing.scrape : 0;
 
  const fontOptions = FONT_OPTIONS;
- // First month free credit for Starter plan — stored in cents so it matches pricing.plans values
+ // First month free credit for Starter plan - stored in cents so it matches pricing.plans values
  const TRIAL_CREDIT = planChoice === 'starter' ? (pricing.plans.starter * 100) : 0;
 
  // Load saved font accent on mount
@@ -613,13 +613,13 @@ const stripeRedirectRef = useRef(0);
 
 
  // Initialize form fields from scraped property data passed from Home
- // NOTE: We do NOT pre-fill websiteName from scraped data — the user's typed
+ // NOTE: We do NOT pre-fill websiteName from scraped data - the user's typed
  // Website Name field is the one source of truth for the slug and must not be
  // overwritten by a scrape result. The slug is saved to popup_user_website_name
  // at Subscribe-click time, before any async scrape can change React state.
 
  const handleClose = () => {
- // Don't persist the closed state for active subscribers — their scraped data is
+ // Don't persist the closed state for active subscribers - their scraped data is
  // already saved and they need the popup to reopen on reload so they can publish.
  // Only set POPUP_CLOSED_KEY for non-subscribers (genuine first-time users who
  // haven't completed onboarding yet).
@@ -639,7 +639,7 @@ const stripeRedirectRef = useRef(0);
  // after Stripe returns, ensuring migration property data is loaded even when
  // scrapedProperty/scrapedImages deps haven't changed.
  async function loadSavedData() {
- // GUARD: Never open popup for active subscribers — they use the sidebar to edit/publish
+ // GUARD: Never open popup for active subscribers - they use the sidebar to edit/publish
  const { data: profileForGuard } = await supabase
    .from('profiles')
    .select('stripe_subscription_status')
@@ -665,7 +665,7 @@ const stripeRedirectRef = useRef(0);
  reviews: null,
  host_name: null,
  });
- // Populate description field — concat hero (first 200) + rest so the full scraped text is editable
+ // Populate description field - concat hero (first 200) + rest so the full scraped text is editable
  setWebsiteDesc((scrapedProperty.property_intro || '') + (scrapedProperty.description || ''));
  // Auto-open popup when scraped data arrives - but NOT for active subscribers and NOT if user explicitly closed it
  if (!isActiveGuard && !isOpen && !ssGet('closed')) {
@@ -691,7 +691,7 @@ const stripeRedirectRef = useRef(0);
         // ── After restoring all form fields, handle post-Stripe success ──────────
         if (sessionStorage.getItem('stripe_payment_done')) {
           sessionStorage.removeItem('stripe_payment_done');
-          // Don't open popup for active subscribers — they use the sidebar
+          // Don't open popup for active subscribers - they use the sidebar
           if (!isActiveGuard && !isOpen) setIsOpen(true);
           setShowCongrats(true);
           const restoredName = ssGet('website_name') || 'surfhousebaja';
@@ -766,7 +766,7 @@ const stripeRedirectRef = useRef(0);
  .eq('user_id', user.id)
  .maybeSingle();
 
- // Only load for authenticated users — skip if no real user ID (prevents
+ // Only load for authenticated users - skip if no real user ID (prevents
  // empty-user_id records in DB from contaminating a fresh signed-in user)
 
  if (error && error.code !== 'PGRST116') {
@@ -852,7 +852,7 @@ const stripeRedirectRef = useRef(0);
 };
  const handleDescChange = (val: string) => {
  setWebsiteDesc(val);
- // NOTE: onImported is NOT called here — it is only for full scrape imports.
+ // NOTE: onImported is NOT called here - it is only for full scrape imports.
  // The template description updates via the description prop passed from Home.tsx.
  };
  const handleNameBlur = () => {
@@ -864,7 +864,7 @@ const stripeRedirectRef = useRef(0);
  }
  };
  const handleDescBlur = () => {
- // NOTE: onImported is NOT called here — description sync is handled via the
+ // NOTE: onImported is NOT called here - description sync is handled via the
  // description prop passed to the template, not via the import callback.
  };
 
@@ -872,7 +872,7 @@ const stripeRedirectRef = useRef(0);
  // Auto-open popup on mount (2s delay).
  // ── IMPORTANT: For active subscribers, we call loadSavedData() (not setIsOpen)
  // because the user may already be logged in and the popup may already be mounted.
- // setIsOpen(true) is a no-op when isOpen is already true — we need loadSavedData
+ // setIsOpen(true) is a no-op when isOpen is already true - we need loadSavedData
  // to populate the form fields from scrapedProperty prop (set by Home.tsx from DB).
  useEffect(() => {
  isMountedRef.current = true;
@@ -885,7 +885,7 @@ const stripeRedirectRef = useRef(0);
 
  if (isActive) {
  // Active subscriber: do NOT open the onboarding popup.
- // They are a client — use the sidebar to edit and publish.
+ // They are a client - use the sidebar to edit and publish.
  // Clear any stale payment flags so loadSavedData won't re-open the popup.
  ssRem('closed');
  try { sessionStorage.removeItem('stripe_payment_done'); } catch {}
@@ -925,7 +925,7 @@ const stripeRedirectRef = useRef(0);
  const [showStripeConnectSuccess, setShowStripeConnectSuccess] = useState(false);
 
 // ── Countdown timer for building/redirect screen ──────────────────────────
- // COMMENTED OUT — building modal is disabled; sidebar PUBLISH button drives the flow
+ // COMMENTED OUT - building modal is disabled; sidebar PUBLISH button drives the flow
  /*
  useEffect(() => {
    if (!showBuilding) return;
@@ -946,9 +946,9 @@ const stripeRedirectRef = useRef(0);
    if (showBuilding && buildingCountdown === 0) {
      const siteUrl = ssGet('site_url');
      if (siteUrl) {
-       console.log('[DEBUG building] Countdown expired, site ready at:', siteUrl, '— NOT redirecting (disabled)');
+       console.log('[DEBUG building] Countdown expired, site ready at:', siteUrl, '- NOT redirecting (disabled)');
      } else {
-       console.warn('[DEBUG building] Countdown expired, no site URL — closing popup');
+       console.warn('[DEBUG building] Countdown expired, no site URL - closing popup');
      }
    }
  }, [showBuilding, buildingCountdown, user]);
@@ -973,13 +973,13 @@ const stripeRedirectRef = useRef(0);
 
   // ── Guard: wait for auth to resolve before doing anything ──────────────
   if (!user) {
-    console.log('[DEBUG ?paid handler] Auth not ready yet — waiting (user is null)');
+    console.log('[DEBUG ?paid handler] Auth not ready yet - waiting (user is null)');
     return;
   }
   // ── Guard: clear stale session IDs from previous test runs ─────────────
   // We only clear a stale session_id if NEITHER index.html just set it (no stripe_paid_flag)
   // NOR does the URL currently have ?paid=true. If index.html set stripe_paid_flag, it means
-  // this is a fresh Stripe return and the session_id is valid — don't clear it.
+  // this is a fresh Stripe return and the session_id is valid - don't clear it.
   const paidFlag = sessionStorage.getItem('stripe_paid_flag');
   if (!hasPaidParam && !paidFlag && sessionStorage.getItem('stripe_session_id')) {
     console.log('[DEBUG ?paid handler] Clearing stale stripe_session_id from previous session');
@@ -1001,18 +1001,18 @@ const stripeRedirectRef = useRef(0);
     !!sessionIdFromStorage;
   console.log('[DEBUG ?paid handler] Stripe return evidence check:', { hasPaidParam, hasStripeReturnEvidence, sessionIdFromUrl, paidFlag: !!paidFlag, hasSessionInStorage: !!sessionIdFromStorage });
   if (!hasStripeReturnEvidence) {
-    console.log('[DEBUG ?paid handler] No Stripe return evidence — skipping (user has not been through Stripe)');
+    console.log('[DEBUG ?paid handler] No Stripe return evidence - skipping (user has not been through Stripe)');
     return;
   }
 
   if (!sessionId) {
-    console.log('[DEBUG ?paid handler] Stripe return detected but session_id missing — checking for active subscription...');
+    console.log('[DEBUG ?paid handler] Stripe return detected but session_id missing - checking for active subscription...');
     // Fallback: Stripe redirected without session_id in URL (edge case or pre-fix flow).
     // Check if webhook already fired and subscription is active.
     (async () => {
       try {
         if (!user) {
-          console.log('[DEBUG ?paid handler] Still no user — setting up auth listener to retry when user signs in');
+          console.log('[DEBUG ?paid handler] Still no user - setting up auth listener to retry when user signs in');
           // Wait for user to authenticate (Stripe redirect establishes session after page reload)
           // Listen for the auth state change and re-run the handler when user becomes available
           let retriesLeft = 10;
@@ -1022,7 +1022,7 @@ const stripeRedirectRef = useRef(0);
             if (session?.user || retriesLeft <= 0) {
               clearInterval(checkAuth);
               if (session?.user) {
-                console.log('[DEBUG ?paid handler] User authenticated after Stripe redirect — retrying payment verification...');
+                console.log('[DEBUG ?paid handler] User authenticated after Stripe redirect - retrying payment verification...');
                 // Re-call the entire recovery flow with the now-available user
                 const { data: profileData } = await supabase
                   .from('profiles').select('stripe_subscription_status, stripe_customer_id').eq('id', session.user.id).maybeSingle();
@@ -1033,11 +1033,11 @@ const stripeRedirectRef = useRef(0);
                     ? ssGet('website_name')!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-')
                     : null;
                   if (slug) {
-                    // TEMPORARILY DISABLED — redirecting before site is built breaks the flow
+                    // TEMPORARILY DISABLED - redirecting before site is built breaks the flow
                     // setStripeProcessing(true);
                     // setTimeout(() => { window.location.href = `https://www.propbook.pro/props/${slug}`; }, 800);
                     setStripeProcessing(false);
-                    setIsOpen(false); // Active subscriber — use sidebar, not popup
+                    setIsOpen(false); // Active subscriber - use sidebar, not popup
                     return;
                   }
                 }
@@ -1058,7 +1058,7 @@ const stripeRedirectRef = useRef(0);
                     await supabase.from('profiles').update({ stripe_subscription_status: recoveryData.sub_status || 'active', stripe_subscription_id: recoveryData.subscription_id, stripe_customer_id: recoveryData.customer_id }).eq('id', session.user.id);
                     await supabase.auth.refreshSession();
                     await refreshUser();
-                    // setShowBuilding(true); // disabled — sidebar PUBLISH button drives the flow
+                    // setShowBuilding(true); // disabled - sidebar PUBLISH button drives the flow
                     // setBuildingCountdown(40);
                     try {
                       const siteResult = await handleSaveSiteInPopup();
@@ -1083,8 +1083,8 @@ const stripeRedirectRef = useRef(0);
         const subStatus = profileData?.stripe_subscription_status || user?.stripe_subscription_status;
 
         if (subStatus === 'active' || subStatus === 'trialing') {
-          // Active subscriber — never open the onboarding popup. Redirect silently.
-          console.log('[DEBUG ?paid handler] Active subscriber — closing popup and redirecting to property site');
+          // Active subscriber - never open the onboarding popup. Redirect silently.
+          console.log('[DEBUG ?paid handler] Active subscriber - closing popup and redirecting to property site');
           setIsOpen(false);
           setStripeProcessing(false);
           const slug = ssGet('website_name')
@@ -1095,13 +1095,13 @@ const stripeRedirectRef = useRef(0);
           }
           return;
         } else {
-          console.log('[DEBUG ?paid handler] subStatus is null/unknown — proceeding to recovery. profileData:', JSON.stringify(profileData));
+          console.log('[DEBUG ?paid handler] subStatus is null/unknown - proceeding to recovery. profileData:', JSON.stringify(profileData));
         }
 
         // ── Recovery attempt: no session ID AND subscription null ─────────────────
         // Payment was almost certainly successful (Stripe redirected here with ?paid=true).
         // Try to verify via stripe_customer_id stored in the user's profile.
-        console.log('[DEBUG ?paid handler] No active subscription found — attempting recovery via stripe_customer_id...');
+        console.log('[DEBUG ?paid handler] No active subscription found - attempting recovery via stripe_customer_id...');
         const customerId = profileData?.stripe_customer_id;
 
         if (customerId) {
@@ -1127,8 +1127,8 @@ const stripeRedirectRef = useRef(0);
           console.log('[DEBUG ?paid handler] Recovery response:', JSON.stringify(recoveryData));
 
           if (recoveryRes.ok && (recoveryData.subscription?.status === 'active' || recoveryData.sub_status === 'active' || recoveryData.status === 'complete')) {
-            // Payment confirmed — update profile and create the site
-            console.log('[DEBUG ?paid handler] ✅ Payment verified via recovery — creating site...');
+            // Payment confirmed - update profile and create the site
+            console.log('[DEBUG ?paid handler] ✅ Payment verified via recovery - creating site...');
             const profileUpdate: any = {
               stripe_subscription_status: recoveryData.sub_status || 'active',
             };
@@ -1137,7 +1137,7 @@ const stripeRedirectRef = useRef(0);
             await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
             await supabase.auth.refreshSession();
             await refreshUser();
-            // setShowBuilding(true); // disabled — sidebar PUBLISH button drives the flow
+            // setShowBuilding(true); // disabled - sidebar PUBLISH button drives the flow
             // setBuildingCountdown(40);
             try {
               const siteResult = await handleSaveSiteInPopup();
@@ -1159,12 +1159,12 @@ const stripeRedirectRef = useRef(0);
             console.warn('[DEBUG ?paid handler] Recovery returned non-OK or no active subscription:', recoveryRes.status, JSON.stringify(recoveryData));
           }
         } else {
-          console.warn('[DEBUG ?paid handler] No stripe_customer_id in profile — cannot attempt recovery');
+          console.warn('[DEBUG ?paid handler] No stripe_customer_id in profile - cannot attempt recovery');
         }
 
-        // All recovery attempts failed — payment likely succeeded but we can't verify it.
+        // All recovery attempts failed - payment likely succeeded but we can't verify it.
         // Show the user a clear error so they know to contact support.
-        console.warn('[DEBUG ?paid handler] All recovery attempts failed — showing error to user');
+        console.warn('[DEBUG ?paid handler] All recovery attempts failed - showing error to user');
         setStripeError(
           'Payment may have succeeded but we could not verify your subscription. ' +
           'Please contact support with your email to confirm your subscription was activated.'
@@ -1265,16 +1265,16 @@ const stripeRedirectRef = useRef(0);
 
       // ── Step 4: Create site (property + migration + deploy) ──────────────
       setStripeProcessing(false);
-      // setShowBuilding(true); // disabled — sidebar PUBLISH button drives the flow
+      // setShowBuilding(true); // disabled - sidebar PUBLISH button drives the flow
       // setBuildingCountdown(40);
       let siteResult: any = null;
       try {
         siteResult = await handleSaveSiteInPopup();
         if (siteResult?.siteUrl) {
-          console.log('[DEBUG ?paid handler] ✅ Site created:', siteResult.siteUrl, '— staying on localhost to show template');
+          console.log('[DEBUG ?paid handler] ✅ Site created:', siteResult.siteUrl, '- staying on localhost to show template');
         }
         setShowCongrats(true);
-        // ── Step 5: Tell sidebar to update — AFTER property is created ──────────
+        // ── Step 5: Tell sidebar to update - AFTER property is created ──────────
         console.log('[DEBUG ?paid handler] Dispatching subscription-updated event with full data');
         window.dispatchEvent(new CustomEvent('subscription-updated', {
           detail: {
@@ -1295,7 +1295,7 @@ const stripeRedirectRef = useRef(0);
       } catch (siteErr) {
         console.error('[DEBUG ?paid handler] Site creation failed:', siteErr);
         setStripeError('Payment confirmed but site creation failed. Please try publishing from the sidebar.');
-        // Don't auto-open popup on failure — let them use the sidebar
+        // Don't auto-open popup on failure - let them use the sidebar
       }
 
     } catch (err) {
@@ -1308,15 +1308,108 @@ const stripeRedirectRef = useRef(0);
     }
   })();
  }, [window.location.search, user]); // re-fires when URL changes or auth resolves
- 
+
+
+ // ── Handle Paddle Checkout redirect ─ ?paddle_success=true ───────────────────────
+ // Paddle redirects here only on successful payment — no server-side verification needed.
+ useEffect(() => {
+   const params = new URLSearchParams(window.location.search);
+   if (!params.has('paddle_success')) return;
+
+   // Guard: wait for auth
+   if (!user) {
+     console.log('[DEBUG ?paddle_success handler] Auth not ready yet — waiting');
+     return;
+   }
+
+   const transactionId = params.get('transaction_id');
+   console.log('[DEBUG ?paddle_success handler] Paddle return detected, transaction_id:', transactionId);
+
+   // Prevent re-trigger on re-mounts
+   if (sessionStorage.getItem('paddle_payment_returning')) return;
+   sessionStorage.setItem('paddle_payment_returning', '1');
+
+   // Clear URL params immediately so re-mounts don't re-trigger
+   const url = new URL(window.location.href);
+   url.searchParams.delete('paddle_success');
+   url.searchParams.delete('transaction_id');
+   window.history.replaceState({}, '', url.pathname);
+
+   setStripeProcessing(true);
+
+   (async () => {
+     try {
+       // ── Step 1: Update profile with active subscription ────────────────────
+       // Paddle redirected here only on success, so ?paddle_success=true is proof of payment.
+       const planMap: Record<string, string> = {
+         'starter': 'starter',
+         'pro': 'pro',
+         'pro-plus': 'pro-plus',
+       };
+       const plan = planMap[planChoice] || planChoice || 'starter';
+
+       const profileUpdate: any = {
+         stripe_subscription_status: 'active',
+       };
+       if (transactionId) profileUpdate.paddle_subscription_id = transactionId;
+
+       await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
+       console.log('[DEBUG ?paddle_success handler] Profile updated to active');
+
+       // ── Step 2: Refresh auth session so sidebar sees subscription immediately ─
+       await supabase.auth.refreshSession();
+       await refreshUser();
+
+       // ── Step 3: Notify sidebar ─────────────────────────────────────────────
+       const subData = {
+         subscription_id: transactionId || 'paddle',
+         status: 'active',
+         plan,
+         amount: 0,
+         interval: 'month',
+         current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+       };
+       try { sessionStorage.setItem('sidebar_subscription_data', JSON.stringify(subData)); } catch {}
+       window.dispatchEvent(new CustomEvent('subscription-updated', { detail: subData }));
+
+       // ── Step 4: Save property to DB (triggers migration + deploy) ──────────
+       setStripeProcessing(false);
+       let siteResult: any = null;
+       try {
+         siteResult = await handleSaveSiteInPopup(true);
+       } catch (siteErr) {
+         console.error('[DEBUG ?paddle_success handler] handleSaveSiteInPopup failed:', siteErr);
+       }
+
+       // ── Step 5: Show success UI ─────────────────────────────────────────────
+       setShowCongrats(true);
+       // Dispatch subscription-updated again now that property is created
+       window.dispatchEvent(new CustomEvent('subscription-updated', { detail: { ...subData, siteResult } }));
+       setTimeout(() => {
+         setIsOpen(false);
+         setShowCongrats(false);
+         // Signal parent (App) to open sidebar
+         onOnboardingComplete?.();
+       }, 2500);
+
+     } catch (err) {
+       console.error('[DEBUG ?paddle_success handler] Error:', err);
+       setStripeError('Payment succeeded but an error occurred while saving your property. Please refresh and check your sidebar.');
+       setStripeProcessing(false);
+     } finally {
+       sessionStorage.removeItem('paddle_payment_returning');
+     }
+   })();
+ }, [user]); // run once when auth resolves; guard above skips if no paddle_success param
+
 
  // Save scraped data to onboarding_data only (no property creation, no image upload).
  // Property + images are created on PUBLISH via migrate-property edge function.
  // This runs SYNCHRONOUSLY (awaited by openStripeGateway) so onboarding_data exists
- // before the user leaves for Stripe — guaranteeing data survives the redirect.
+ // before the user leaves for Stripe - guaranteeing data survives the redirect.
  const saveToSupabase = async (): Promise<void> => {
  console.log('[saveToSupabase] START, user.id:', user?.id);
- if (!user) { console.warn('[saveToSupabase] early exit — no user'); return; }
+ if (!user) { console.warn('[saveToSupabase] early exit - no user'); return; }
  try {
  console.log('[saveToSupabase] reading sessionStorage scraped_data...');
  // Read FRESH scraped data from sessionStorage
@@ -1337,7 +1430,7 @@ const stripeRedirectRef = useRef(0);
    .replace(/\s+/g, '-')
    .replace(/-+/g, '-');
 
- // Save scraped data with Airbnb image URLs — images are uploaded to Supabase storage
+ // Save scraped data with Airbnb image URLs - images are uploaded to Supabase storage
  // ONLY on PUBLISH (in createNewSiteRecords), not here. This avoids blocking Stripe
  // with slow image downloads and ensures migration handles the definitive image transfer.
  const row = {
@@ -1387,7 +1480,7 @@ const stripeRedirectRef = useRef(0);
  // Guard against double-fire (same pattern as openStripeGateway/handlePublish)
  stripeRedirectRef.current++;
  if (stripeRedirectRef.current > 1) {
-   console.log('[handleAirbnbScrape] already in flight — ignoring duplicate click');
+   console.log('[handleAirbnbScrape] already in flight - ignoring duplicate click');
    stripeRedirectRef.current--;
    setIsImporting(false);
    setCountdown(0);
@@ -1420,7 +1513,7 @@ const stripeRedirectRef = useRef(0);
  console.log('[handleAirbnbScrape] onImported called with data.title:', data.title);
  onImported(data);
  } else {
- console.warn('[handleAirbnbScrape] onImported is NOT defined — popup will not notify Home.tsx!');
+ console.warn('[handleAirbnbScrape] onImported is NOT defined - popup will not notify Home.tsx!');
  }
  } else {
  setImportError('Failed to import listing. Please check the URL and try again.');
@@ -1438,7 +1531,7 @@ const stripeRedirectRef = useRef(0);
    // Guard: prevent double-fire from rapid clicks
    stripeRedirectRef.current++;
    if (stripeRedirectRef.current > 1) {
-     console.log('[handlePublish] already in flight — ignoring duplicate click');
+     console.log('[handlePublish] already in flight - ignoring duplicate click');
      stripeRedirectRef.current--;
      return;
    }
@@ -1627,7 +1720,7 @@ const stripeRedirectRef = useRef(0);
        userId: user.id,
        userStripeAccountId: popupConnectAccountId || null,
        bookingsEmail: user.email,
-       // websiteName field — use the user's original typed input (saved before scrape could overwrite it)
+       // websiteName field - use the user's original typed input (saved before scrape could overwrite it)
        websiteName: ssGet('user_website_name')
          || (od?.property_name ? String(od.property_name) : null)
          || websiteName
@@ -1640,11 +1733,11 @@ const stripeRedirectRef = useRef(0);
        extras: { seo: extras.seo, ads: extras.ads, analytics: extras.analytics, social: extras.social },
        scrapedData: resolvedScrapedData,
        bankChoice: bankChoice,
-       // Slug — from website name field or freshly scraped title:
+       // Slug - from website name field or freshly scraped title:
        // Priority: popup_user_website_name (user's typed input, saved before Stripe)
        //           → resolvedScrapedData.title (freshly scraped, survives Stripe redirect)
        //           → od.property_name (saved property name from DB)
-       //           → 'My Property' (never fall back to user.full_name — causes garbled slugs)
+       //           → 'My Property' (never fall back to user.full_name - causes garbled slugs)
        slug: createSlug(
          ssGet('user_website_name')
          || (resolvedScrapedData?.title ? String(resolvedScrapedData.title) : null)
@@ -1675,7 +1768,7 @@ const stripeRedirectRef = useRef(0);
          // Use FRESH scraped data from sessionStorage (resolvedScrapedData) rather than
          // the stale onboardingData from the DB, which may have null scraped fields if the
          // scraper only partially succeeded. resolvedScrapedData was set by handleAirbnbScrape
-         // and saved to sessionStorage immediately — it survives the Stripe redirect remount.
+         // and saved to sessionStorage immediately - it survives the Stripe redirect remount.
          const migrationData = resolvedScrapedData || od;
          const migRes = await fetch(`${supabaseUrl}/functions/v1/migrate-property`, {
            method: 'POST',
@@ -1706,11 +1799,11 @@ const stripeRedirectRef = useRef(0);
        }
      } catch (migErr) {
        console.warn('[handleSaveSiteInPopup] ⚠️ Migration error:', migErr);
-       // Non-fatal — site still deploys even if migration fails
+       // Non-fatal - site still deploys even if migration fails
      }
 
      // ── Deploy React app to Hostinger via browser-based upload.php ──
-     // Non-fatal — even if deploy fails, site records are saved in DB
+     // Non-fatal - even if deploy fails, site records are saved in DB
      let deployUrl: string | undefined;
      try {
        console.log('[handleSaveSiteInPopup] 🚀 Deploying React app to /props/', result.slug, '...');
@@ -1731,7 +1824,7 @@ const stripeRedirectRef = useRef(0);
      // ── Open the admin sidebar immediately so they can see their data ──
      if (onOpenSidebar) onOpenSidebar();
 
-     // Show success banner — Railway deploy triggered automatically
+     // Show success banner - Railway deploy triggered automatically
      setCongratsUrl(result.siteUrl);
      setDeployUrl(deployUrl);
      setSavingSite(false);
@@ -1767,7 +1860,7 @@ const stripeRedirectRef = useRef(0);
   {(user || accountCreated) ? (
    <div style={{ background: 'rgba(80,180,100,0.12)', border: '1px solid rgba(80,180,100,0.35)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: '0.9rem', color: '#a8d8b0' }}>
      {accountCreated && !user ? (
-       <strong style={{color: '#2a9d4e'}}>✓ Account created — welcome, {authFullName || authEmail.split('@')[0]}!</strong>
+       <strong style={{color: '#2a9d4e'}}>✓ Account created - welcome, {authFullName || authEmail.split('@')[0]}!</strong>
      ) : user ? (
        <><strong>{user.full_name || user.email}</strong></>
      ) : null}
@@ -2112,15 +2205,15 @@ const stripeRedirectRef = useRef(0);
  <ul>
  <li>
  <input type="radio" name="plan" id="5-1" checked={planChoice === 'starter'} onChange={() => setPlanChoice('starter')} />
- <label htmlFor="5-1">Starter — Free 1st month then $10/mo</label>
+ <label htmlFor="5-1">Starter - Free 1st month then $10/mo</label>
  </li>
  <li>
  <input type="radio" name="plan" id="5-2" checked={planChoice === 'pro'} onChange={() => setPlanChoice('pro')} />
- <label htmlFor="5-2">Pro — $30/mo</label>
+ <label htmlFor="5-2">Pro - $30/mo</label>
  </li>
  <li>
  <input type="radio" name="plan" id="5-3" checked={planChoice === 'agency'} onChange={() => setPlanChoice('agency')} />
- <label htmlFor="5-3">Agency — $150/mo</label>
+ <label htmlFor="5-3">Agency - $150/mo</label>
  </li>
  </ul>
  </>
@@ -2297,7 +2390,7 @@ const stripeRedirectRef = useRef(0);
  </div>
  )}
 
- {/* BUILDING COUNTDOWN MODAL — COMMENTED OUT
+ {/* BUILDING COUNTDOWN MODAL - COMMENTED OUT
  When site creation is in progress, nothing is shown to the user.
  The sidebar PUBLISH button drives the flow for active subscribers. */}
  {/*
@@ -2319,7 +2412,7 @@ const stripeRedirectRef = useRef(0);
  )}
  */}
 
- {/* Success modal — shown after Stripe payment completes */}
+ {/* Success modal - shown after Stripe payment completes */}
  {showCongrats && (
  <div className="stripe-modal-backdrop" style={{ zIndex: 99999 }} onClick={() => setShowCongrats(false)}>
  <div className="stripe-modal-box" style={{ textAlign: 'center', padding: '40px 32px' }} onClick={e => e.stopPropagation()}>
@@ -2349,7 +2442,7 @@ const stripeRedirectRef = useRef(0);
  </div>
  )}
 
- {/* Quick success banner with copy command — stays until dismissed */}
+ {/* Quick success banner with copy command - stays until dismissed */}
  {showCongrats && congratsUrl && (
  <div
  style={{
@@ -2374,7 +2467,7 @@ const stripeRedirectRef = useRef(0);
  Site "{websiteName || 'Your property'}" saved to Supabase!
  </p>
  <p style={{ color: '#888', fontSize: '0.8rem', margin: '0 0 12px 0' }}>
- Railway deploy triggered — your site will be live on propbook.pro shortly.
+ Railway deploy triggered - your site will be live on propbook.pro shortly.
  </p>
  {deployUrl && (
  <div style={{ background: '#111', border: '1px solid #444', borderRadius: '8px', padding: '10px 14px', textAlign: 'left', marginBottom: '12px' }}>

@@ -10,8 +10,20 @@ const corsHeaders = {
 const UPLOAD_PHP_URL = "https://www.propbook.pro/upload.php";
 const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/millymollison-stack/surfhousebaja/main/src/public/template";
 const REACT_CDN_BASE = "https://www.propbook.pro/scripts/react-assets/assets";
-const REACT_BUNDLE = "index-CTzHXcen.js?v=10";
+const MANIFEST_URL = `${REACT_CDN_BASE}/assets-manifest.json`;
 const DEPLOY_SECRET = "propbook-deploy-2026";
+
+async function getReactBundleName(): Promise<string> {
+  try {
+    const res = await fetch(MANIFEST_URL);
+    if (!res.ok) throw new Error(`${res.status}`);
+    const manifest = await res.json() as { js: string };
+    if (manifest.js) return manifest.js;
+  } catch (e) {
+    console.warn(`[deploy-site] Could not fetch manifest: ${e}`);
+  }
+  return "index-VqTojQAw.js"; // fallback
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -73,13 +85,14 @@ Deno.serve(async (req: Request) => {
     // ── Fetch React bundle from CDN ─────────────────────────────────────────
     let reactAppJs: string;
     try {
-      const reactRes = await fetch(`${REACT_CDN_BASE}/${REACT_BUNDLE}`);
+      const reactBundle = await getReactBundleName();
+      const reactRes = await fetch(`${REACT_CDN_BASE}/${reactBundle}`);
       if (!reactRes.ok) {
-        throw new Error(`React bundle not found at ${REACT_CDN_BASE}/${REACT_BUNDLE} (${reactRes.status}). ` +
-          `Ensure the bundle was uploaded to Hostinger at /scripts/react-assets/assets/`);
+        throw new Error(`React bundle not found at ${REACT_CDN_BASE}/${reactBundle} (${reactRes.status}). ` +
+          `Upload assets to CDN at https://www.propbook.pro/scripts/react-assets/assets/`);
       }
       reactAppJs = await reactRes.text();
-      console.log(`[deploy-site] React bundle: ${(reactAppJs.length / 1024).toFixed(0)}KB`);
+      console.log(`[deploy-site] React bundle ${reactBundle}: ${(reactAppJs.length / 1024).toFixed(0)}KB`);
     } catch (fetchErr: any) {
       throw new Error(`Failed to fetch React bundle: ${fetchErr.message}`);
     }

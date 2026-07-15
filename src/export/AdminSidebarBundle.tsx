@@ -8,12 +8,13 @@ import '../components/sidebar.css';
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, fromUnixTime, addDays } from 'date-fns';
-import { ChevronRight, ChevronDown, X, LogOut, ExternalLink, Check, CreditCard as Edit2, Clock, CreditCard, AlertCircle, XCircle, CheckCircle, MapPin, Eye, EyeOff, Mail, Phone, User, MessageSquare, Home, Rocket } from 'lucide-react';
+import { ChevronRight, ChevronDown, X, LogOut, ExternalLink, Check, CreditCard as Edit2, Clock, CreditCard, AlertCircle, XCircle, CheckCircle, MapPin, Eye, EyeOff, Mail, Phone, User, MessageSquare, Home, Rocket, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../store/auth';
 import { useProperty } from '../store/property';
 import type { Profile, Booking, Property } from '../types';
 import { createNewSiteRecords, deployViaUploadPhp } from '../services/p';
+import { createSlug } from '../services/slugService';
 
 // ─────────────────────────────────────────────
 // SECTION 1 — Extended Profile (app type + services fields)
@@ -287,13 +288,15 @@ function googleMapsUrl(address: string, lat: string, lng: string): string {
   return '';
 }
 
-function PropertySection({ property, images, isEditing, fields, onChange, obData }: {
+function PropertySection({ property, images, isEditing, fields, onChange, obData, slug, propertyId }: {
   property: Property | null;
   images: { id: string; url: string; position: number }[];
   isEditing: boolean;
   fields: { title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string; rating: string; reviews: string; description: string };
   onChange: React.Dispatch<React.SetStateAction<{ title: string; address: string; latitude: string; longitude: string; location_type: 'address' | 'coordinates'; bedrooms: string; beds: string; baths: string; max_guests: string; rating: string; reviews: string; description: string }>>;
   obData?: any;
+  slug?: string;
+  propertyId?: string;
 }) {
   const mapsUrl = googleMapsUrl(fields.address, fields.latitude, fields.longitude);
   const numField = (label: string, key: 'bedrooms' | 'beds' | 'baths' | 'max_guests') => (
@@ -311,6 +314,28 @@ function PropertySection({ property, images, isEditing, fields, onChange, obData
         {isEditing
           ? <input type="text" value={fields.title} onChange={e => onChange(p => ({ ...p, title: e.target.value }))} className="sb-input" />
           : <p className="sb-field-value">{fields.title || '—'}</p>}
+      </div>
+      <div className="sb-field-row">
+        <h4 className="sb-h4-grey">Site URL</h4>
+        {isEditing ? (
+          propertyId ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#6b7280' }}>
+              <Lock className="h-3.5 w-3.5" style={{ color: '#9ca3af', flexShrink: 0 }} />
+              <p className="sb-field-value" style={{ color: '#9ca3af' }}>
+                propbook.pro/props/{slug || 'your-site-name'}
+              </p>
+              <span style={{ fontSize: '0.65rem', color: '#f59e0b', background: '#fef3c7', padding: '1px 6px', borderRadius: 4 }}>locked once published</span>
+            </div>
+          ) : (
+            <p className="sb-field-value" style={{ color: '#6b7280' }}>
+              propbook.pro/props/{slug || 'your-site-name'}
+            </p>
+          )
+        ) : (
+          <p className="sb-field-value">
+            {slug ? `propbook.pro/props/${slug}` : '—'}
+          </p>
+        )}
       </div>
       <div className="sb-field-row">
         <h4 className="sb-h4-grey">Address</h4>
@@ -471,8 +496,9 @@ function WebsiteSection({ devUpdates, setDevUpdates, serverIp, siteUrl, websiteN
   propertyId?: string;
   allCredentialsMet: boolean;
 }) {
-  // Resolve property slug: prop > sessionStorage
-  const slug = propertySlug || sessionStorage.getItem('popup_website_name') || '';
+  // Resolve property slug: prop > sessionStorage — always slugify to handle raw website names
+  const rawSlug = propertySlug || sessionStorage.getItem('popup_website_name') || '';
+  const slug = rawSlug ? createSlug(rawSlug) : '';
 
   // Resolve current website URL: deployed siteUrl > propbook URL (if slug known) > localhost (dev)
   const popupSiteUrl = sessionStorage.getItem('popup_site_url');
@@ -1016,7 +1042,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
   // ── Sync propFields + propertyImages when selected property changes ──
   const syncPropertyFields = (prop: Property | null) => {
     console.log('[syncPropertyFields] called with prop:', prop ? { id: prop.id, title: prop.title, address: prop.address } : null);
-    if (!prop) { setProperty(null); setObData(null); setSlug(sessionStorage.getItem('popup_website_name') || ''); setPropFields({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '', rating: '', reviews: '', description: '' }); return; }
+    if (!prop) { setProperty(null); setObData(null); setSlug(createSlug(sessionStorage.getItem('popup_website_name') || '')); setPropFields({ title: '', address: '', latitude: '', longitude: '', location_type: 'coordinates', bedrooms: '', beds: '', baths: '', max_guests: '', rating: '', reviews: '', description: '' }); return; }
     setProperty(prop);
     setObData(null); // clear onboarding_data display rows — published property takes priority
     setPropFields({
@@ -1033,7 +1059,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
       reviews: prop.reviews != null ? String(prop.reviews) : '',
       description: prop.description || prop.property_intro || '',
     });
-    setSlug(prop.slug || sessionStorage.getItem('popup_website_name') || '');
+    setSlug(prop.slug || createSlug(sessionStorage.getItem('popup_website_name') || prop.title || ''));
     console.log('[syncPropertyFields] propFields now set to:', { title: prop.title || '', address: prop.address || '', bedrooms: prop.bedrooms, slug: prop.slug });
   };
   const [contactFields, setContactFields] = useState({ full_name: '', email: user?.email || '', phone_number: '' });
@@ -1218,12 +1244,12 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
             }));
           }
           // Also set slug from onboarding_data or sessionStorage
-          setSlug(obData.slug || sessionStorage.getItem('popup_website_name') || '');
+          setSlug(obData.slug || createSlug(sessionStorage.getItem('popup_website_name') || obData.property_name || ''));
         } else {
           // No onboarding_data either — try sessionStorage directly for fresh users
           const ssWebsiteName = sessionStorage.getItem('popup_website_name');
           if (ssWebsiteName) {
-            setSlug(ssWebsiteName);
+            setSlug(createSlug(ssWebsiteName));
             setPropFields(prev => ({
               ...prev,
               title: prev.title || ssWebsiteName || '',
@@ -1537,7 +1563,8 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     if (!isAdmin) return;
 
     const websiteName = sessionStorage.getItem('popup_website_name') || propFields.title || 'My Property';
-    const slugValue = slug || sessionStorage.getItem('popup_website_name') || '';
+    // Always slugify: use existing slug state, or derive from title/websiteName
+    const slugValue = slug || createSlug(propFields.title || websiteName || 'my-property');
 
     if (selectedPropertyId) {
       // User has a published property — update it
@@ -1563,6 +1590,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
     } else {
       // No published property yet — save to onboarding_data so it survives until PUBLISH
       console.log('[handleSaveProperty] No property ID yet — saving to onboarding_data for user:', user?.id);
+      // upsert with onConflict: 'user_id' — the constraint onboarding_data_user_id_key already exists
       const { data, error } = await supabase.from('onboarding_data').upsert({
         user_id: user?.id,
         property_name: propFields.title || websiteName,
@@ -1573,7 +1601,9 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
         beds: propFields.beds || null,
         baths: propFields.baths || null,
         slug: slugValue || null,
-      }).eq('user_id', user?.id);
+      }, {
+        onConflict: 'user_id',
+      });
       if (error) console.error('[handleSaveProperty] onboarding_data save failed:', error.message);
       else console.log('[handleSaveProperty] onboarding_data saved successfully');
       return { data, error };
@@ -1921,7 +1951,7 @@ export function AdminSidebar({ isOpen, onClose, mockMode = false }: AdminSidebar
                 </button>
                 {openSection === key && (
                   <div className="sb-section-body">
-                    {key === 'property' && <PropertySection property={property} images={propertyImages} isEditing={isEditing} fields={propFields} onChange={setPropFields} obData={obData} />}
+                    {key === 'property' && <PropertySection property={property} images={propertyImages} isEditing={isEditing} fields={propFields} onChange={setPropFields} obData={obData} slug={createSlug(slug || propFields.title || sessionStorage.getItem('popup_website_name') || '')} propertyId={property?.id} />}
                     {key === 'website' && <WebsiteSection devUpdates={devUpdates} setDevUpdates={setDevUpdates} serverIp={property?.server_ip} siteUrl={property?.site_url} websiteName={property?.name ?? property?.title} propertySlug={slug || sessionStorage.getItem('popup_website_name') || undefined} propertyId={property?.id} allCredentialsMet={allCredentialsMet} />}
                     {key === 'contact' && <ContactSection user={displayUser} isEditing={isEditing} fields={contactFields} onChange={setContactFields} />}
                     {key === 'banking' && <BankingSection connectData={connectData} connectLoading={connectLoading} connectOnboarding={connectOnboarding} payoutLoading={payoutLoading} payoutSuccess={payoutSuccess} onOnboard={handleConnectOnboard} onRequestPayout={handleRequestPayout} />}

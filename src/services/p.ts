@@ -93,7 +93,7 @@ export function generateSiteHtml(template: string, data: NewSiteData): string {
 // This is the SEO-friendly static landing page with property data baked in.
 // The React app for booking/editing is deployed alongside at /app/.
 // ─────────────────────────────────────────────
-export function generateTemplateHtml(template: string, data: NewSiteData, supabaseUrl?: string, supabaseAnonKey?: string): string {
+export function generateTemplateHtml(template: string, data: NewSiteData, supabaseUrl?: string, supabaseAnonKey?: string, reactBundle?: string): string {
   const s = data.scrapedData;
 
   // Primary images
@@ -182,7 +182,7 @@ export function generateTemplateHtml(template: string, data: NewSiteData, supaba
   }
 })();
 </script>
-<script type="module" crossorigin src="https://www.propbook.pro/scripts/react-assets/assets/${REACT_BUNDLE}?v=10"></script>`);
+<script type="module" crossorigin src="https://www.propbook.pro/scripts/react-assets/assets/${REACT_BUNDLE}?v=10"></script>`).replace(/\$\{REACT_BUNDLE\}/g, reactBundle || 'index-VqTojQAw.js');
 }
 
 // ─────────────────────────────────────────────
@@ -306,16 +306,45 @@ export async function goLiveSite(propertyId: string, slug: string, html: string)
 const DEPLOY_SECRET = 'propbook-deploy-2026';
 const UPLOAD_PHP_URL = 'https://www.propbook.pro/upload.php';
 
-// Asset filenames — must match the current Vite build output
-// Vite generates deterministic hashes, but we hardcode known names after build.
-// After `npm run build`, update these to match dist/assets/ filenames.
-const REACT_BUNDLE = 'index-CTzHXcen.js';
-const REACT_CSS = 'index-BwoOEFWc.css';
+// Asset filenames — resolved at runtime from CDN manifest so stale hardcodes never break deploys.
+// The manifest at https://www.propbook.pro/scripts/react-assets/assets/assets-manifest.json
+// is updated every time `npm run build` runs and assets are uploaded.
+const CDN_BASE = 'https://www.propbook.pro/scripts/react-assets/assets';
+const MANIFEST_URL = `${CDN_BASE}/assets-manifest.json`;
+
+async function resolveAssetNames(): Promise<{ js: string; css: string }> {
+  try {
+    const res = await fetch(MANIFEST_URL);
+    if (!res.ok) throw new Error(`Manifest fetch failed: ${res.status}`);
+    const manifest = await res.json() as { js: string; css: string; builtAt: string };
+    if (manifest.js && manifest.css) {
+      console.log(`[resolveAssetNames] Manifest OK — js:${manifest.js} css:${manifest.css} builtAt:${manifest.builtAt}`);
+      return { js: manifest.js, css: manifest.css };
+    }
+  } catch (e) {
+    console.warn(`[resolveAssetNames] Could not fetch manifest (using fallback): ${e}`);
+  }
+  // Fallback to known-good values — update manually if this becomes stale
+  return { js: 'index-VqTojQAw.js', css: 'index-CAOiIH5V.css' };
+}
+
+/**
+ * In-memory cache so we only fetch the manifest once per page session.
+ * Vite hashes change on every rebuild, so this prevents repeated fetch overhead.
+ */
+let _cachedAssets: { js: string; css: string } | null = null;
+async function getAssetNames(): Promise<{ js: string; css: string }> {
+  if (!_cachedAssets) _cachedAssets = await resolveAssetNames();
+  return _cachedAssets;
+}
 
 // Generate index.html for a property-specific React deployment.
 // Uses RELATIVE asset paths so it works at /props/{slug}/.
 // Includes Stripe pre-mount capture so ?paid=true survives SPA routing.
-function buildPropertyIndexHtml(slug: string): string {
+// Build the minimal index.html for a newly-created property that has no template yet.
+// The index.html that gets deployed via upload.php to /props/{slug}/.
+async function buildPropertyIndexHtml(slug: string): Promise<string> {
+  const { js: reactBundleName, css: reactCssName } = await getAssetNames();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -348,18 +377,17 @@ function buildPropertyIndexHtml(slug: string): string {
       sessionStorage.setItem('stripe_paid_flag', 'true');
       window.history.replaceState({}, '', window.location.pathname);
     }
-    // Tell React to scroll to #calendar-section after mount
     if (wantsBook) {
       sessionStorage.setItem('scroll_to_booking', '1');
       window.history.replaceState({}, '', window.location.pathname);
     }
   })();
   </script>
-  <link rel="stylesheet" href="./assets/${REACT_CSS}">
+  <link rel="stylesheet" href="./assets/${reactCssName}">
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" crossorigin src="./assets/${REACT_BUNDLE}"></script>
+  <script type="module" crossorigin src="./assets/${reactBundleName}"></script>
 </body>
 </html>`;
 }
@@ -390,18 +418,20 @@ export async function deployViaUploadPhp(
 
   // ── Fill template tokens with property data → static HTML ───────────────
   // supabaseUrl/anonKey passed explicitly — can't use import.meta.env at browser runtime
-  const indexHtml = generateTemplateHtml(templateHtml, { ...data, slug }, supabaseUrl, supabaseAnonKey);
+  const indexHtml = generateTemplateHtml(templateHtml, { ...data, slug }, supabaseUrl, supabaseAnonKey, reactBundleName);
 
   // ── Fetch React bundle from CDN for interactive booking/editing ────────
   // The static HTML (index.html) loads app.js for user interactions.
   onProgress?.('Fetching React bundle from CDN...');
 
-  const cdnBase = 'https://www.propbook.pro/scripts/react-assets/assets';
-  const cacheBust = '?v=6';
+  // Resolve bundle names from manifest (avoids stale hardcoded values after rebuilds)
+  const { js: reactBundleName, css: reactCssName } = await getAssetNames();
+  const cdnBase = CDN_BASE;
+  const cacheBust = `?v=${Date.now()}`;
   let reactJs: string;
   try {
-    const r = await fetch(`${cdnBase}/${REACT_BUNDLE}${cacheBust}`);
-    if (!r.ok) throw new Error(`React bundle not found at ${cdnBase}/${REACT_BUNDLE}. Run \`npm run build\` and upload assets to Hostinger first.`);
+    const r = await fetch(`${cdnBase}/${reactBundleName}${cacheBust}`);
+    if (!r.ok) throw new Error(`React bundle not found at ${cdnBase}/${reactBundleName}. Upload assets to CDN first: npm run build && upload dist/assets/* to https://www.propbook.pro/scripts/react-assets/assets/`);
     reactJs = await r.text();
     console.log(`[deployViaUploadPhp] React bundle loaded: ${(reactJs.length / 1024).toFixed(0)}KB`);
   } catch (e) {

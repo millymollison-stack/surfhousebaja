@@ -55,8 +55,9 @@ Deno.serve(async (req: Request) => {
 
     console.log("[save-site-records] Upserting property:", title, slug);
 
-    // ── Idempotent upsert: re-use existing property record if slug already exists ──
+    // ── Idempotent upsert: re-use existing property record if owner_id already exists ──
     // This makes PUBLISH safe to run multiple times (updates existing instead of failing)
+    // Uses owner_id as conflict target (one property per user — owner_id has unique constraint)
     const siteUrl = `https://www.propbook.pro/props/${slug}`;
 
     const { data: propertyRecord, error: propertyError } = await supabase
@@ -93,7 +94,7 @@ Deno.serve(async (req: Request) => {
         brand_color: ref.brand_color || null,
         font_accent: ref.font_accent || null,
       }, {
-        onConflict: 'slug',
+        onConflict: 'owner_id',
       })
       .select("id, slug")
       .single();
@@ -146,7 +147,7 @@ Deno.serve(async (req: Request) => {
           price: pricePerNight ? String(pricePerNight) : null,
           property_id: propertyRecord.id,
         },
-        { onConflict: "slug" }
+        { onConflict: "user_id" }
       );
 
     if (onboardingError) {
