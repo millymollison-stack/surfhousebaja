@@ -18,8 +18,12 @@ export function Login() {
     try {
       await signIn(email, password);
       // Return to the property page the user was on before clicking Sign In
-      const returnTo = sessionStorage.getItem('login_return_url') || '/';
+      const rawReturn = sessionStorage.getItem('login_return_url') || '/';
       sessionStorage.removeItem('login_return_url');
+      // Strip origin if stored as absolute URL — navigate() treats '/props/...' as relative
+      const returnTo = rawReturn.startsWith(window.location.origin)
+        ? rawReturn.slice(window.location.origin.length)
+        : rawReturn;
       navigate(returnTo);
     } finally {
       setLoading(false);
